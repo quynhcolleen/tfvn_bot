@@ -1,11 +1,11 @@
 import asyncio
 from asyncio import log
-from discord.ext import commands
-import discord
-import aiohttp
+from discord.ext import commands  # pyright: ignore[reportMissingImports]
+import discord  # pyright: ignore[reportMissingImports]
+import aiohttp  # pyright: ignore[reportMissingImports]
 import os
 from urllib.parse import urlencode
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
 import random
 
 load_dotenv()
@@ -37,15 +37,12 @@ async def fetch_rule34_one(tags: str, page: int):
 
             data = await res.json()
 
-            # không có kết quả
             if not data:
                 return None
 
-            # Rule34 trả list khi limit=1
             if isinstance(data, list):
                 return data[0]
 
-            # fallback (hiếm)
             if isinstance(data, dict) and "post" in data:
                 return data["post"]
 
@@ -67,7 +64,7 @@ class BooruCog(commands.Cog):
         try:
             post = None
 
-            for _ in range(5): 
+            for _ in range(5):
                 page = random.randint(0, 1000)
                 post = await fetch_rule34_one(query, page)
                 if post:
@@ -89,7 +86,7 @@ class BooruCog(commands.Cog):
                 await ctx.send(f"Kết quả tìm kiếm cho: `{query}`")
                 await ctx.send(file_url)
                 return
-            
+
             await search_msg.delete()
             embed = discord.Embed(title="Rule34 Result", color=discord.Color.purple())
             embed.set_image(url=file_url)

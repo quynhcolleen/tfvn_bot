@@ -37,13 +37,18 @@ async def on_message(message):
 
 
 async def load_cogs():
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py") and not filename.startswith("_"):
-            try:
-                await bot.load_extension(f"cogs.{filename[:-3]}")
-                print(f"✅ Loaded cog: {filename}")
-            except Exception as e:
-                print(f"❌ Failed to load cog {filename}: {e}")
+    for root, _, files in os.walk("cogs"):
+        for file in files:
+            if file.endswith(".py") and not file.startswith("_"):
+                path = os.path.join(root, file)
+
+                module = path.replace("\\", ".").replace("/", ".").removesuffix(".py")
+
+                try:
+                    await bot.load_extension(module)
+                    print(f"✅ Loaded cog: {module}")
+                except Exception as e:
+                    print(f"❌ Failed to load cog {module}: {e}")
 
 
 async def main():
