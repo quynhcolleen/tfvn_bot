@@ -7,7 +7,7 @@ dotenv.load_dotenv()
 
 RULE_CHANNEL = int(os.getenv("RULE_CHANNEL"))
 ROLE_CHANNEL = int(os.getenv("ROLE_CHANNEL"))
-INTRO_CHANNEL = int(os.getenv("INTRO_CHANNEL"))
+JOIN_CHANNEL = int(os.getenv("JOIN_CHANNEL"))
 TEST_CHANNEL = int(os.getenv("TEST_CHANNEL"))
 WELCOME_GIF_URL = os.getenv("WELCOME_GIF_URL")
 
@@ -41,7 +41,7 @@ class WelcomeCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        channel = self.bot.get_channel(INTRO_CHANNEL)
+        channel = self.bot.get_channel(JOIN_CHANNEL)
         if channel is None:
             return
 
