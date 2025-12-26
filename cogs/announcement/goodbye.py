@@ -5,9 +5,7 @@ import dotenv  # pyright: ignore[reportMissingImports]
 
 dotenv.load_dotenv()
 
-RULE_CHANNEL = int(os.getenv("RULE_CHANNEL"))
-ROLE_CHANNEL = int(os.getenv("ROLE_CHANNEL"))
-INTRO_CHANNEL = int(os.getenv("INTRO_CHANNEL"))
+BYE_CHANNEL = int(os.getenv("BYE_CHANNEL"))
 TEST_CHANNEL = int(os.getenv("TEST_CHANNEL"))
 GOODBYE_GIF_URL = os.getenv("GOODBYE_GIF_URL")
 
@@ -34,7 +32,7 @@ class GoodbyeCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        channel = self.bot.get_channel(INTRO_CHANNEL)
+        channel = self.bot.get_channel(BYE_CHANNEL)
         if channel is None:
             return
 
