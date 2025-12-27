@@ -14,7 +14,13 @@ class HelpCog(commands.Cog):
             color=0xFFC0CB,
         )
         embed.add_field(
-            name="General", value="`!tf hello` – Chào con bot.", inline=False
+            name="General",
+            value=(
+                "`!tf hello` – Chào con bot.\n"
+                "`!tf verify` – Hướng dẫn chứng thực độ tuổi.\n"
+                "`!tf verify` – Hướng dẫn chứng thực độ tuổi.\n"
+            ),
+            inline=False,
         )
         embed.add_field(
             name="NSFW",
