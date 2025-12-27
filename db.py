@@ -11,4 +11,4 @@ connection_string = f"{os.getenv('DB_METHOD')}://{os.getenv('DB_USERNAME')}:{os.
 client = MongoClient(connection_string)
 
 # Access the database (replace 'your_db_name' with your actual database name)
-db = client['your_db_name']
+db = client[os.getenv('DB_NAME')]
