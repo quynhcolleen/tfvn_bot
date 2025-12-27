@@ -1,9 +1,11 @@
-import discord  # pyright: ignore[reportMissingImports]
-from discord.ext import commands  # pyright: ignore[reportMissingImports]
+import discord
+from discord.ext import commands
 import os
 import asyncio
 import logging
-from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
+from dotenv import load_dotenv 
+import db
+from dataloader import DataLoader
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
@@ -21,6 +23,12 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!tf ", intents=intents, help_command=None)
+
+bot.db = db.db
+
+# Load banned words globally
+loader = DataLoader(base_path="data")
+bot.BANNED_WORDS = loader.load_lines("banned_word_list.txt")  # Now accessible as bot.BANNED_WORDS
 
 
 @bot.event
