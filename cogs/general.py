@@ -12,11 +12,15 @@ class GeneralCog(commands.Cog):
         
     @commands.command()
     async def hello(self, ctx):
-        await ctx.send(f"Xin chào {ctx.author.mention}! Chúc bạn một ngày vui vẻ!")
+        await ctx.reply(f"Xin chào {ctx.author.mention}! Chúc bạn một ngày vui vẻ!")
 
     @commands.command()
     async def invite(self, ctx):
-        await ctx.send(self.invite_link)
+        await ctx.reply(self.invite_link)
+        
+    @commands.command()
+    async def verify(self, ctx):
+        await ctx.reply(f"Hãy vào xem <#{os.getenv('VERIFY_CHANNEL')}> nhé!")
 
 
 async def setup(bot):
