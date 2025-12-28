@@ -1,5 +1,6 @@
-discord.py
-python-dotenv
-requests
-aiohttp
-asyncio
+discord.py==2.6.4
+python-dotenv==1.1.1
+requests==2.32.5
+aiohttp==3.13.2
+asyncio==4.0.0
+pymongo==4.15.5
