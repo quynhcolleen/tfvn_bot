@@ -26,8 +26,13 @@ bot = commands.Bot(command_prefix="!tf ", intents=intents, help_command=None)
 
 bot.db = db.db
 
+# inject environment variables to all class
+# TODO: inject environment variables to all class for better practice
+
+# for data loader 
 # Load banned words globally
 loader = DataLoader(base_path="data")
+
 bot.BANNED_WORDS = loader.load_lines("banned_word_list.txt")  # Now accessible as bot.BANNED_WORDS
 
 
