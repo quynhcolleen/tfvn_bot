@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import aiohttp
 
+# TODO: save the last user who played the game and not allow them to play again until someone else plays
 class WordConnectCommandCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
