@@ -27,7 +27,7 @@ class DisciplineCog(commands.Cog):
         collection.insert_one(log_data)
         
         # Optional: Still print to console for debugging
-        print(f"[DISCIPLINE LOG] {message.author} (ID: {message.author.id}) in {message.channel} said: '{message.content}'")
+        # print(f"[DISCIPLINE LOG] {message.author} (ID: {message.author.id}) in {message.channel} said: '{message.content}'")
 
     @commands.Cog.listener()
     async def on_message(self, ctx: discord.Message):
@@ -40,7 +40,7 @@ class DisciplineCog(commands.Cog):
             return
 
         # You can now "watch" the message content, author, channel, etc.
-        print(f"New message in {ctx.channel}: {ctx.author} (ID: {ctx.author.id}) said: '{ctx.content}'")
+        # print(f"New message in {ctx.channel}: {ctx.author} (ID: {ctx.author.id}) said: '{ctx.content}'")
         # Example: If a specific word is in the message, the bot can respond.
         if any(bad_word in ctx.content.lower() for bad_word in self.BANNED_WORDS):
             await self.log_discipline_breach(ctx)
