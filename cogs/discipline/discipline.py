@@ -10,9 +10,6 @@ class DisciplineCog(commands.Cog):
         self.BANNED_WORDS = bot.BANNED_WORDS
 
     async def log_discipline_breach(self, message: discord.Message):
-        """
-        Logs a discipline breach message to the console.
-        """
         log_data = {
             "author": str(message.author),
             "author_id": message.author.id,
@@ -31,9 +28,7 @@ class DisciplineCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, ctx: discord.Message):
-        """
-        This event fires whenever a message is sent in a channel the bot can see.
-        """
+        
         # CRITICAL: Prevent the bot from responding to its own messages,
         # which can cause infinite loops.
         if ctx.author == self.bot.user:

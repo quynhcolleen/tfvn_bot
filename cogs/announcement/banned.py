@@ -2,12 +2,12 @@ from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import discord  # pyright: ignore[reportMissingImports]
 import os
 import dotenv  # pyright: ignore[reportMissingImports]
-
+from assets.gifs import BANNED_GIF
 dotenv.load_dotenv()
 
 BYE_CHANNEL = int(os.getenv("BYE_CHANNEL"))
 TEST_CHANNEL = int(os.getenv("TEST_CHANNEL"))
-BANNED_GIF_URL = os.getenv("BANNED_GIF_URL")
+
 
 
 class BannedCog(commands.Cog):
@@ -26,8 +26,8 @@ class BannedCog(commands.Cog):
 
         embed.set_thumbnail(url=member.display_avatar.url)
 
-        if BANNED_GIF_URL:
-            embed.set_image(url=BANNED_GIF_URL)
+        if BANNED_GIF:
+            embed.set_image(url=BANNED_GIF)
 
         await channel.send(embed=embed)
 

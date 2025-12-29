@@ -2,15 +2,13 @@ from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import discord  # pyright: ignore[reportMissingImports]
 import os
 import dotenv  # pyright: ignore[reportMissingImports]
-
+from assets.gifs import WELCOME_GIF
 dotenv.load_dotenv()
 
 RULE_CHANNEL = int(os.getenv("RULE_CHANNEL"))
 ROLE_CHANNEL = int(os.getenv("ROLE_CHANNEL"))
 JOIN_CHANNEL = int(os.getenv("JOIN_CHANNEL"))
 TEST_CHANNEL = int(os.getenv("TEST_CHANNEL"))
-WELCOME_GIF_URL = os.getenv("WELCOME_GIF_URL")
-
 
 class WelcomeCog(commands.Cog):
     def __init__(self, bot):
@@ -34,8 +32,8 @@ class WelcomeCog(commands.Cog):
 
         embed.set_thumbnail(url=member.display_avatar.url)
 
-        if WELCOME_GIF_URL:
-            embed.set_image(url=WELCOME_GIF_URL)
+        if WELCOME_GIF:
+            embed.set_image(url=WELCOME_GIF)
 
         await channel.send(embed=embed)
 

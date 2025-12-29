@@ -1,27 +1,83 @@
+# ANNOUNCEMENT GIF ASSETS
+WELCOME_GIF = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHhxajVnN3pjcGx2cXlwbG91cG4xcW0wODdsczBjYXowbDdxcW80YSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6sr7BS9VaOz8UKGHPe/giphy.gif"
+
+GOODBYE_GIF = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdjd0MzBxeTl1MThoczVjeXM5dmswenFvdnVmZ3dveTVkNjQ4aGR0ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/D3qGw9pkYo4CkvbT8e/giphy.gif"
+
+BANNED_GIF = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExazRiYmlsMHd0NDhyMWVrY3owaXdqenM2NzF1eTgxc3Bia2lscTZpZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/eSihO7nRMcvSpfgnFQ/giphy.gif"
+
+
+# INTERACTION GIF ASSETS
 KISS_GIFS = [
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454516268924276756/kiss1.gif?ex=69515f56&is=69500dd6&hm=602295eaab40cc8615420e3d4e777d4cd3cf422257baa2de58cd66e3a0174b03&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454516269201096804/kiss2.gif?ex=69515f56&is=69500dd6&hm=2a401803ad7265d6a8cba0b0c35cf68af16db02c32d45dcbd51560d02766cbc5&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454516269494833296/kiss3.gif?ex=69515f56&is=69500dd6&hm=ab42a84ebd895662dd6d157ab15a6df7c00fe06c106a2a22957fdc56075aa0e0&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454516269788303452/kiss4.gif?ex=69515f56&is=69500dd6&hm=e7e17ad460abe5d5673b7226f528fc6bf6d6703eb78c49bd4956d3ed02237854&",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExY25nZHl2Nm90Y2ltcWFrMHAyZzhlY3duZHZvZGNkbXZlYXdoZ3Q5cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GBne10g7FKAHzSZKjb/giphy.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmFkcWMzczVqeDU3YXl5MTdxenpmY3k3MWFmNHpreTl5YjBuNDAybiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/j1smcQYt6ch7mBYLgy/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExeG41bGNuY3A4anI3c2VqdjQ2M3BhMWV5enIzdnd0M3M5NXloNzV0ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/iKoZNmgDiWcj2p4FbH/giphy.gif",
+    "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdnI1Z3RldGkzM2Vna210dThtZm5hbmo3NmR0MGFyMno0azlpMXlwZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/rA8rzYcNTqYA0HtqTh/giphy.gif",
+    "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExN2VjZjA1amUxaDhhOTkzN3h3dDR5YzgzY3BtMnRxbHQ3MWFpZGltOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/EVODaJHSXZGta/giphy.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExajBkMXQxbWlpbTNkNjR5NTF2NjZxd294M3I1MTdta2V4d3U4eGkyMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ciNN4YNQNncbe/giphy.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlmc3gzYm1uaGVweHp1Mml6ZHY4dmZmZTh4dWN3ZW12dzA1ejJ2MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/rvOyFjbMz86Mo/giphy.gif",
 ]
 
 HUG_GIFS = [
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454710551341957162/femboy-cute.gif?ex=69521446&is=6950c2c6&hm=22d7ab7a9be67f87b92426e10e4cbe071d89424891346e573e741d8d8eab50bd&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454710551874638008/hwbfKwb.gif?ex=69521446&is=6950c2c6&hm=8d6844402a48619ec6ba7c0c9a3a62d5924b2da6a0488bff8e5e4c6d9a2f78a1&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454710552361435322/snuggling-cuddling-anime-girls-gif.webp?ex=69521446&is=6950c2c6&hm=a767517bb85fe5f9d74564cdfd922c0753b6386e6127cf00571bf0a4b07ba096&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454710552738664651/femboy-hug.gif?ex=69521446&is=6950c2c6&hm=cf94b445a62a3a0a203088c01c9440cb7b57ec2e32c8b344fd44cbdbba6b0344&",
+    "https://tenor.com/vlzZ9vgVT02.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWhsN2xqZmZ5b29pZnExOHlqaXQ0d2I3NHI1dXBrenRzdXhtaTJ4bSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/EoCTpfMdqt0859OoXK/giphy.gif",
+    "https://tenor.com/bXBqu.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeG14eDkydTM2MW1tcmt2Y3M2dXU5aGQ0cnIwNTBibG5mZHppdTU2OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/t1qERguvhk975cKV6Q/giphy.gif",
+    "https://tenor.com/by4Qt.gif",
+    "https://tenor.com/bOTSa.gif",
 ]
 
 PAT_GIFS = [
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454716395097948293/4.gif?ex=695219b7&is=6950c837&hm=25eb18d36e97a82dd522c0e8180d936193b57b27527f0bdce66991e1b3428bb3&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454716395395747922/1.gif?ex=695219b7&is=6950c837&hm=75f2eb6d23a87d6bd774867c43a09a3ca299efd56ad171b933dcc20724dd084f&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454716395752390833/2.gif?ex=695219b8&is=6950c838&hm=f56a1f45b7ae73d56183566700f7ae30e51fb6c1b530faa5d48ced1f81fee2c5&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454716396020695123/3.gif?ex=695219b8&is=6950c838&hm=37556b447ae5845a1c28dd1a24768715c8a495f340dc53b9425702cc4a92c79c&",
+    "https://tenor.com/dayz2rCXvJl.gif",
+    "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG5vZDZlY3VnNzl0MHJxd3doeWNvcHBnaXR6OHRxYW4weW9kaXI3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/CyO7bG8mcf0qwJTdxO/giphy.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmtlNWE3NnFzMWtmbjBzNGo4amIzcHBud202cHplY29jczRrcmhtciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/sjvseMWuSrJlu3qFKI/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExa3pweDVvNHNmZ25xMmM1ODh4c2h3ZDl0cjF2Nmo3Z3RtbmozOXFyOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/zTSnnFcB4q36UfFWvV/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExejF6b2Foc3pjbHpocnZxNjNjY3c3N3Z0ZWF5M2p5YzZ2aXFoMnp4OSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YiYw2EMNLn4701Ytp3/giphy.gif",
+    "https://tenor.com/bTn05.gif",
+    "https://tenor.com/oWJc1FunH7o.gif",
+    "https://tenor.com/bEtSF.gif",
 ]
 
 SLAP_GIFS = [
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454722618220609698/slap1.gif?ex=69521f83&is=6950ce03&hm=b50efabdbb02f55f428d87756b303346400dd74e4877dc205274ae9ee7f931ea&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454722618492981382/slap2.gif?ex=69521f83&is=6950ce03&hm=daecdc210e43a09631b3a1aff0c50fd76352983e24bd021ada758e43c5055ffe&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454722618757349467/slap3.gif?ex=69521f83&is=6950ce03&hm=380991f92d76b0317f2645c8c3aae21487f35b45b65a685722d5811f0f232fc2&",
-    "https://cdn.discordapp.com/attachments/1454158256384639088/1454722617922682942/slap4.gif?ex=69521f83&is=6950ce03&hm=76448ee5602ea4b28043276c5c5ec06e3568bfbaeb09668643c0c3aa8bd2034a&",
+    "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNDg0bGNhOHJmZnRxcjZuNWRvbWtvMjJnODhja2dlcXJvMXY0OWt3cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ZANcIkwwkvHDoH0hND/giphy.gif",
+    "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYXBnMzZnYTZhbXIydTU2a25ycGNzcXl6bjJ3M2phZjJ2bjVhejlnZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/B6AnpArAtFuVZJiCbo/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZHlxZTR0NmxtaTl4cWJvM3Y0cmRkeDF2aXFlc2FkeGRucHoxaHc2NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Wtz0UoUUt2PUt3fYy7/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHpsOWV0ejI1d2sxN3h1aDhldnJqcnNobXEwbTVuZmV0c2MxNzNoeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NL5hgNBgx4bdipUngv/giphy.gif",
+    "https://tenor.com/bfxxu.gif",
+    "https://tenor.com/bF1aV.gif",
+    "https://tenor.com/E1MC.gif",
+    "https://tenor.com/btfW2.gif",
+]
+
+PUNCH_GIFS = [
+    "https://tenor.com/ugnq.gif",
+    "https://tenor.com/bTVlV.gif",
+    "https://tenor.com/hCCVHNNq5l9.gif",
+    "https://tenor.com/bDRLO.gif",
+    "https://tenor.com/qKLhGT23LXT.gif",
+    "https://tenor.com/oaN8IuMElq7.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExazRnbmN0YWRxbDJ6ZDFtYjQ0em1ubDN6aWQycnE5YnRhZWN4YWJkZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/1xONKAmjT1GHFpkLRd/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnh5ajRpNjBtMTdjcnE3d25lNHUwZGdiY2l6ZHRjeTd5dm9oaDNyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/AlsIdbTgxX0LC/giphy.gif",
+]
+
+POKE_GIFS = [
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExd2NuN2p4aWZ0NDJtdXVlYzlzM3U5YXNvdzR1cHQ3azhmM3M1MXEzaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/aZSMD7CpgU4Za/giphy.gif",
+    "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDRheHBqbmNkcGVpY2VtNms3dmdjNndmb3FvaGo4YWRscDM0YW11eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/LXTQN2kRbaqAw/giphy.gif",
+    "https://tenor.com/pcn54peS8AE.gif",
+    "https://tenor.com/bXeeu.gif",
+    "https://tenor.com/e8XIstd0v5l.gif",
+    "https://tenor.com/bjdQD.gif",
+    "https://tenor.com/bjX3n.gif",
+    "https://tenor.com/bXj3u.gif",
+    "https://tenor.com/o8dpONQIMUG.gif",
+]
+
+# Meme GIF ASSETS
+
+GIFS_36 = [
+    "https://tenor.com/bUWoTS5O6pB.gif",
+    "https://tenor.com/s7HxEWBqrSY.gif",
+    "https://tenor.com/l0sOVUI4laZ.gif",
+    "https://tenor.com/fng048N1POn.gif",
+    "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmF0Y2Q2dDU2eXd0NWJ2OHVydGkyeXVlMnVlOTZkNTljcXplem8xeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/h8gq7Jccz0at40OXlb/giphy.gif",
+    "https://tenor.com/pkUAHiEl4uS.gif",
 ]

@@ -2,12 +2,11 @@ from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import discord  # pyright: ignore[reportMissingImports]
 import os
 import dotenv  # pyright: ignore[reportMissingImports]
-
+from assets.gifs import GOODBYE_GIF
 dotenv.load_dotenv()
 
 BYE_CHANNEL = int(os.getenv("BYE_CHANNEL"))
 TEST_CHANNEL = int(os.getenv("TEST_CHANNEL"))
-GOODBYE_GIF_URL = os.getenv("GOODBYE_GIF_URL")
 
 
 class GoodbyeCog(commands.Cog):
@@ -25,8 +24,8 @@ class GoodbyeCog(commands.Cog):
 
         embed.set_thumbnail(url=member.display_avatar.url)
 
-        if GOODBYE_GIF_URL:
-            embed.set_image(url=GOODBYE_GIF_URL)
+        if GOODBYE_GIF:
+            embed.set_image(url=GOODBYE_GIF)
 
         await channel.send(embed=embed)
 
