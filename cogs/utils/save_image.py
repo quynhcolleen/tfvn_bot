@@ -30,6 +30,7 @@ class SaveImageCog(commands.Cog):
             return saved_image.inserted_id
     
     @commands.command(name='save_image', help='Saves attached images to the database.')
+    @commands.has_permissions(manage_messages=True)
     async def save_image_cmd(self, ctx, collection_name: str):
         if not ctx.message.attachments:
             return
