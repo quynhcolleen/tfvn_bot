@@ -35,5 +35,5 @@ class KickCog(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("Bạn không có quyền để đá thành viên.")
 
-# async def setup(bot: commands.Bot):
-#     await bot.add_cog(KickCog(bot))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(KickCog(bot))

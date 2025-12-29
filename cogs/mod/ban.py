@@ -35,5 +35,5 @@ class BanCog(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("Bạn không có quyền để cấm thành viên.")
 
-# async def setup(bot: commands.Bot):
-#     await bot.add_cog(BanCog(bot))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(BanCog(bot))
