@@ -17,10 +17,26 @@ class RandomFemboyCog(commands.Cog):
             return
         
         random_number = random.randint(0, fembi_num - 1)
-        femboy_images = list(collection.find({"image_collection": "femboy"}).skip(random_number).limit(1))
-        random_image = femboy_images[0]
+        femboy_images_collection = list(collection.find({"image_collection": "femboy"}).skip(random_number).limit(1))
+        random_image_collection = femboy_images_collection[0]
 
-        await ctx.send(random_image['url'])
+        await ctx.send(random_image_collection['url'])
+
+        # trying to get social media from metadata
+        metadata = random_image_collection.get('metadata', {})
+        
+        embed = discord.Embed(title="Thông tin thêm về femboy này")
+        if 'fb' in metadata:
+            embed.add_field(name="📘 Facebook", value=metadata['fb'], inline=False)
+        if 'ig' in metadata:
+            embed.add_field(name="📸 Instagram", value=metadata['ig'], inline=False)
+        if 'x' in metadata:
+            embed.add_field(name="❌ X", value=metadata['x'], inline=False)
+
+        # embed color set to femboy pink
+        embed.color = 0xFF69B4
+            
+        await ctx.send(embed=embed)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(RandomFemboyCog(bot))
