@@ -28,13 +28,14 @@ bot.db = db.db
 
 # inject environment variables to all class
 # TODO: inject environment variables to all class for better practice
+bot.WORD_CONNECT_GAMES_CHANNELS = os.getenv("WORD_CONNECT_GAMES_CHANNELS", "").split(",")  # Example: "channel_id1,channel_id2"
 
 # for data loader 
 # Load banned words globally
 loader = DataLoader(base_path="data")
 
 bot.BANNED_WORDS = loader.load_lines("banned_word_list.txt")  # Now accessible as bot.BANNED_WORDS
-
+bot.WORD_CONNECT_WORDS = loader.load_lines("word_connect_valid_list.txt")  # Now accessible as bot.WORD_CONNECT_WORDS
 
 @bot.event
 async def on_ready():
