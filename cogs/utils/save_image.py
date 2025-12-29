@@ -8,7 +8,20 @@ class SaveImageCog(commands.Cog):
         self.bot = bot
         self.db = bot.db
         
-    async def log_image_save(self, ctx: discord.Message, image_collection_name: str):
+    async def log_image_save(self, ctx: discord.Message, image_collection_name: str, *metadata_args):
+        saved_image_id = []
+        # Parse metadata arguments as key-value pairs
+        metadata_dict = {}
+
+        for i in range(0, len(metadata_args), 2):
+            if i + 1 < len(metadata_args):
+                key = metadata_args[i]
+                value = metadata_args[i + 1]
+                metadata_dict[key] = value
+                print(f"Added metadata key-value pair: {key} = {value}")
+        
+        print(f"Metadata dict: {metadata_dict}")
+        
         for att in ctx.message.attachments:
             if not att.content_type or not att.content_type.startswith('image/'):
                 continue
@@ -22,22 +35,26 @@ class SaveImageCog(commands.Cog):
                 "image_collection": image_collection_name,
                 "url": att.url,                    # permanent
                 "proxy_url": att.proxy_url,
+                "metadata": metadata_dict,
                 "saved_at": datetime.utcnow()
             }
             
             saved_image = self.db['images'].insert_one(doc)
-        
-            return saved_image.inserted_id
+            saved_image_id.append(str(saved_image.inserted_id))
+
+        return saved_image_id if saved_image_id else None
+            
     
     @commands.command(name='save_image', help='Saves attached images to the database.')
     @commands.has_permissions(manage_messages=True)
-    async def save_image_cmd(self, ctx, collection_name: str):
+    async def save_image_cmd(self, ctx, collection_name: str, *metadata_args):
         if not ctx.message.attachments:
             return
         
-        saved_image_id = await self.log_image_save(ctx, collection_name)
+        saved_image_ids = await self.log_image_save(ctx, collection_name, *metadata_args)
+        print(f"Saved image IDs: {saved_image_ids}")
 
-        if (saved_image_id):
+        if (saved_image_ids):
             await ctx.send(f"Hình ảnh đã được lưu")
         else:
             await ctx.send("Có lỗi xảy ra khi lưu hình ảnh.")
