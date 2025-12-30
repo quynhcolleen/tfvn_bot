@@ -22,7 +22,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="!tf ", intents=intents, help_command=None)
+bot = commands.Bot(command_prefix=os.getenv("COMMAND_PREFIX", "!tf "), intents=intents, help_command=None)
 
 bot.db = db.db
 
