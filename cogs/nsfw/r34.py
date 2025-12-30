@@ -33,6 +33,7 @@ _cred_index = 0
 
 # ===================== HELPERS =====================
 
+
 def get_next_credentials():
     global _cred_index
     cred = RULE34_CREDENTIALS[_cred_index]
@@ -64,6 +65,7 @@ def pick_post(posts: list[dict]) -> dict:
 
 
 # ===================== API =====================
+
 
 async def fetch_rule34_posts(tags: str, page: int, limit: int = 5) -> list[dict] | None:
     formatted_tags = tags.strip().replace(" ", "+") + "+-ai_generated"
@@ -97,6 +99,7 @@ async def fetch_rule34_posts(tags: str, page: int, limit: int = 5) -> list[dict]
 
 # ===================== COG =====================
 
+
 class Rule34Cog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -112,9 +115,7 @@ class Rule34Cog(commands.Cog):
             return
 
         if not query:
-            msg = await ctx.reply(
-                "⚠️ Bạn cần nhập tag.\nVí dụ: `!tf r34 trap anal_sex`"
-            )
+            msg = await ctx.reply("⚠️ Bạn cần nhập tag.\nVí dụ: `!tf r34 trap anal_sex`")
             await asyncio.sleep(5)
             await msg.delete()
             return
@@ -168,7 +169,7 @@ class Rule34Cog(commands.Cog):
             await search_msg.delete()
 
             if file_url.endswith((".mp4", ".webm")):
-                await ctx.reply(f"Kết quả cho `{query}`")
+                await ctx.reply(f"Kết quả tìm kiếm cho `{query}`")
                 await ctx.reply(file_url)
                 return
 
@@ -192,6 +193,7 @@ class Rule34Cog(commands.Cog):
 
 
 # ===================== SETUP =====================
+
 
 async def setup(bot):
     await bot.add_cog(Rule34Cog(bot))
