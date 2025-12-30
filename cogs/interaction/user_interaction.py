@@ -86,6 +86,16 @@ class UserInteractionCog(commands.Cog):
         )
         embed.set_image(url=random.choice(POKE_GIFS))
         await ctx.send(embed=embed)
+        
+    # Avatar
+    @commands.command(name="avatar", aliases=["av"])
+    async def avatar(self, ctx, member: discord.Member = None):
+        member = member or ctx.author
+        embed = discord.Embed(
+            title=f"📸 Avatar của {member.name}:",
+        )
+        embed.set_image(url=member.avatar.url)
+        await ctx.send(embed=embed)
             
 async def setup(bot: commands.Bot):
     await bot.add_cog(UserInteractionCog(bot))
