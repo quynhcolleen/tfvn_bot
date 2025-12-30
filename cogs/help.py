@@ -18,16 +18,23 @@ class HelpCog(commands.Cog):
             name="General",
             value=(
                 "`!tf hello` – Chào con bot.\n"
-                "`!tf verify` – Hướng dẫn chứng thực độ tuổi.\n"
                 "`!tf cat` – Mèo.\n"
                 "`!tf dog` – Chó.\n"
+                "`!tf kiss @user` – Hôn member khác.\n"
+                "`!tf hug @user` – Ôm member khác.\n"
+                "`!tf pat @user` – Xoa đầu member khác.\n"
+                "`!tf slap @user` – Tát member khác.\n"
+                "`!tf punch @user` – Đấm member khác.\n"
+                "`!tf hit @user` – Đánh member khác.\n"
+                "`!tf poke @user` – Chọc member khác.\n"
+                "`!tf avatar @user` – Xem avatar của member khác.\n"
             ),
             inline=False,
         )
         embed.add_field(
             name="NSFW",
             value=(
-                "`!tf nsfw` – Hướng dẫn lệnh nsfw.\n"
+                "`!tf nsfw` – Hướng dẫn lệnh nsfw.\n" 
                 "`!tf verify` – Hướng dẫn chứng thực độ tuổi.\n"
 
             ),
@@ -49,6 +56,14 @@ class HelpCog(commands.Cog):
             value=(
                 "`!tf r34 <tags>` – Tìm kiếm ảnh/video trên Rule34.\n"
                 "`!tf gbr <tags>` – Tìm kiếm ảnh/video trên Gelbooru.\n"
+                "`!tf bj @user` - Blowjob cho member khác.\n" 
+                # "`!tf rj @user - Rimjob cho member khác.\n" 
+                "`!tf hj @user` - Handjob cho member khác.\n" 
+                # "`!tf fj @user - Footjob cho member khác.\n" 
+                # "`!tf finger @user - Móc member khác.\n" 
+                "`!tf frot @user` - Frotting với member khác.\n" 
+                "`!tf fuck @user` - Làm tình với member khác.\n" 
+                "`!tf cream @user` - Creampie member khác.\n"
             ),
             inline=False,
         )
