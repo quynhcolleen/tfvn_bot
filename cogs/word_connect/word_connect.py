@@ -70,6 +70,49 @@ class WordConnectCommandCog(commands.Cog):
         self.last_player_id = None
         self._save_context()
 
+    def _count_dead_ends(self, word: str, word_list: list[str], visited: set[str]) -> int:
+        if word in visited:
+            return 0
+
+        visited.add(word)
+        last = word.split()[-1]
+
+        candidates = [
+            w for w in word_list if w.startswith(last) and w != word and w not in visited
+        ]
+
+        if not candidates:
+            return 1  # Dead end found
+
+        dead_end_count = 0
+        for next_word in candidates:
+            dead_end_count += self._count_dead_ends(next_word, word_list, visited.copy())
+
+        return dead_end_count
+    
+
+    def _top_words(self, word: str) -> list[tuple[str, int]]:
+        last = word.split()[-1]
+        
+        candidates = [w for w in self.word_list if w.startswith(last)]
+        print(f"Candidates for '{word}': {candidates}")
+        
+        if not candidates:
+            return []
+        
+        # (next_word, count of paths that lead to dead-end)
+        results = []
+        
+        for next_word in candidates:
+            dead_count = self._count_dead_ends(next_word, self.word_list, set())
+            results.append((next_word, dead_count))
+            
+            # Sort: smallest dead-end count first
+            results.sort(key=lambda x: x[1])
+            
+            return results[:5]
+
+
     # COMMANDS
     @commands.command(name="noitu_help")
     async def wordconnect_help(self, ctx):
@@ -122,6 +165,20 @@ class WordConnectCommandCog(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    @commands.command(name="noitu_hint")
+    async def word_connect_top(self, ctx):
+        top_suggestions = self._top_words(self.current_word.lower().strip())
+        
+        if not top_suggestions:
+            await ctx.send("❌ Không có từ gợi ý nào khả dụng.")
+            return
+        
+        suggestion_msg = "Các từ gợi ý:\n"
+        for word, dead_count in top_suggestions:
+            suggestion_msg += f"- {word} ({dead_count} từ tiếp theo để dẫn đến ngõ cụt)\n"
+        
+        await ctx.send(suggestion_msg)
+
     @commands.command(name="noitu_end")
     async def wordconnect_end(self, ctx):
         self._clear_context()
@@ -142,8 +199,10 @@ class WordConnectCommandCog(commands.Cog):
         if ctx.valid:
             return
 
+        print(self.bot.command_prefix)
         if message.content.startswith(tuple(self.bot.command_prefix)):
             return
+        
 
         word = message.content.lower().strip()
 
