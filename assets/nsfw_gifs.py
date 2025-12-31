@@ -69,7 +69,6 @@ CREAMPIE_GIFS = [
     "https://cdn.hentaigifz.com/97756/ariari-anaman-succubus-by-majenta-rose-scaled.webp",
     "https://cdn.hentaigifz.com/98080/ariari-anaman-succubus-by-majenta-rose-scaled.webp",
     "https://cdn.hentaigifz.com/98090/ariari-anaman-succubus-by-majenta-rose-scaled.webp",
-    "",
 ]
 
 # GANGBANG_GIFS = [
