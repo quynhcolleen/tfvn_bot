@@ -1,15 +1,20 @@
 import asyncio
 import logging
-from discord.ext import commands  # pyright: ignore[reportMissingImports]
-import discord  # pyright: ignore[reportMissingImports]
-import aiohttp  # pyright: ignore[reportMissingImports]
+import random
 import os
 from urllib.parse import urlencode
+
+import aiohttp  # pyright: ignore[reportMissingImports]
+import discord  # pyright: ignore[reportMissingImports]
+from discord.ext import commands  # pyright: ignore[reportMissingImports]
 from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
-import random
 
 logger = logging.getLogger(__name__)
 load_dotenv()
+
+# ===================== CONFIG =====================
+
+GELBOORU_API_URL = os.getenv("GELBOORU_API_URL", "https://gelbooru.com/index.php")
 
 GELBOORU_CREDENTIALS = [
     {
@@ -22,9 +27,11 @@ GELBOORU_CREDENTIALS = [
     },
 ]
 
+MAX_PID = 10_000
 _cred_index = 0
 
-GELBOORU_API_URL = os.getenv("GELBOORU_API_URL", "https://gelbooru.com/index.php")
+
+# ===================== HELPERS =====================
 
 
 def get_next_credentials():
@@ -34,9 +41,38 @@ def get_next_credentials():
     return cred
 
 
-async def fetch_gelbooru_one(tags: str, page: int):
-    formatted_tags = tags.strip().replace(" ", "+") + "+-ai_generated"
+def random_recent_page(max_page: int = MAX_PID) -> int:
+    r = random.random()
 
+    if r < 0.25:
+        return random.randint(0, 20)
+    elif r < 0.65:
+        return random.randint(21, 800)
+    elif r < 0.90:
+        return random.randint(801, 1500)
+    else:
+        return random.randint(1501, max_page)
+
+
+def pick_post(posts: list[dict]) -> dict:
+    weights = []
+
+    for p in posts:
+        score = int(p.get("score", 0))
+        weights.append(max(score + 5, 1))
+
+    return random.choices(posts, weights=weights, k=1)[0]
+
+
+# ===================== API =====================
+
+
+async def fetch_gelbooru_posts(
+    tags: str,
+    page: int,
+    limit: int = 5,
+) -> list[dict] | None:
+    formatted_tags = tags.strip().replace(" ", "+") + "+-ai_generated"
     cred = get_next_credentials()
 
     params = {
@@ -44,7 +80,7 @@ async def fetch_gelbooru_one(tags: str, page: int):
         "s": "post",
         "q": "index",
         "pid": page,
-        "limit": 1,
+        "limit": limit,
         "json": 1,
         "tags": formatted_tags,
         "api_key": cred["api_key"],
@@ -60,16 +96,20 @@ async def fetch_gelbooru_one(tags: str, page: int):
 
             data = await res.json()
 
+            # Gelbooru trả về hơi lộn xộn
             if not data:
                 return None
 
             if isinstance(data, list):
-                return data[0]
+                return data
 
             if isinstance(data, dict) and "post" in data:
-                return data["post"][0]
+                return data["post"]
 
             return None
+
+
+# ===================== COG =====================
 
 
 class GelbooruCog(commands.Cog):
@@ -80,17 +120,14 @@ class GelbooruCog(commands.Cog):
     async def gbr(self, ctx, *, query: str | None = None):
         if not ctx.channel.is_nsfw():
             await ctx.message.add_reaction("⚠️")
-            warn_msg = await ctx.reply("🔞 Dùng lệnh này trong channel NSFW nhé.")
+            warn = await ctx.reply("🔞 Dùng lệnh này trong channel NSFW nhé.")
             await asyncio.sleep(5)
-            await warn_msg.delete()
+            await warn.delete()
             await ctx.message.delete()
             return
-        
+
         if not query:
-            msg = await ctx.reply(
-                "⚠️ Bạn cần nhập tag để tìm.\n"
-                "Ví dụ: `!tf gbr trap anal_sex`"
-            )
+            msg = await ctx.reply("⚠️ Bạn cần nhập tag.\nVí dụ: `!tf gbr trap anal_sex`")
             await asyncio.sleep(5)
             await msg.delete()
             return
@@ -98,32 +135,56 @@ class GelbooruCog(commands.Cog):
         search_msg = await ctx.send(f"🔍 Đang tìm: `{query}`")
 
         try:
-            post = None
+            used_pages: set[int] = set()
+            posts: list[dict] | None = None
 
-            for _ in range(5):
-                page = random.randint(0, 1000)
-                post = await fetch_gelbooru_one(query, page)
-                if post:
+            # ---------- Phase 1: random thông minh ----------
+            for _ in range(4):
+                page = random_recent_page()
+                if page in used_pages:
+                    continue
+
+                used_pages.add(page)
+                posts = await fetch_gelbooru_posts(query, page)
+                if posts:
                     break
 
-            if not post:
+            # ---------- Phase 2: ép page thấp ----------
+            if not posts:
+                for page in range(0, 6):
+                    if page in used_pages:
+                        continue
+
+                    used_pages.add(page)
+                    posts = await fetch_gelbooru_posts(query, page)
+                    if posts:
+                        break
+
+            # ---------- Phase 3: vét sạch pid = 0 ----------
+            if not posts:
+                posts = await fetch_gelbooru_posts(query, 0, limit=100)
+
+            if not posts:
+                await search_msg.delete()
                 await ctx.reply("❌ Không tìm thấy kết quả.")
                 return
 
+            post = pick_post(posts)
+
             file_url = post.get("file_url")
             if not file_url:
+                await search_msg.delete()
                 await ctx.reply("❌ Post không có file.")
                 return
 
             file_url = file_url.replace("http://", "https://")
+            await search_msg.delete()
 
             if file_url.endswith((".mp4", ".webm")):
-                await search_msg.delete()
-                await ctx.reply(f"Kết quả tìm kiếm cho: `{query}`")
+                await ctx.reply(f"Kết quả tìm kiếm cho `{query}`")
                 await ctx.reply(file_url)
                 return
 
-            await search_msg.delete()
             embed = discord.Embed(title="Gelbooru Result", color=0x1767B0)
             embed.set_image(url=file_url)
             embed.set_footer(text=f"Tags: {query}")
@@ -137,9 +198,13 @@ class GelbooruCog(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.reply("⏱️ API phản hồi quá lâu.")
             logger.exception("Gelbooru API timeout")
+
         except Exception:
             await ctx.reply("⚠️ Có lỗi xảy ra.")
             logger.exception("Unexpected error in gbr command")
+
+
+# ===================== SETUP =====================
 
 
 async def setup(bot):
