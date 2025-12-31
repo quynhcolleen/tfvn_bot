@@ -6,6 +6,7 @@ import logging
 from dotenv import load_dotenv 
 import db
 from dataloader import DataLoader
+import boto3
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
@@ -25,6 +26,16 @@ intents.members = True
 bot = commands.Bot(command_prefix=os.getenv("COMMAND_PREFIX", "!tf "), intents=intents, help_command=None)
 
 bot.db = db.db
+
+bot.s3 = boto3.client(
+    service_name="s3",
+    # Provide your Cloudflare account ID
+    endpoint_url=os.getenv("S3_CLIENT_ENDPOINT", ""),
+    # Retrieve your S3 API credentials for your R2 bucket via API tokens (see: https://developers.cloudflare.com/r2/api/tokens)
+    aws_access_key_id=os.getenv("ACCESS_KEY_ID", ""),
+    aws_secret_access_key=os.getenv("SECRET_KEY_ACCESS", ""),
+    region_name="auto", # Required by SDK but not used by R2
+)
 
 # inject environment variables to all class
 # TODO: inject environment variables to all class for better practice
