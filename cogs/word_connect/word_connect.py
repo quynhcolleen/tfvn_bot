@@ -1,7 +1,7 @@
 import random
 from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import discord  # pyright: ignore[reportMissingImports]
-
+import datetime
 
 class WordConnectCommandCog(commands.Cog):
     def __init__(self, bot):
@@ -9,6 +9,7 @@ class WordConnectCommandCog(commands.Cog):
         self.word_list: list[str] = bot.WORD_CONNECT_WORDS
         self.channel_games: list[str] = bot.WORD_CONNECT_GAMES_CHANNELS
         self.db = bot.db
+        self.hint_timeout_datetime = None
 
         context = self._load_context()
         self.current_word: str = context["current_word"]
@@ -167,6 +168,13 @@ class WordConnectCommandCog(commands.Cog):
 
     @commands.command(name="noitu_hint")
     async def word_connect_top(self, ctx):
+        # timeout 30 seconds to prevent spam
+        now = datetime.datetime.now()
+        if self.hint_timeout_datetime and (now - self.hint_timeout_datetime).total_seconds() < 30:
+            await ctx.send("⏳ Vui lòng chờ trước khi yêu cầu gợi ý tiếp theo.")
+            return
+        
+        self.hint_timeout_datetime = now
         top_suggestions = self._top_words(self.current_word.lower().strip())
         
         if not top_suggestions:
