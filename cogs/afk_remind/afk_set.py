@@ -48,10 +48,15 @@ class AFK(commands.Cog):
         return " ".join(parts)
 
     @commands.command(name="afk")
-    async def afk(self, ctx):
+    async def afk(self, ctx: commands.Context):
+        print(f"[AFK COMMAND] Invoked by {ctx.author} in guild {ctx.guild}")
         def check(m):
             return m.author == ctx.author and m.channel == ctx.channel
 
+        # if action and action.lower() == "clear":
+        #     await self.clear_afk(ctx)
+        #     return
+        
         try:
             embed = discord.Embed(
                 title="Set thời gian AFK ⌛",
@@ -107,7 +112,7 @@ class AFK(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.command(name="afk clear")
+    @commands.command(name="afk_clear", aliases=["afk_clear"])
     async def clear_afk(self, ctx: commands.Context):
         result = self.db["afk_reminders"].update_one(
             {
