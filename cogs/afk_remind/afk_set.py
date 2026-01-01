@@ -47,7 +47,7 @@ class AFK(commands.Cog):
 
         return " ".join(parts)
 
-    @commands.command(name="afk")
+    @commands.group(name="afk", invoke_without_command=True)
     async def afk(self, ctx: commands.Context):
         print(f"[AFK COMMAND] Invoked by {ctx.author} in guild {ctx.guild}")
         def check(m):
@@ -112,7 +112,7 @@ class AFK(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.command(name="afk_clear", aliases=["afk_clear"])
+    @afk.command(name="clear")
     async def clear_afk(self, ctx: commands.Context):
         result = self.db["afk_reminders"].update_one(
             {
@@ -138,6 +138,7 @@ class AFK(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+
     @clear_afk.error
     async def clear_afk_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
@@ -148,7 +149,6 @@ class AFK(commands.Cog):
                 color=discord.Color.orange(),
             )
             await ctx.send(embed=embed)
-
 
 async def setup(bot):
     await bot.add_cog(AFK(bot))
