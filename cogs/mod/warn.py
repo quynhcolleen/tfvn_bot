@@ -34,6 +34,14 @@ class WarnCommandCog(commands.Cog):
         embed.add_field(name="Lý do", value=reason, inline=False)
 
         await ctx.send(embed=embed, delete_after=60)
+    @warn_user.error
+    async def warn_user_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("Bạn không có quyền để sử dụng lệnh này.", delete_after=10)
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Vui lòng cung cấp thành viên cần cảnh cáo.", delete_after=10)
+        else:
+            await ctx.send("Đã xảy ra lỗi khi xử lý lệnh cảnh cáo.", delete_after=10)
 
     @commands.command(name="check_warn")
     async def check_warnings(self, ctx: commands.Context, user: discord.Member = None):
