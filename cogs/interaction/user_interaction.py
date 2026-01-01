@@ -38,6 +38,18 @@ class UserInteractionCog(commands.Cog):
         self.punch_picker = GifPicker(PUNCH_GIFS, history_size=5)
         self.hit_picker = GifPicker(HIT_GIFS, history_size=5)
         self.poke_picker = GifPicker(POKE_GIFS, history_size=5)
+        self.db = bot.db
+
+    def record_action(self, action: str, ctx: commands.Context, member: discord.Member):
+        document = {
+            "message_id": ctx.message.id,
+            "initMember": ctx.author.id,
+            "targetMember": member.id,
+            "action": action,
+            "created_at": discord.datetime.utcnow()
+        }
+        self.db["interactions"].insert_one(document)
+
 
     # gọn gọn send embed
     async def _send_embed(
@@ -133,6 +145,55 @@ class UserInteractionCog(commands.Cog):
             description="",
             gif_url=member.avatar.url,
         )
+
+    @commands.command(name="rank", aliases=["ranking"])
+    async def rank(self, ctx: commands.Context, interaction_type: str | None = None):
+        sfw_interactions = ["kiss", "hug", "pat", "slap", "punch", "hit", "poke"]
+        if interaction_type not in (sfw_interactions + [None]):
+            await ctx.send("Loại tương tác không hợp lệ. Vui lòng sử dụng một trong: kiss, hug, pat, slap, punch, hit, poke.")
+            return
+        
+        pipeline = [
+            {
+                "$group": {
+                    "_id": "$initMember",
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"count": -1}
+            },
+            {
+                "$limit": 10
+            }
+        ]
+
+        if interaction_type:
+            pipeline.insert(0, {
+                "$match": {"action": interaction_type}
+            })
+        else :
+            pipeline.insert(0, {
+                "$match": {"action": {"$in": sfw_interactions}}
+            })
+
+        top_users = list(self.db["interactions"].aggregate(pipeline))
+
+        description_lines = []
+        for rank, user_record in enumerate(top_users, start=1):
+            user_id = user_record["_id"]
+            count = user_record["count"]
+            user = self.bot.get_user(user_id)
+            user_name = user.name if user else f"ID {user_id}"
+            description_lines.append(f"**{rank}. {user_name}** - {count} tương tác")
+
+        description = "\n".join(description_lines) if description_lines else "Chưa có tương tác nào được ghi nhận."
+
+        embed = discord.Embed(
+            title="🏆 Top 10 Người dùng theo Tương tác",
+            description=description
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
