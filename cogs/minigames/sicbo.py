@@ -79,15 +79,70 @@ class SicBoCommandCog(commands.Cog):
         results = []
 
         if is_triple:
-            results.append("It's a Triple! All bets on Triple win!")
-
-        elif total >= 11:
-            results.append("It's a Big! All bets on Big win!")
-
+            results.append("⚫ Triple wins!")
         else:
-            results.append("It's a Small! All bets on Small win!")
+            if 4 <= total <= 10:
+                results.append("🔵 Small wins!")
+            elif 11 <= total <= 17:
+                results.append("🔴 Big wins!")
 
-        await init_msg.edit(content="\n".join(results))
+        # Fetch all reactions and determine winners
+        winners = []
+        for react in init_msg.reactions:
+            if react.emoji in betting_options:
+                users = [u async for u in react.users() if not u.bot]
+                
+                # Check if this reaction emoji corresponds to a winning bet
+                if (react.emoji == "⚫" and is_triple) or \
+                   (react.emoji == "🔵" and 4 <= total <= 10 and not is_triple) or \
+                   (react.emoji == "🔴" and 11 <= total <= 17 and not is_triple):
+                    winners.extend(users)
+
+        # Log bet pools
+        bet_pools = {}
+        for react in init_msg.reactions:
+            if react.emoji in betting_options:
+                users = [u async for u in react.users() if not u.bot]
+                bet_pools[react.emoji] = [u.name for u in users]
+
+        # Print bet pools to console
+        print("=== Bet Pools ===")
+        for emoji, desc in betting_options.items():
+            players = bet_pools.get(emoji, [])
+            print(f"{emoji} {desc}: {', '.join(players) if players else 'No bets'}")
+        print("=================")
+
+        # Create final result message
+        result_message = f"The dice have been rolled! Results: {' | '.join(str(d) for d in dice)}\n"
+        result_message += f"Total: {total}\n"
+        result_message += "\n".join(results)
+
+        if winners:
+            winner_mentions = ", ".join(u.mention for u in winners)
+            result_message += f"\n\n🎉 Congratulations to the winners: {winner_mentions}!"
+        else:
+            result_message += f"\n\n❌ No winners this round!"
+
+        await init_msg.edit(content=result_message)
+
+    # let the user react only one reaction, if they react another, remove the previous one
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
+        if user.bot:
+            return
+        
+        if reaction.message.author != self.bot.user:
+            return
+        
+        if reaction.message.content.startswith("Waiting for players to place their bets"):
+            # check if user has already reacted with another option
+            for react in reaction.message.reactions:
+                if react.emoji != reaction.emoji:
+                    users = [u async for u in react.users()]
+                    if user in users:
+                        await react.remove(user)
+                        break
+        
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(SicBoCommandCog(bot))
