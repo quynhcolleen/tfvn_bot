@@ -57,7 +57,7 @@ class HelpCog(commands.Cog):
                 "`!tf r34 <tags>` – Tìm kiếm ảnh/video trên Rule34.\n"
                 "`!tf gbr <tags>` – Tìm kiếm ảnh/video trên Gelbooru.\n"
                 "`!tf bj @user` - Blowjob cho member khác.\n" 
-                # "`!tf rj @user - Rimjob cho member khác.\n" 
+                "`!tf rj @user - Rimjob (liếm lồn) cho member khác.\n" 
                 "`!tf hj @user` - Handjob cho member khác.\n" 
                 # "`!tf fj @user - Footjob cho member khác.\n" 
                 # "`!tf finger @user - Móc member khác.\n" 

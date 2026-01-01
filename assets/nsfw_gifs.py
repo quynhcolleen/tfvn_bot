@@ -11,9 +11,27 @@ BLOWJOB_GIFS = [
     "https://api-cdn.rule34.xxx//images/1472/fd3adeb905354a46b989b646d3e75c48eeca3cd7.gif?1552935",
     "https://cdn.hentaigifz.com/92096/sissy-hentai-blowjob-scaled.webp",
     "https://cdn.hentaigifz.com/90686/cartoon-scaled.webp",
+    "https://cdn.discordapp.com/attachments/1454158256384639088/1455836986274353222/2.gif",
+    "https://cdn.discordapp.com/attachments/1454158256384639088/1455836986605568130/3.gif",
 ]
 
-# RIMJOB_GIFS = []
+RIMJOB_GIFS = [
+    "https://api-cdn.rule34.xxx//images/993/b93dcade67fc61d552ffe1928aa99d4a.gif?11897500",
+    "https://cdn.discordapp.com/attachments/1454158256384639088/1455832092796518430/1.gif",
+    "https://api-cdn.rule34.xxx//images/6296/894066e0092e0044581e0476073643fa.gif?7167837",
+    "https://api-cdn.rule34.xxx//images/3069/cc15c7351cc5c4218d82f1f7490e274b.gif?4616773",
+    "https://cdn.discordapp.com/attachments/1454158256384639088/1455852451633827871/22-ezgif.com-cut.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456301022354870444/2-ezgif.com-cut.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456304174252687432/3-ezgif.com-optimize.gif",
+    "https://cdn.discordapp.com/attachments/889515689205956698/1456318571129864377/29934301.gif",
+]
+
+FINGERING_GIFS = [
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456308278316368025/moc.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456317651415732429/2a4a0d170eea9cb68a1c87ac82c93fca.gif",
+    "",
+    "",
+]
 
 HANDJOB_GIFS = [
     "https://api-cdn.rule34.xxx//images/2076/6683940478ebf63ae6b1b31636ed7845.gif?13572376",
@@ -22,10 +40,20 @@ HANDJOB_GIFS = [
     "https://cdn.hentaigifz.com/97176/trans-scaled.webp",
     "https://cdn.hentaigifz.com/113141/lelkiporn-scaled.webp",
     "https://cdn.hentaigifz.com/90800/from-inda-no-himekishi-janne-scaled.webp",
-    "https://cdn.hentaigifz.com/87574/bro-straight-up-dickgirls-wtf-scaled.webp"
+    "https://cdn.hentaigifz.com/87574/bro-straight-up-dickgirls-wtf-scaled.webp",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456301879440052296/hj2.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456302130724999178/113493188-large.gif",
 ]
 
-# FOOTJOB_GIFS = ["https://img2.gelbooru.com//images/1b/ad/1badc5d22054103863e4cb81598c4645.gif"]
+FOOTJOB_GIFS = [
+    "https://img2.gelbooru.com//images/1b/ad/1badc5d22054103863e4cb81598c4645.gif",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+]
 
 FROTTING_GIFS = [
     "https://api-cdn.rule34.xxx//images/1815/c3602097f6896190ccd7aa8b4699d9bf.gif?13564877",
@@ -58,6 +86,13 @@ FUCKING_GIFS = [
     "https://img2.gelbooru.com//images/ae/ef/aeef9de33de9fada6cf06ebc54ac3bfd.gif",
     "https://img2.gelbooru.com//images/81/d0/81d053f85d5dd14423bbdc58ab8bd294.gif",
     "https://cdn.hentaigifz.com/71194/ahegao-futa-scaled.webp",
+    "https://cdn.discordapp.com/attachments/1454158256384639088/1455838841574264873/Newhalf-Gif-Newhalf-male-on-Newhalf-marth-fire-emblem-8250130.gif",
+    "https://cdn.discordapp.com/attachments/1454158256384639088/1455854376408322176/33.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456303199895162943/135052696-large.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456305534566141952/fff.gif",
+    "https://media.discordapp.net/attachments/1456298650081824778/1456312365732724798/139130893-large-ezgif.com-optimize.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456315520809697351/109511282-medium.gif",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456315938088554608/cody.gif"
 ]
 
 CREAMPIE_GIFS = [
@@ -69,11 +104,13 @@ CREAMPIE_GIFS = [
     "https://cdn.hentaigifz.com/97756/ariari-anaman-succubus-by-majenta-rose-scaled.webp",
     "https://cdn.hentaigifz.com/98080/ariari-anaman-succubus-by-majenta-rose-scaled.webp",
     "https://cdn.hentaigifz.com/98090/ariari-anaman-succubus-by-majenta-rose-scaled.webp",
+    "https://cdn.discordapp.com/attachments/1456298650081824778/1456307579239268534/cream.gif",
+    "https://media.discordapp.net/attachments/889515665877254205/1456309994998988953/creammm.gif",
 ]
 
-# GANGBANG_GIFS = [
-#     "https://img2.gelbooru.com//images/6b/84/6b84a330013edec0e5ae6b094fadfbda.gif",
-#     "https://img2.gelbooru.com//images/f3/4a/f34ac86268036225c3f8df7760e0a700.gif",
-#     "https://img2.gelbooru.com//images/c2/da/c2dad182933ca3f10846e208045e122d.gif",
-#     "https://img2.gelbooru.com//images/74/4a/744a279127d28e8cd80355a98d9dfde0.gif",
-# ]
+GANGBANG_GIFS = [
+    "https://img2.gelbooru.com//images/6b/84/6b84a330013edec0e5ae6b094fadfbda.gif",
+    "https://img2.gelbooru.com//images/f3/4a/f34ac86268036225c3f8df7760e0a700.gif",
+    "https://img2.gelbooru.com//images/c2/da/c2dad182933ca3f10846e208045e122d.gif",
+    "https://img2.gelbooru.com//images/74/4a/744a279127d28e8cd80355a98d9dfde0.gif",
+]

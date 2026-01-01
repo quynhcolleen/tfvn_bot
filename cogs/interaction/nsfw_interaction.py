@@ -7,6 +7,7 @@ from collections import deque
 from assets.nsfw_gifs import (
     BLOWJOB_GIFS,
     HANDJOB_GIFS,
+    RIMJOB_GIFS,
     FROTTING_GIFS,
     FUCKING_GIFS,
     CREAMPIE_GIFS,
@@ -29,12 +30,12 @@ class GifPicker:
 class NSFWInteractionCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bj_picker = GifPicker(BLOWJOB_GIFS, history_size=8)
-        self.hj_picker = GifPicker(HANDJOB_GIFS, history_size=7)
-        self.frot_picker = GifPicker(FROTTING_GIFS, history_size=5)
-        self.fuck_picker = GifPicker(FUCKING_GIFS, history_size=15)
-        self.cream_picker = GifPicker(CREAMPIE_GIFS, history_size=5)
-
+        self.bj_picker = GifPicker(BLOWJOB_GIFS, history_size=len(BLOWJOB_GIFS))
+        self.hj_picker = GifPicker(HANDJOB_GIFS, history_size=len(HANDJOB_GIFS))
+        self.rj_picker = GifPicker(RIMJOB_GIFS, history_size=len(RIMJOB_GIFS))
+        self.frot_picker = GifPicker(FROTTING_GIFS, history_size=len(FROTTING_GIFS))
+        self.fuck_picker = GifPicker(FUCKING_GIFS, history_size=len(FUCKING_GIFS))
+        self.cream_picker = GifPicker(CREAMPIE_GIFS, history_size=len(CREAMPIE_GIFS))
     async def _nsfw_guard(self, ctx: commands.Context) -> bool:
         if ctx.channel.is_nsfw():
             return True
@@ -74,6 +75,19 @@ class NSFWInteractionCog(commands.Cog):
             gif_url=self.bj_picker.pick(),
         )
 
+    # RIMJOB
+    @commands.command(name="rj")
+    async def rimjob(self, ctx: commands.Context, member: discord.Member):
+        if not await self._nsfw_guard(ctx):
+            return
+
+        await self._send_embed(
+            ctx,
+            title="🍑 Liếm cái ik~",
+            description=f"{ctx.author.mention} liếm lồn {member.mention} 👅💦",
+            gif_url=self.rj_picker.pick(),
+        )
+        
     # HANDJOB
     @commands.command(name="hj")
     async def handjob(self, ctx: commands.Context, member: discord.Member):
