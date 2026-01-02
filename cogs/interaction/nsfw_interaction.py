@@ -44,7 +44,7 @@ class NSFWInteractionCog(commands.Cog):
             "initMember": ctx.author.id,
             "targetMember": member.id,
             "action": action,
-            "created_at": discord.datetime.utcnow()
+            "created_at": discord.datetime.utcnow(),
         }
         self.db["interactions"].insert_one(document)
 
@@ -79,7 +79,7 @@ class NSFWInteractionCog(commands.Cog):
     async def blowjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
-        
+
         self.record_action("bj", ctx, member)
 
         await self._send_embed(
@@ -103,7 +103,7 @@ class NSFWInteractionCog(commands.Cog):
             description=f"{ctx.author.mention} liếm lồn {member.mention} 👅💦",
             gif_url=self.rj_picker.pick(),
         )
-        
+
     # HANDJOB
     @commands.command(name="hj")
     async def handjob(self, ctx: commands.Context, member: discord.Member):
@@ -118,7 +118,7 @@ class NSFWInteractionCog(commands.Cog):
             description=f"{ctx.author.mention} sục cho {member.mention} 💦",
             gif_url=self.hj_picker.pick(),
         )
-        
+
     # FROTTING
     @commands.command(name="frot")
     async def frotting(self, ctx: commands.Context, member: discord.Member):
@@ -169,7 +169,7 @@ class NSFWInteractionCog(commands.Cog):
         self,
         ctx: commands.Context,
         mode_or_action: str | None = None,
-        interaction_type: str | None = None
+        interaction_type: str | None = None,
     ):
         if not await self._nsfw_guard(ctx):
             return
@@ -183,7 +183,7 @@ class NSFWInteractionCog(commands.Cog):
             "hj": "sục cho member khác",
             "frot": "đấu kiếm",
             "fuck": "địt member khác",
-            "cream": "xuất trong"
+            "cream": "xuất trong",
         }
 
         # text cho NGƯỜI BỊ
@@ -193,13 +193,13 @@ class NSFWInteractionCog(commands.Cog):
             "hj": "được sục cặc",
             "frot": "được đấu kiếm",
             "fuck": "bị địt",
-            "cream": "bị xuất trong"
+            "cream": "bị xuất trong",
         }
 
         # mặc định: người CHỦ ĐỘNG
         mode = "given"
 
-        if mode_or_action == "received":
+        if mode_or_action == "r":
             mode = "received"
             action = interaction_type
         else:
@@ -214,14 +214,9 @@ class NSFWInteractionCog(commands.Cog):
         user_field = "$initMember" if mode == "given" else "$targetMember"
 
         pipeline = [
-            {
-                "$group": {
-                    "_id": user_field,
-                    "count": {"$sum": 1}
-                }
-            },
+            {"$group": {"_id": user_field, "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
-            {"$limit": 10}
+            {"$limit": 10},
         ]
 
         if action:
@@ -241,16 +236,16 @@ class NSFWInteractionCog(commands.Cog):
 
             if mode == "given":
                 if action:
-                    text = f"{count} lần {action_text_given[action]}"
+                    text = f"{count} lần {action_text_given[action]}."
                 else:
                     text = f"{count} lần chơi người khác."
             else:
                 if action:
-                    text = f"{count} lần {action_text_received[action]}"
+                    text = f"{count} lần {action_text_received[action]}."
                 else:
                     text = f"{count} lần bị chơi."
 
-            lines.append(f"**{rank}. {name}** – {text}")
+            lines.append(f"**{rank}**. {name} – {text}")
 
         description = "\n".join(lines) if lines else "Chưa có dữ liệu."
 
@@ -263,13 +258,14 @@ class NSFWInteractionCog(commands.Cog):
             if action:
                 title = f"🏆 Top 10 người {action_text_received[action]} nhiều nhất 💦"
 
-        embed = discord.Embed(
-            title=title,
-            description=description
+        embed = discord.Embed(title=title, description=description)
+        embed.set_author(name="BXH độ răm", icon_url=ctx.author.display_avatar.url)
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        embed.set_image(
+            url="https://api-cdn.rule34.xxx//images/1500/85f729598f01b951f528e47b49078414.gif?1585014"
         )
-
         await ctx.send(embed=embed)
 
-        
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(NSFWInteractionCog(bot))

@@ -17,11 +17,16 @@ class HelpCog(commands.Cog):
             color=0xFFC0CB,
         )
         embed.add_field(
-            name="General",
+            name="Tương tác chung:",
+            value=("`!tf hello` – Chào con bot.\n"
+                   "`!tf cat` – Mèo.\n"
+                   "`!tf dog` – Chó.\n"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="Tương tác với member khác:",
             value=(
-                "`!tf hello` – Chào con bot.\n"
-                "`!tf cat` – Mèo.\n"
-                "`!tf dog` – Chó.\n"
                 "`!tf kiss @user` – Hôn member khác.\n"
                 "`!tf hug @user` – Ôm member khác.\n"
                 "`!tf pat @user` – Xoa đầu member khác.\n"
@@ -34,11 +39,20 @@ class HelpCog(commands.Cog):
             inline=False,
         )
         embed.add_field(
+            name="BXH tương tác:",
+            value=(
+                "`!tf rank` – Xem bảng xếp hạng tương tác chung.\n"
+                "`!tf rank r` – Xem bảng xếp hạng người bị/được tương tác chung.\n"
+                "`!tf rank <action>` – Xem bảng xếp hạng member theo tương tác riêng.\n"
+                "`!tf rank r <action>` – Xem bảng xếp hạng member bị/được tương tác riêng.\n"
+            ),
+            inline=False,
+        )
+        embed.add_field(
             name="NSFW",
             value=(
-                "`!tf nsfw` – Hướng dẫn lệnh nsfw.\n" 
+                "`!tf nsfw` – Hướng dẫn lệnh nsfw.\n"
                 "`!tf verify` – Hướng dẫn chứng thực độ tuổi.\n"
-
             ),
             inline=False,
         )
@@ -46,7 +60,7 @@ class HelpCog(commands.Cog):
         embed.set_footer(text="Prefix: !tf")
 
         await ctx.send(embed=embed)
-        
+
     @commands.command(name="nsfw")
     async def nsfw_help(self, ctx, *args):
         if args:
@@ -56,18 +70,34 @@ class HelpCog(commands.Cog):
             color=0xFFC0CB,
         )
         embed.add_field(
-            name="NSFW Commands",
+            name="Tìm kiếm nội dung NSFW:",
             value=(
                 "`!tf r34 <tags>` – Tìm kiếm ảnh/video trên Rule34.\n"
                 "`!tf gbr <tags>` – Tìm kiếm ảnh/video trên Gelbooru.\n"
-                "`!tf bj @user` - Blowjob cho member khác.\n" 
-                "`!tf rj @user` - Rimjob (liếm lồn) cho member khác.\n" 
-                "`!tf hj @user` - Handjob cho member khác.\n" 
-                # "`!tf fj @user - Footjob cho member khác.\n" 
-                # "`!tf finger @user - Móc member khác.\n" 
-                "`!tf frot @user` - Frotting với member khác.\n" 
-                "`!tf fuck @user` - Làm tình với member khác.\n" 
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="Chịch member khác:",
+            value=(
+                "`!tf bj @user` - Blowjob cho member khác.\n"
+                "`!tf rj @user` - Rimjob (liếm lồn) cho member khác.\n"
+                "`!tf hj @user` - Handjob cho member khác.\n"
+                # "`!tf fj @user - Footjob cho member khác.\n"
+                # "`!tf finger @user - Móc member khác.\n"
+                "`!tf frot @user` - Frotting với member khác.\n"
+                "`!tf fuck @user` - Làm tình với member khác.\n"
                 "`!tf cream @user` - Creampie member khác.\n"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="Bảng xếp hạng - vinh danh kẻ dâm:",
+            value=(
+                "`!tf ranknsfw` - Xem bảng xếp hạng tổng thể quỷ sếch.\n"
+                "`!tf ranknsfw r` - Xem bảng xếp hạng tổng người bị sếch.\n"
+                "`!tf ranknsfw <action>` - Xem bảng xếp hạng quỷ sếch theo tương tác.\n"
+                "`!tf ranknsfw r <action>` - Xem bảng xếp hạng người bị sếch theo tương tác.\n"
             ),
             inline=False,
         )
@@ -80,6 +110,7 @@ class HelpCog(commands.Cog):
             return
         else:
             await ctx.reply(embed=embed)
-            
+
+
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))
