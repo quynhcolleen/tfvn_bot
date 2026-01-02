@@ -38,6 +38,17 @@ class UserInteractionCog(commands.Cog):
         self.punch_picker = GifPicker(PUNCH_GIFS, history_size=5)
         self.hit_picker = GifPicker(HIT_GIFS, history_size=5)
         self.poke_picker = GifPicker(POKE_GIFS, history_size=5)
+        self.db = bot.db
+
+    def record_action(self, action: str, ctx: commands.Context, member: discord.Member):
+        document = {
+            "message_id": ctx.message.id,
+            "initMember": ctx.author.id,
+            "targetMember": member.id,
+            "action": action,
+            "created_at": discord.datetime.utcnow(),
+        }
+        self.db["interactions"].insert_one(document)
 
     # gọn gọn send embed
     async def _send_embed(
@@ -133,6 +144,107 @@ class UserInteractionCog(commands.Cog):
             description="",
             gif_url=member.avatar.url,
         )
+
+    @commands.command(name="rank", aliases=["ranking"])
+    async def rank(
+        self,
+        ctx: commands.Context,
+        mode_or_action: str | None = None,
+        interaction_type: str | None = None,
+    ):
+        sfw_interactions = ["kiss", "hug", "pat", "slap", "punch", "hit", "poke"]
+
+        # text cho NGƯỜI CHỦ ĐỘNG
+        action_text_given = {
+            "kiss": "hôn người khác",
+            "hug": "ôm người khác",
+            "pat": "xoa đầu người khác",
+            "slap": "tát người khác",
+            "punch": "đấm người khác",
+            "hit": "đánh người khác",
+            "poke": "chọc người khác",
+        }
+
+        # text cho NGƯỜI BỊ
+        action_text_received = {
+            "kiss": "được hôn",
+            "hug": "được ôm",
+            "pat": "được xoa đầu",
+            "slap": "bị tát",
+            "punch": "bị đấm",
+            "hit": "bị đánh",
+            "poke": "bị chọc",
+        }
+
+        # mặc định: người CHỦ ĐỘNG
+        mode = "given"
+
+        if mode_or_action == "r":
+            mode = "received"
+            action = interaction_type
+        else:
+            action = mode_or_action
+
+        if action not in (sfw_interactions + [None]):
+            await ctx.send(
+                "Loại tương tác không hợp lệ.\nDùng: `kiss`, `hug`, `pat`, `slap`, `punch`, `hit`, `poke`."
+            )
+            return
+
+        user_field = "$initMember" if mode == "given" else "$targetMember"
+
+        pipeline = [
+            {"$group": {"_id": user_field, "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10},
+        ]
+
+        if action:
+            pipeline.insert(0, {"$match": {"action": action}})
+        else:
+            pipeline.insert(0, {"$match": {"action": {"$in": sfw_interactions}}})
+
+        top_users = list(self.db["interactions"].aggregate(pipeline))
+
+        lines = []
+        for rank, record in enumerate(top_users, start=1):
+            user_id = record["_id"]
+            count = record["count"]
+
+            user = self.bot.get_user(user_id)
+            name = user.mention if user else f"ID {user_id}"
+
+            if mode == "given":
+                if action:
+                    text = f"{count} lần {action_text_given[action]}."
+                else:
+                    text = f"{count} lần tương tác."
+            else:
+                if action:
+                    text = f"{count} lần {action_text_received[action]}."
+                else:
+                    text = f"{count} lần bị tương tác."
+
+            lines.append(f"**{rank}. {name}** – {text}")
+
+        description = "\n".join(lines) if lines else "Chưa có dữ liệu."
+
+        if mode == "given":
+            title = "🏆 Top 10 người tương tác nhiều nhất"
+            if action:
+                title = f"🏆 Top 10 người {action_text_given[action]} nhiều nhất"
+        else:
+            title = "🏆 Top 10 người bị tương tác nhiều nhất"
+            if action:
+                title = f"🏆 Top 10 người {action_text_received[action]} nhiều nhất"
+
+        embed = discord.Embed(title=title, description=description)
+        embed.set_author(name="BXH tương tác", icon_url=ctx.author.display_avatar.url)
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        embed.set_image(
+            url="https://cdn.discordapp.com/attachments/1382770560743903246/1456661155236806832/Untitled_design_37.png"
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
