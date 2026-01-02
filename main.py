@@ -9,6 +9,7 @@ from dataloader import DataLoader
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
+environment = os.getenv("ENVIRONMENT", "production").lower() 
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,18 +52,32 @@ async def on_message(message):
 
 
 async def load_cogs():
-    for root, _, files in os.walk("cogs"):
-        for file in files:
-            if file.endswith(".py") and not file.startswith("_"):
-                path = os.path.join(root, file)
+    if environment == "development":
+        # Load only cogs listed in dev_cogs.txt
+        dev_cogs_file = "dev_cogs.txt"
+        if os.path.exists(dev_cogs_file):
+            with open(dev_cogs_file, "r") as f:
+                cogs_to_load = [line.strip() for line in f if line.strip()]
+        else:
+            print(f"❌ {dev_cogs_file} not found. No cogs loaded in dev mode.")
+            return
+    else:
+        # Production: Load all cogs from cogs directory
+        cogs_to_load = []
+        for root, _, files in os.walk("cogs"):
+            for file in files:
+                if file.endswith(".py") and not file.startswith("_"):
+                    path = os.path.join(root, file)
+                    module = path.replace("\\", ".").replace("/", ".").removesuffix(".py")
+                    cogs_to_load.append(module)
 
-                module = path.replace("\\", ".").replace("/", ".").removesuffix(".py")
+    for module in cogs_to_load:
+        try:
+            await bot.load_extension(module)
+            print(f"✅ Loaded cog: {module}")
+        except Exception as e:
+            print(f"❌ Failed to load cog {module}: {e}")
 
-                try:
-                    await bot.load_extension(module)
-                    print(f"✅ Loaded cog: {module}")
-                except Exception as e:
-                    print(f"❌ Failed to load cog {module}: {e}")
 
 
 async def main():
