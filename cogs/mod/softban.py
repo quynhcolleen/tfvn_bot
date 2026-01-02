@@ -63,6 +63,16 @@ class SoftbanCog(commands.Cog):
         await member.add_roles(handcuffed_role)
         await ctx.send(f"Đã nhốt {member.mention} vào ngục. Lý do: {reason}")
 
+    @softban_member.error
+    async def softban_member_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("Bạn không có quyền sử dụng lệnh này.")
+        elif isinstance(error, commands.BadArgument):
+            await ctx.send("Thành viên không hợp lệ. Vui lòng đề cập đến một thành viên hợp lệ.")
+        else:
+            await ctx.send("Đã xảy ra lỗi khi thực hiện lệnh softban.")
+            raise error
+        
     @commands.command(name="unsoftban")
     @commands.has_permissions(ban_members=True)
     async def unsoftban_member(self, ctx: commands.Context, member: discord.Member):
@@ -83,6 +93,16 @@ class SoftbanCog(commands.Cog):
         old_roles = [discord.utils.get(ctx.guild.roles, id=role_id) for role_id in old_roles_ids]
         await member.add_roles(*[role for role in old_roles if role is not None])
         await ctx.send(f"Đã thả {member.mention} khỏi ngục và khôi phục vai trò cũ.")
+    @unsoftban_member.error
+    async def unsoftban_member_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("Bạn không có quyền sử dụng lệnh này.")
+        elif isinstance(error, commands.BadArgument):
+            await ctx.send("Thành viên không hợp lệ. Vui lòng đề cập đến một thành viên hợp lệ.")
+        else:
+            await ctx.send("Đã xảy ra lỗi khi thực hiện lệnh unsoftban.")
+            raise error
+        
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(SoftbanCog(bot))
