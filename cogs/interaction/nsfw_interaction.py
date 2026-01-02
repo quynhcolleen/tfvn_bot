@@ -165,56 +165,111 @@ class NSFWInteractionCog(commands.Cog):
         )
 
     @commands.command(name="ranknsfw", aliases=["rankingnsfw"])
-    async def rank(self, ctx: commands.Context, interaction_type: str | None = None):
+    async def ranknsfw(
+        self,
+        ctx: commands.Context,
+        mode_or_action: str | None = None,
+        interaction_type: str | None = None
+    ):
         if not await self._nsfw_guard(ctx):
             return
-        
+
         nsfw_interactions = ["bj", "rj", "hj", "frot", "fuck", "cream"]
-        if interaction_type not in (nsfw_interactions + [None]):
-            await ctx.send("Loại tương tác không hợp lệ. Vui lòng sử dụng một trong: bj, rj, hj, frot, fuck, cream.")
+
+        # text cho NGƯỜI CHỦ ĐỘNG
+        action_text_given = {
+            "bj": "bú cu",
+            "rj": "liếm lồn",
+            "hj": "sục cho member khác",
+            "frot": "đấu kiếm",
+            "fuck": "địt member khác",
+            "cream": "xuất trong"
+        }
+
+        # text cho NGƯỜI BỊ
+        action_text_received = {
+            "bj": "được bú cu",
+            "rj": "được liếm lồn",
+            "hj": "được sục cặc",
+            "frot": "được đấu kiếm",
+            "fuck": "bị địt",
+            "cream": "bị xuất trong"
+        }
+
+        # mặc định: người CHỦ ĐỘNG
+        mode = "given"
+
+        if mode_or_action == "received":
+            mode = "received"
+            action = interaction_type
+        else:
+            action = mode_or_action
+
+        if action not in (nsfw_interactions + [None]):
+            await ctx.send(
+                "Loại tương tác không hợp lệ.\nVui lòng sử dụng: `bj`, `rj`, `hj`, `frot`, `fuck`, `cream`."
+            )
             return
-        
+
+        user_field = "$initMember" if mode == "given" else "$targetMember"
+
         pipeline = [
             {
                 "$group": {
-                    "_id": "$initMember",
+                    "_id": user_field,
                     "count": {"$sum": 1}
                 }
             },
-            {
-                "$sort": {"count": -1}
-            },
-            {
-                "$limit": 10
-            }
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
         ]
 
-        if interaction_type:
-            pipeline.insert(0, {
-                "$match": {"action": interaction_type}
-            })
+        if action:
+            pipeline.insert(0, {"$match": {"action": action}})
         else:
-            pipeline.insert(0, {
-                "$match": {"action": {"$in": nsfw_interactions}}
-            })
+            pipeline.insert(0, {"$match": {"action": {"$in": nsfw_interactions}}})
 
         top_users = list(self.db["interactions"].aggregate(pipeline))
 
-        description_lines = []
-        for rank, user_record in enumerate(top_users, start=1):
-            user_id = user_record["_id"]
-            count = user_record["count"]
-            user = self.bot.get_user(user_id)
-            user_name = user.name if user else f"ID: {user_id}"
-            description_lines.append(f"**{rank}. {user_name}** - {count} tương tác")
+        lines = []
+        for rank, record in enumerate(top_users, start=1):
+            user_id = record["_id"]
+            count = record["count"]
 
-        description = "\n".join(description_lines) if description_lines else "Chưa có tương tác nào được ghi nhận."
+            user = self.bot.get_user(user_id)
+            name = user.mention if user else f"ID {user_id}"
+
+            if mode == "given":
+                if action:
+                    text = f"{count} lần {action_text_given[action]}"
+                else:
+                    text = f"{count} lần chơi người khác."
+            else:
+                if action:
+                    text = f"{count} lần {action_text_received[action]}"
+                else:
+                    text = f"{count} lần bị chơi."
+
+            lines.append(f"**{rank}. {name}** – {text}")
+
+        description = "\n".join(lines) if lines else "Chưa có dữ liệu."
+
+        if mode == "given":
+            title = "🏆 Top 10 con quỷ sex của server 😈"
+            if action:
+                title = f"🏆 Top 10 người {action_text_given[action]} nhiều nhất 💦"
+        else:
+            title = "🏆 Top 10 người làm sex slave nhiều nhất 👉🏻👌🏻💦"
+            if action:
+                title = f"🏆 Top 10 người {action_text_received[action]} nhiều nhất 💦"
 
         embed = discord.Embed(
-            title="🏆 Top 10 Con quỷ sex của server",
+            title=title,
             description=description
         )
+
         await ctx.send(embed=embed)
+
         
 async def setup(bot: commands.Bot):
     await bot.add_cog(NSFWInteractionCog(bot))

@@ -149,14 +149,27 @@ class UserInteractionCog(commands.Cog):
     @commands.command(name="rank", aliases=["ranking"])
     async def rank(self, ctx: commands.Context, interaction_type: str | None = None):
         sfw_interactions = ["kiss", "hug", "pat", "slap", "punch", "hit", "poke"]
+
+        action_text = {
+            "kiss": "được hôn",
+            "hug": "được ôm",
+            "pat": "được xoa đầu",
+            "slap": "bị tát",
+            "punch": "bị đấm",
+            "hit": "bị đánh",
+            "poke": "bị chọc"
+        }
+
         if interaction_type not in (sfw_interactions + [None]):
-            await ctx.send("Loại tương tác không hợp lệ. Vui lòng sử dụng một trong: kiss, hug, pat, slap, punch, hit, poke.")
+            await ctx.send(
+                "Loại tương tác không hợp lệ.\nVui lòng sử dụng: `kiss`, `hug`, `pat`, `slap`, `punch`, `hit`, `poke`."
+            )
             return
-        
+
         pipeline = [
             {
                 "$group": {
-                    "_id": "$initMember",
+                    "_id": "$targetMember", 
                     "count": {"$sum": 1}
                 }
             },
@@ -172,7 +185,7 @@ class UserInteractionCog(commands.Cog):
             pipeline.insert(0, {
                 "$match": {"action": interaction_type}
             })
-        else :
+        else:
             pipeline.insert(0, {
                 "$match": {"action": {"$in": sfw_interactions}}
             })
@@ -183,17 +196,36 @@ class UserInteractionCog(commands.Cog):
         for rank, user_record in enumerate(top_users, start=1):
             user_id = user_record["_id"]
             count = user_record["count"]
-            user = self.bot.get_user(user_id)
-            user_name = user.name if user else f"ID {user_id}"
-            description_lines.append(f"**{rank}. {user_name}** - {count} tương tác")
 
-        description = "\n".join(description_lines) if description_lines else "Chưa có tương tác nào được ghi nhận."
+            user = self.bot.get_user(user_id)
+            user_name = user.mention if user else f"ID {user_id}"
+
+            if interaction_type:
+                text = action_text[interaction_type]
+                line = f"**{rank}. {user_name}** – {count} lần {text}"
+            else:
+                line = f"**{rank}. {user_name}** – {count} lần bị tương tác"
+
+            description_lines.append(line)
+
+        description = (
+            "\n".join(description_lines)
+            if description_lines
+            else "Chưa có tương tác nào được ghi nhận."
+        )
+
+        if interaction_type:
+            title = f"🏆 Top 10 người {action_text[interaction_type]} nhiều nhất"
+        else:
+            title = "🏆 Top 10 người bị tương tác nhiều nhất"
 
         embed = discord.Embed(
-            title="🏆 Top 10 Người dùng theo Tương tác",
+            title=title,
             description=description
         )
+
         await ctx.send(embed=embed)
+
 
 
 async def setup(bot: commands.Bot):
