@@ -33,6 +33,7 @@ class SlowmodeCog(commands.Cog):
             raise error
 
     @slowmode.command(name="immune")
+    @commands.has_permissions(manage_messages=True)
     async def slowmode_immune(self, ctx: commands.Context, member: discord.Member):
         print(f"Setting slowmode immunity for {member} in channel {ctx.channel}")
         try:
@@ -61,6 +62,7 @@ class SlowmodeCog(commands.Cog):
             raise error
     
     @slowmode.command(name="prominent")
+    @commands.has_permissions(manage_messages=True)
     async def slowmode_prominent(self, ctx: commands.Context, member: discord.Member):
         await ctx.channel.set_permissions(member, overwrite=None)
         await ctx.send(f"{member.mention} đã bị gỡ bỏ miễn chế độ chậm trong kênh này.")
