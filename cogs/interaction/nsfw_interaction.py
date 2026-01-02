@@ -250,11 +250,11 @@ class NSFWInteractionCog(commands.Cog):
         description = "\n".join(lines) if lines else "Chưa có dữ liệu."
 
         if mode == "given":
-            title = "🏆 Top 10 con quỷ sex của server 😈"
+            title = "Top 10 con quỷ sex của server 😈"
             if action:
                 title = f"🏆 Top 10 người {action_text_given[action]} nhiều nhất 💦"
         else:
-            title = "🏆 Top 10 người làm sex slave nhiều nhất 👉🏻👌🏻💦"
+            title = "Top 10 noletinhduc 👉🏻👌🏻💦"
             if action:
                 title = f"🏆 Top 10 người {action_text_received[action]} nhiều nhất 💦"
 
