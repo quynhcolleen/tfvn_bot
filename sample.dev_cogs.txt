@@ -1,0 +1,3 @@
+cogs.general
+cogs.help
+cogs.role.role
