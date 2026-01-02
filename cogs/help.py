@@ -8,7 +8,9 @@ class HelpCog(commands.Cog):
         self.bot = bot
 
     @commands.command(name="help")
-    async def custom_help(self, ctx):
+    async def custom_help(self, ctx, *args):
+        if args:
+            return  # Ignore arguments for now
         embed = discord.Embed(
             title="📖 Hướng dẫn sử dụng TFVN bot",
             description="Danh sách lệnh hiện có:",
@@ -46,7 +48,9 @@ class HelpCog(commands.Cog):
         await ctx.send(embed=embed)
         
     @commands.command(name="nsfw")
-    async def nsfw_help(self, ctx):
+    async def nsfw_help(self, ctx, *args):
+        if args:
+            return  # Ignore arguments for now
         embed = discord.Embed(
             title="Lệnh NSFW",
             color=0xFFC0CB,
