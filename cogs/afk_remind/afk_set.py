@@ -150,5 +150,43 @@ class AFK(commands.Cog):
             )
             await ctx.send(embed=embed)
 
+    @afk.command(name="ping_check")
+    async def ping_check(self, ctx: commands.Context):
+        pings = self.db["afk_pings"].find({"user_id": ctx.author.id, "is_read": False})
+        ping_list = list(pings)
+
+        if not ping_list:
+            embed = discord.Embed(
+                description="✅ Bạn không có ping AFK nào.",
+                color=discord.Color.green(),
+            )
+            await ctx.send(embed=embed)
+            return
+
+        description = ""
+        for ping in ping_list:
+            pinged_by = ctx.guild.get_member(ping["pinged_by"])
+            channel = self.bot.get_channel(ping["channel_id"])
+            timestamp = ping["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+
+            description += (
+                f"- Bị ping bởi {pinged_by.mention if pinged_by else 'Unknown User'} "
+                f"vào {timestamp} trong kênh {channel.mention if channel else 'Unknown Channel'}\n"
+            )
+
+        embed = discord.Embed(
+            title="📋 Danh sách ping AFK của bạn",
+            description=description,
+            color=discord.Color.blurple(),
+        )
+
+        # update all pings to read
+        self.db["afk_pings"].update_many(
+            {"user_id": ctx.author.id, "is_read": False},
+            {"$set": {"is_read": True}},
+        )
+
+        await ctx.send(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(AFK(bot))

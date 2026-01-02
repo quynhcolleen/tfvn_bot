@@ -29,6 +29,18 @@ class MonitorAfkMessageCog(commands.Cog):
 
             remind_message = reminder["message"]
 
+            # record to afk_pings collection
+            self.db["afk_pings"].insert_one(
+                {
+                    "user_id": reminder["user_id"],
+                    "pinged_by": message.author.id,
+                    "is_read": False,
+                    "timestamp": current_time,
+                    "channel_id": message.channel.id,
+                    "message_id": message.id,
+                }
+            )
+
             await message.channel.send(
                 f"{message.author.mention}, "
                 f"{user.display_name} đang AFK:\n> {remind_message}"
