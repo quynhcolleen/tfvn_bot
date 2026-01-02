@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - prod  # Trigger on push to prod branch
+      - op/dockered
   release:
     types: [published]  # Trigger on release
 
