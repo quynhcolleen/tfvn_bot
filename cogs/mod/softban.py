@@ -30,6 +30,15 @@ class SoftbanCog(commands.Cog):
         """ Remember to save old roles to database for unsoftban """
 
         print("Softban command invoked")
+
+        # check if member is bannable
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự nhốt mình vào ngục.")
+            return
+        
+        if member.top_role >= ctx.author.top_role and ctx.author != ctx.guild.owner:
+            await ctx.send("Bạn không thể nhốt vào ngục người có vai trò cao hơn hoặc bằng bạn.")
+            return
         
         # Add "Handcuffed" role
         handcuffed_role = discord.utils.get(ctx.guild.roles, name="Handcuffed")
@@ -39,6 +48,11 @@ class SoftbanCog(commands.Cog):
             await ctx.send("Role 'Handcuffed' không tồn tại. Vui lòng tạo role này trước khi sử dụng lệnh softban.")
             return
         
+        # check if member already has handcuffed role
+        if handcuffed_role in member.roles:
+            await ctx.send(f"{member.mention} đã bị nhốt vào ngục. Không thể nhốt lại.")
+            return
+
         # Save old roles to database
         old_roles = [role.id for role in member.roles if role.name != "@everyone"]
         self.save_old_roles(member.id, old_roles)

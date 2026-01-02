@@ -12,11 +12,9 @@ class MuteCog(commands.Cog):
         """Mute a member for a specified duration in minutes."""
         mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
         if not mute_role:
-            mute_role = await ctx.guild.create_role(name="Muted")
-
-            for channel in ctx.guild.channels:
-                await channel.set_permissions(mute_role, speak=False, send_messages=False, read_message_history=True, read_messages=False)
-
+            await ctx.send("Role 'Muted' không tồn tại. Vui lòng tạo role này trước khi sử dụng lệnh mute.")
+            return
+        
         await member.add_roles(mute_role)
         await ctx.send(f"{member.mention} đã bị mute.")
 
@@ -25,6 +23,10 @@ class MuteCog(commands.Cog):
     async def unmute_member(self, ctx: commands.Context, member: discord.Member):
         """Unmute a member."""
         mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
+        if not mute_role:
+            await ctx.send("Role 'Muted' không tồn tại. Vui lòng tạo role này trước khi sử dụng lệnh unmute.")
+            return
+
         if mute_role in member.roles:
             await member.remove_roles(mute_role)
             await ctx.send(f"{member.mention} đã được unmute.")
