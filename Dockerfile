@@ -1,5 +1,6 @@
+### First we need to make build stage ###
 # Use Python 3.11 slim image for a lightweight base
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -8,7 +9,21 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt --target /app/deps
+
+
+
+FROM python:3.11-slim AS deployment
+# Set the working directory inside the container
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy installed dependencies from the builder stage
+COPY --from=builder /app/deps /app/deps
+
+# Set PYTHONPATH to include the dependencies
+ENV PYTHONPATH=/app/deps
 
 # Copy the entire project (including .env, data/, cogs/, etc.)
 COPY . .
