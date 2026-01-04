@@ -11,11 +11,12 @@ class WordConnectCommandCog(commands.Cog):
         self.db = bot.db
         self.hint_timeout_datetime = None
         self.rate_icon = {
-            "brilliant": "brilliantmove",
-            "good": "goodmove",
-            "forced": "forcedmove",
-            'miss': "missmove",
-            'blunder': "blundermove",
+            "brilliant": discord.utils.get(self.bot.emojis, name="brilliantmove") or "🌟",  # Fallback to star
+            "great": discord.utils.get(self.bot.emojis, name="greatmove") or "👍",
+            "good": discord.utils.get(self.bot.emojis, name="goodmove") or "👌",
+            "forced": discord.utils.get(self.bot.emojis, name="forcedmove") or "⚡",
+            "miss": discord.utils.get(self.bot.emojis, name="missmove") or "❓",
+            "blunder": discord.utils.get(self.bot.emojis, name="blundermove") or "💥",
         }
 
         context = self._load_context()
@@ -77,6 +78,10 @@ class WordConnectCommandCog(commands.Cog):
             if not self._is_dead_end(word):
                 break
 
+        # DEBUG ONLY - REMOVE IN PRODUCTION
+        # set initial game state for the word 'ốp đồng' for example
+        word = "ốp đồng"
+
         self.current_word = word
         self.used_words = [word]
         self.last_player_id = None
@@ -133,7 +138,7 @@ class WordConnectCommandCog(commands.Cog):
             # Sort: smallest dead-end count first
             results.sort(key=lambda x: x[1])
             
-        return results[:5]
+        return results
 
 
     # COMMANDS
@@ -222,44 +227,64 @@ class WordConnectCommandCog(commands.Cog):
         if word not in self.word_list:
             await ctx.send("❌ Từ này không có trong từ điển.")
             return
+        
+        # get the previous word
+        prev_word = self.used_words[-2]
 
-        # this is a pushed 
-        # if the previous of last word in self.used_words is forced then react with forcedmove
-        print("Checking analysis for case: forced")
-        if len(self.used_words) >= 2:
-            prev_word = self.used_words[-2]
-            last = prev_word.split()[-1]
-            candidates = [
-                w for w in self.word_list if w.startswith(last) and w != prev_word and w not in self.used_words
-            ]
-            if len(candidates) == 1 and candidates[0] == word:
-                await ctx.message.add_reaction(self.rate_icon["forced"])
-                await ctx.send("🔍 Phân tích: Đây là nước đi bắt buộc.")
-                return
-            
-        # blunder if the word leads to next word can lead to one dead end
-        print("Checking analysis for case: blunder")
-        # find words that can be played after this word
-        next_words = [
-            w for w in self.word_list if w.startswith(word.split()[-1]) and w != word and w not in self.used_words
-        ]
-        print(f"Next words for analysis: {next_words}")
-        # count the dead ends for each next word
-        next_words_dead_ends = [
-            self._count_dead_ends(next_word, self.word_list, set(), 0, 5) for next_word in next_words
-        ]
-        print(f"Next words dead ends counts: {next_words_dead_ends}")
-        if any(dead_end == 1 for dead_end in next_words_dead_ends):
-            await ctx.message.add_reaction(self.rate_icon["blunder"])
-            await ctx.send("🔍 Phân tích: Đây là nước đi sai lầm (blunder).")
+        next_of_the_prev = self._top_words(prev_word)
+
+        # find the next possible words
+        print(f"Analyzing word: {word}")
+        next_words = self._top_words(word)
+
+        if not next_words:
+            await ctx.send("❌ Không có từ nào có thể nối tiếp từ này.")
             return
         
-        # brilliant if the word leads to next word can lead to more than 2 dead ends
-        print("Checking analysis for case: brilliant")
-        if max(next_words_dead_ends, default=0) >= 2:
-            await ctx.message.add_reaction(self.rate_icon["brilliant"])
-            await ctx.send("🔍 Phân tích: Đây là nước đi xuất sắc!")
+        print("Checking analysis for case: forced")
+        # if the previous of last word in self.used_words is forced then react with forcedmove
+        if len(next_of_the_prev) == 1:
+            channel = ctx.channel
+            if self.last_valid_message_id:
+                try:
+                    last_message = await channel.fetch_message(self.last_valid_message_id)
+                    await last_message.add_reaction(self.rate_icon["forced"])
+                except discord.NotFound:
+                    pass
+            await ctx.send("🔍 Phân tích: Đây là nước đi bắt buộc.")
             return
+
+        # if there is the next words more than one word but only one word that lead to instant dead end
+        print("Checking analysis for case: blunder")
+        # check if any next_words[i][1] == 0:
+        for i in next_words:
+            if i[1] == 0:
+                channel = ctx.channel
+                if self.last_valid_message_id:
+                    try:
+                        last_message = await channel.fetch_message(self.last_valid_message_id)
+                        await last_message.add_reaction(self.rate_icon["blunder"])
+                    except discord.NotFound:
+                        pass
+                await ctx.send("🔍 Phân tích: Đây là nước đi ngôn tình (lù)!!")
+                return
+
+
+        # brilliant if the word leads to next word can lead to 2 forced move lead to dead ends
+        print("Checking analysis for case: brilliant")
+        for next_word, dead_count in next_words:
+            next_next_words = self._top_words(next_word)
+            forced_count = sum(1 for w in next_next_words if self._count_next_possible_words(w[0], self.word_list) == 1)
+            if forced_count >= 2:
+                channel = ctx.channel
+                if self.last_valid_message_id:
+                    try:
+                        last_message = await channel.fetch_message(self.last_valid_message_id)
+                        await last_message.add_reaction(self.rate_icon["brilliant"])
+                    except discord.NotFound:
+                        pass
+                await ctx.send("🔍 Phân tích: Nước đi xuất sắc! Rất khó để đối phương phản công.")
+                return
         
         await ctx.message.add_reaction(self.rate_icon["good"])
         await ctx.send("🔍 Phân tích: Nước đi này bình thường.")
@@ -338,6 +363,7 @@ class WordConnectCommandCog(commands.Cog):
         self.used_words.append(word)
         self.current_word = word
         self.last_player_id = message.author.id
+        self.last_valid_message_id = message.id
         self._save_context()
 
         await message.add_reaction("✅")
