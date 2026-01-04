@@ -123,7 +123,6 @@ class WordConnectCommandCog(commands.Cog):
         last = word.split()[-1]
         
         candidates = [w for w in self.word_list if w.startswith(last)]
-        print(f"Candidates for '{word}': {candidates}")
         
         if not candidates:
             return []
@@ -234,14 +233,12 @@ class WordConnectCommandCog(commands.Cog):
         next_of_the_prev = self._top_words(prev_word)
 
         # find the next possible words
-        print(f"Analyzing word: {word}")
         next_words = self._top_words(word)
 
         if not next_words:
             await ctx.send("❌ Không có từ nào có thể nối tiếp từ này.")
             return
         
-        print("Checking analysis for case: forced")
         # if the previous of last word in self.used_words is forced then react with forcedmove
         if len(next_of_the_prev) == 1:
             channel = ctx.channel
@@ -255,7 +252,6 @@ class WordConnectCommandCog(commands.Cog):
             return
 
         # if there is the next words more than one word but only one word that lead to instant dead end
-        print("Checking analysis for case: blunder")
         # check if any next_words[i][1] == 0:
         for i in next_words:
             if i[1] == 0:
@@ -271,7 +267,6 @@ class WordConnectCommandCog(commands.Cog):
 
 
         # brilliant if the word leads to next word can lead to 2 forced move lead to dead ends
-        print("Checking analysis for case: brilliant")
         for next_word, dead_count in next_words:
             next_next_words = self._top_words(next_word)
             forced_count = sum(1 for w in next_next_words if self._count_next_possible_words(w[0], self.word_list) == 1)
@@ -311,8 +306,6 @@ class WordConnectCommandCog(commands.Cog):
 
         if message.content.startswith(self.bot.command_prefix):
             return
-
-        print(message.author.display_name, "played word:", word)
 
         # ❌ Không được tự nối 2 lượt liên tiếp
         if self.last_player_id == message.author.id:
