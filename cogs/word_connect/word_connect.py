@@ -142,8 +142,8 @@ class WordConnectCommandCog(commands.Cog):
 
 
     # COMMANDS
-    @commands.command(name="noitu_help")
-    async def wordconnect_help(self, ctx):
+    @commands.group(name="noitu", invoke_without_command=True)
+    async def noitu(self, ctx):
         embed = discord.Embed(
             title="🎮 NỐI TỪ",
             description="Luật chơi Word Connect",
@@ -173,7 +173,7 @@ class WordConnectCommandCog(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name="noitu_current")
+    @noitu.command(name="status")
     async def wordconnect_current(self, ctx):
         embed = discord.Embed(title="🧠 Trạng thái game Nối Từ", color=0x2ECC71)
 
@@ -193,7 +193,7 @@ class WordConnectCommandCog(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name="noitu_hint")
+    @noitu.command(name="hint")
     async def word_connect_top(self, ctx):
         # timeout 30 seconds to prevent spam
         now = datetime.datetime.now()
@@ -214,14 +214,14 @@ class WordConnectCommandCog(commands.Cog):
         
         await ctx.send(suggestion_msg)
 
-    @commands.command(name="noitu_end")
+    @noitu.command(name="end")
     async def wordconnect_end(self, ctx):
         self._clear_context()
         self._start_new_game()
 
         await ctx.send(f"🔄 Game đã reset!\nTừ bắt đầu mới là **{self.current_word}**!")
 
-    @commands.command(name="noitu_analyze")
+    @noitu.command(name="analyze")
     async def wordconnect_analyze(self, ctx):
         word = self.current_word.lower().strip()
         if word not in self.word_list:
