@@ -10,11 +10,19 @@ class WordConnectCommandCog(commands.Cog):
         self.channel_games: list[str] = bot.WORD_CONNECT_GAMES_CHANNELS
         self.db = bot.db
         self.hint_timeout_datetime = None
+        self.rate_icon = {
+            "brilliant": "brilliantmove",
+            "good": "goodmove",
+            "forced": "forcedmove",
+            'miss': "missmove",
+            'blunder': "blundermove",
+        }
 
         context = self._load_context()
         self.current_word: str = context["current_word"]
         self.used_words: list[str] = context["used_words"]
         self.last_player_id: int | None = context["last_player_id"]
+        self.last_valid_message_id: int | None = context["last_valid_message_id"]
 
     def _load_context(self) -> dict:
         record = self.db["context"].find_one({"context_type": "word_connect"})
@@ -24,6 +32,7 @@ class WordConnectCommandCog(commands.Cog):
                 "current_word": record.get("current_word", ""),
                 "used_words": record.get("used_words", []),
                 "last_player_id": record.get("last_player_id"),
+                "last_valid_message_id": record.get("last_valid_message_id"),
             }
 
         self._start_new_game()
@@ -31,6 +40,7 @@ class WordConnectCommandCog(commands.Cog):
             "current_word": self.current_word,
             "used_words": self.used_words,
             "last_player_id": None,
+            "last_valid_message_id": None,
         }
 
     def _save_context(self):
@@ -39,6 +49,7 @@ class WordConnectCommandCog(commands.Cog):
             "current_word": self.current_word,
             "used_words": self.used_words,
             "last_player_id": self.last_player_id,
+            "last_valid_message_id": self.last_valid_message_id,
         }
 
         self.db["context"].update_one(
@@ -69,28 +80,39 @@ class WordConnectCommandCog(commands.Cog):
         self.current_word = word
         self.used_words = [word]
         self.last_player_id = None
+        self.last_valid_message_id = None
         self._save_context()
 
-    def _count_dead_ends(self, word: str, word_list: list[str], visited: set[str]) -> int:
-        if word in visited:
-            return 0
+    # def _count_dead_ends(self, word: str, word_list: list[str], visited: set[str], depth: int = 0, max_depth: int = 3) -> int:
+    #     print(f"Counting dead ends for word: {word}, depth: {depth}, visited: {visited}")
+    #     if word in visited:
+    #         return 0
+        
+    #     if depth >= max_depth:
+    #         return 0  # Stop exploring at max depth to prevent infinite recursion
 
-        visited.add(word)
+    #     visited.add(word)
+    #     last = word.split()[-1]
+
+    #     candidates = [
+    #         w for w in word_list if w.startswith(last) and w != word and w not in visited
+    #     ]
+
+    #     if not candidates:
+    #         return 1  # Dead end found
+
+    #     dead_end_count = 0
+    #     for next_word in candidates:
+    #         dead_end_count += self._count_dead_ends(next_word, word_list, visited.copy(), depth + 1, max_depth)
+
+    #     return dead_end_count
+
+    def _count_next_possible_words(self, word: str, word_list: list[str]) -> int:
         last = word.split()[-1]
-
         candidates = [
-            w for w in word_list if w.startswith(last) and w != word and w not in visited
+            w for w in word_list if w.startswith(last) and w != word
         ]
-
-        if not candidates:
-            return 1  # Dead end found
-
-        dead_end_count = 0
-        for next_word in candidates:
-            dead_end_count += self._count_dead_ends(next_word, word_list, visited.copy())
-
-        return dead_end_count
-    
+        return len(candidates)
 
     def _top_words(self, word: str) -> list[tuple[str, int]]:
         last = word.split()[-1]
@@ -105,13 +127,13 @@ class WordConnectCommandCog(commands.Cog):
         results = []
         
         for next_word in candidates:
-            dead_count = self._count_dead_ends(next_word, self.word_list, set())
+            dead_count = self._count_next_possible_words(next_word, self.word_list)
             results.append((next_word, dead_count))
             
             # Sort: smallest dead-end count first
             results.sort(key=lambda x: x[1])
             
-            return results[:5]
+        return results[:5]
 
 
     # COMMANDS
@@ -194,6 +216,56 @@ class WordConnectCommandCog(commands.Cog):
 
         await ctx.send(f"🔄 Game đã reset!\nTừ bắt đầu mới là **{self.current_word}**!")
 
+    @commands.command(name="noitu_analyze")
+    async def wordconnect_analyze(self, ctx):
+        word = self.current_word.lower().strip()
+        if word not in self.word_list:
+            await ctx.send("❌ Từ này không có trong từ điển.")
+            return
+
+        # this is a pushed 
+        # if the previous of last word in self.used_words is forced then react with forcedmove
+        print("Checking analysis for case: forced")
+        if len(self.used_words) >= 2:
+            prev_word = self.used_words[-2]
+            last = prev_word.split()[-1]
+            candidates = [
+                w for w in self.word_list if w.startswith(last) and w != prev_word and w not in self.used_words
+            ]
+            if len(candidates) == 1 and candidates[0] == word:
+                await ctx.message.add_reaction(self.rate_icon["forced"])
+                await ctx.send("🔍 Phân tích: Đây là nước đi bắt buộc.")
+                return
+            
+        # blunder if the word leads to next word can lead to one dead end
+        print("Checking analysis for case: blunder")
+        # find words that can be played after this word
+        next_words = [
+            w for w in self.word_list if w.startswith(word.split()[-1]) and w != word and w not in self.used_words
+        ]
+        print(f"Next words for analysis: {next_words}")
+        # count the dead ends for each next word
+        next_words_dead_ends = [
+            self._count_dead_ends(next_word, self.word_list, set(), 0, 5) for next_word in next_words
+        ]
+        print(f"Next words dead ends counts: {next_words_dead_ends}")
+        if any(dead_end == 1 for dead_end in next_words_dead_ends):
+            await ctx.message.add_reaction(self.rate_icon["blunder"])
+            await ctx.send("🔍 Phân tích: Đây là nước đi sai lầm (blunder).")
+            return
+        
+        # brilliant if the word leads to next word can lead to more than 2 dead ends
+        print("Checking analysis for case: brilliant")
+        if max(next_words_dead_ends, default=0) >= 2:
+            await ctx.message.add_reaction(self.rate_icon["brilliant"])
+            await ctx.send("🔍 Phân tích: Đây là nước đi xuất sắc!")
+            return
+        
+        await ctx.message.add_reaction(self.rate_icon["good"])
+        await ctx.send("🔍 Phân tích: Nước đi này bình thường.")
+
+
+
     # MESSAGE LISTENER
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -203,21 +275,24 @@ class WordConnectCommandCog(commands.Cog):
         if message.author.bot:
             return
 
+        # check if word is have 2 words
+        word = message.content.lower().strip()
+        if len(word.split()) != 2:
+            return
+
         ctx = await self.bot.get_context(message)
         if ctx.valid:
             return
 
-        print(self.bot.command_prefix)
-        if message.content.startswith(tuple(self.bot.command_prefix)):
+        if message.content.startswith(self.bot.command_prefix):
             return
-        
 
-        word = message.content.lower().strip()
+        print(message.author.display_name, "played word:", word)
 
         # ❌ Không được tự nối 2 lượt liên tiếp
         if self.last_player_id == message.author.id:
             await message.add_reaction("❌")
-            msg = await message.channel.reply(
+            msg = await message.reply(
                 "❌ Bạn vừa nối từ trước đó rồi, hãy để người khác chơi nhé."
             )
             await msg.delete(delay=5)
@@ -226,14 +301,14 @@ class WordConnectCommandCog(commands.Cog):
         # ❌ Không có trong từ điển
         if word not in self.word_list:
             await message.add_reaction("❌")
-            msg = await message.channel.reply("❌ Từ này không có trong từ điển.")
+            msg = await message.reply("❌ Từ này không có trong từ điển.")
             await msg.delete(delay=5)
             return
 
         # ❌ Đã dùng
         if word in self.used_words:
             await message.add_reaction("❌")
-            msg = await message.channel.reply("❌ Từ này đã được sử dụng.")
+            msg = await message.reply("❌ Từ này đã được sử dụng.")
             await msg.delete(delay=5)
             return
 
@@ -241,7 +316,7 @@ class WordConnectCommandCog(commands.Cog):
         last = self.current_word.split()[-1]
         if not word.startswith(last):
             await message.add_reaction("❌")
-            msg = await message.channel.reply(f"❌ Từ phải bắt đầu bằng **{last}**.")
+            msg = await message.reply(f"❌ Từ phải bắt đầu bằng **{last}**.")
             await msg.delete(delay=5)
             return
 
