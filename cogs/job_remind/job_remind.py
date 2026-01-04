@@ -13,11 +13,11 @@ class JobRemind(commands.Cog):
 
     def task_record_exists(self, task_id):
         """Check if a task record exists in the database."""
-        return self.db.tasks.find_one({"task_id": task_id}) is not None
+        return self.db["tasks"].find_one({"task_id": task_id}) is not None
     
     def create_task_record(self, task_id, user_id, job_name, remind_time):
         """Create a new task record in the database."""
-        self.db.tasks.insert_one({
+        self.db["tasks"].insert_one({
             "task_id": task_id,
             "user_id": user_id,
             "job_name": job_name,
@@ -51,7 +51,11 @@ class JobRemind(commands.Cog):
         await ctx.send("Sử dụng các lệnh con để quản lý nhắc nhở công việc.")
 
     @jobremind.command(name='add')
-    async def add_reminder(self, ctx):
+    async def add_reminder(self, ctx, ):
+        # check if it invoked by the same user in the same channel
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+        
         """Add a job reminder."""
         try:
             embed = discord.Embed(
@@ -93,11 +97,11 @@ class JobRemind(commands.Cog):
         task_id = f"{ctx.author.id}-{job_name}-{time_str}"
 
         if self.task_record_exists(task_id):
-            await ctx.send("A reminder for this job already exists.")
+            await ctx.send("Nhắc nhở cho công việc này đã tồn tại.")
         else:
-            remind_time = discord.utils.utcnow() + discord.utils.timedelta(seconds=self.parse_time_string(time_str))
+            remind_time = (discord.utils.utcnow() + timedelta(seconds=seconds)).strftime("%Y-%m-%d %H:%M")
             self.create_task_record(task_id, ctx.author.id, job_name, remind_time)
-            await ctx.send(f"Reminder for job '{job_name}' at '{remind_time}' has been set.")
+            await ctx.send(f"Nhắc nhở công việc '{job_name}' đã được đặt cho {remind_time}.")
 
     @tasks.loop(minutes=1)
     async def reminder_task(self):
@@ -109,7 +113,7 @@ class JobRemind(commands.Cog):
             if user:
                 await user.send(f"⏰ Nhắc nhở công việc cho <@{reminder['user_id']}>: {reminder['job_name']}")
                 # Optionally, remove the reminder after sending
-                self.db.tasks.delete_one({"task_id": reminder["task_id"]})
+                self.db["tasks"].delete_one({"task_id": reminder["task_id"]})
     @reminder_task.before_loop
     async def before_reminder_task(self):
         await self.bot.wait_until_ready()
