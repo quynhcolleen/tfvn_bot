@@ -34,11 +34,13 @@ class VariableSetting(commands.Cog):
         return variables
 
     @commands.group(name='setting', invoke_without_command=True)
+    @commands.has_permissions(administrator=True)
     async def setting(self, ctx):
         """Group command for settings."""
         await ctx.send("Use subcommands to manage settings.")
 
     @setting.command(name='set_variable')
+    @commands.has_permissions(administrator=True)
     async def set_variable(self, ctx, name: str):
         """Sets a variable with the given name and value."""
         '''Prompt the user for the value of the variable.'''
@@ -124,6 +126,7 @@ class VariableSetting(commands.Cog):
         await ctx.send(f"✅ Biến '{name}' đã được thiết lập thành ```{value}``` (loại: {var_type}).")
 
     @setting.command(name='get_variable')
+    @commands.has_permissions(administrator=True)
     async def get_variable(self, ctx, requested_name: str):
         """Gets the value of a variable by name."""
         name = ctx.invoked_with
