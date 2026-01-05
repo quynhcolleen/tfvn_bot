@@ -119,6 +119,7 @@ class VariableSetting(commands.Cog):
                 await ctx.send("⏰ Hết thời gian chờ. Vui lòng thử lại.")
                 return
 
+        setattr(self, name, value)
         self.save_variable(name, var_type, value)
         await ctx.send(f"✅ Biến '{name}' đã được thiết lập thành ```{value}``` (loại: {var_type}).")
 
