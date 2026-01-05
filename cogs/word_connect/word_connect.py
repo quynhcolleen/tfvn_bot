@@ -3,6 +3,7 @@ from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import discord  # pyright: ignore[reportMissingImports]
 import datetime
 
+
 class WordConnectCommandCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -207,10 +208,26 @@ class WordConnectCommandCog(commands.Cog):
             await ctx.send("❌ Không có từ gợi ý nào khả dụng.")
             return
         
-        suggestion_msg = "Các từ gợi ý:\n"
+        suggestion_msg = "Gợi ý: \n\n"
+
+        suggestion_msg += "Gợi ý top 5 khó nhất:\n"
+        count = 0
         for word, dead_count in top_suggestions:
+            count += 1
+            if count > 5:
+                break
             suggestion_msg += f"- {word} ({dead_count} từ tiếp theo để dẫn đến ngõ cụt)\n"
-        
+
+        suggestion_msg += "\n"
+
+        suggestion_msg += "Gợi ý top 5 dễ nhất:\n"
+        count = 0
+        for word, dead_count in reversed(top_suggestions):
+            count += 1
+            if count > 5:
+                break
+            suggestion_msg += f"- {word} ({dead_count} từ tiếp theo để dẫn đến ngõ cụt)\n"
+
         await ctx.send(suggestion_msg)
 
     @noitu.command(name="end")
