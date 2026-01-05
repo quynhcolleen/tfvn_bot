@@ -87,6 +87,14 @@ async def load_cogs():
         # Production: Load all cogs from cogs directory
         cogs_to_load = get_cogs_from_path("cogs")
 
+    settings_cog = "cogs.settings.variable_setting"
+
+    # Prioritize loading the settings cog first
+    if settings_cog in cogs_to_load:
+        cogs_to_load.remove(settings_cog)
+        cogs_to_load.insert(0, settings_cog)  # Insert at the beginning
+
+
     for module in cogs_to_load:
         try:
             await bot.load_extension(module)
