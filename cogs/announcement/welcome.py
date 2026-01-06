@@ -24,8 +24,6 @@ class WelcomeCog(commands.Cog):
             self.role_channel = int(role_channel_value)  # Always convert to int
         except ValueError:
             raise ValueError("ROLE_CHANNEL must be a valid integer string (e.g., '889516932468973679').")
-        
-        print("WelcomeCog initialized with channels:", self.join_channel, self.rule_channel, self.role_channel)  # Debug log
 
     async def send_welcome(
         self, member: discord.abc.User, channel: discord.TextChannel
