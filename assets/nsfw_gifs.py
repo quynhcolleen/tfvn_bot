@@ -1,4 +1,10 @@
-BLOWJOB_GIFS = [
+from ._loader import _load_local_gifs
+
+# NSFW INTERACTION GIF ASSETS
+# Muốn thêm url gif thì thêm trực tiếp vào array, 
+# muốn thêm gif local thì thêm vào thư mục tương ứng trong /gifs/expressions/
+#
+BLOWJOB_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/blowjob"),
     "https://api-cdn.rule34.xxx//images/2367/f65e41e44cc1436aff23f62ca8a0ef2d.gif?2581429",
     "https://api-cdn.rule34.xxx//images/3168/ea95dcd27d4e2f3f19855036760dcb64.gif?3559386",
     "https://api-cdn.rule34.xxx//images/4548/d166ac41664d9ca5cc3561c9f1deff48.gif?5180076",
@@ -15,7 +21,7 @@ BLOWJOB_GIFS = [
     "https://cdn.discordapp.com/attachments/1454158256384639088/1455836986605568130/3.gif",
 ]
 
-RIMJOB_GIFS = [
+RIMJOB_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/rimjob"),
     "https://api-cdn.rule34.xxx//images/993/b93dcade67fc61d552ffe1928aa99d4a.gif?11897500",
     "https://cdn.discordapp.com/attachments/1454158256384639088/1455832092796518430/1.gif",
     "https://api-cdn.rule34.xxx//images/6296/894066e0092e0044581e0476073643fa.gif?7167837",
@@ -26,14 +32,12 @@ RIMJOB_GIFS = [
     "https://cdn.discordapp.com/attachments/889515689205956698/1456318571129864377/29934301.gif",
 ]
 
-FINGERING_GIFS = [
+FINGERING_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/fingering"),
     "https://cdn.discordapp.com/attachments/1456298650081824778/1456308278316368025/moc.gif",
     "https://cdn.discordapp.com/attachments/1456298650081824778/1456317651415732429/2a4a0d170eea9cb68a1c87ac82c93fca.gif",
-    "",
-    "",
 ]
 
-HANDJOB_GIFS = [
+HANDJOB_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/handjob"),
     "https://api-cdn.rule34.xxx//images/2076/6683940478ebf63ae6b1b31636ed7845.gif?13572376",
     "https://img2.gelbooru.com//images/bb/9c/bb9cd00d46d359bc59de906ee7060819.gif",
     "https://img2.gelbooru.com//images/91/7f/917f616ae8b1c3d67259722d750b166f.gif",
@@ -45,17 +49,11 @@ HANDJOB_GIFS = [
     "https://cdn.discordapp.com/attachments/1456298650081824778/1456302130724999178/113493188-large.gif",
 ]
 
-FOOTJOB_GIFS = [
+FOOTJOB_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/footjob"),
     "https://img2.gelbooru.com//images/1b/ad/1badc5d22054103863e4cb81598c4645.gif",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
 ]
 
-FROTTING_GIFS = [
+FROTTING_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/frotting"),
     "https://api-cdn.rule34.xxx//images/1815/c3602097f6896190ccd7aa8b4699d9bf.gif?13564877",
     "https://api-cdn.rule34.xxx//images/3094/feb7641de376189993194876cbb673fd.gif?3470785",
     "https://api-cdn.rule34.xxx//images/846/295f7693e85689b59093c7f548df7c2f.gif?15803805",
@@ -65,7 +63,7 @@ FROTTING_GIFS = [
     "https://cdn.hentaigifz.com/96030/newhalf-gif-scaled.webp",
 ]
 
-FUCKING_GIFS = [
+FUCKING_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/fucking"),
     "https://api-cdn.rule34.xxx//images/1723/04e2646b7d252e455468c965ccea0a03.gif?13308286",
     "https://api-cdn.rule34.xxx//images/1302/af9653428cfdd52d51beb1bb6b2bd197.gif?13557994",
     "https://api-cdn.rule34.xxx//images/3886/0ea67362198dc166095cb798c2efac1d.gif?12029478",
@@ -95,7 +93,7 @@ FUCKING_GIFS = [
     "https://cdn.discordapp.com/attachments/1456298650081824778/1456315938088554608/cody.gif"
 ]
 
-CREAMPIE_GIFS = [
+CREAMPIE_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/creampie"),
     "https://api-cdn.rule34.xxx//images/2813/9402471efc4b84b80376c45b090c1cc7.gif?3139205",
     "https://api-cdn.rule34.xxx//images/2090/2ef030d479e4f8d9d4299287a29c9b6a120dabc0.gif?2279828",
     "https://api-cdn.rule34.xxx//images/1913/b8c2c72ffd8ed1074317640489d658b2f7a46e8b.gif?2071962",
@@ -108,7 +106,7 @@ CREAMPIE_GIFS = [
     "https://media.discordapp.net/attachments/889515665877254205/1456309994998988953/creammm.gif",
 ]
 
-GANGBANG_GIFS = [
+GANGBANG_GIFS = [*_load_local_gifs("gifs/nsfw_expressions/gangbang"),
     "https://img2.gelbooru.com//images/6b/84/6b84a330013edec0e5ae6b094fadfbda.gif",
     "https://img2.gelbooru.com//images/f3/4a/f34ac86268036225c3f8df7760e0a700.gif",
     "https://img2.gelbooru.com//images/c2/da/c2dad182933ca3f10846e208045e122d.gif",

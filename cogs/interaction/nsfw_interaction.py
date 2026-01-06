@@ -71,8 +71,16 @@ class NSFWInteractionCog(commands.Cog):
             title=title,
             description=description,
         )
-        embed.set_image(url=gif_url)
-        await ctx.send(embed=embed)
+        
+        # Check if it's a local file
+        if gif_url.startswith("$local::"):
+            file_path = gif_url.replace("$local::", "", 1)
+            file = discord.File(file_path, filename="interaction.gif")
+            embed.set_image(url="attachment://interaction.gif")
+            await ctx.send(embed=embed, file=file)
+        else:
+            embed.set_image(url=gif_url)
+            await ctx.send(embed=embed)
 
     # BLOWJOB
     @commands.command(name="bj")
