@@ -1,18 +1,18 @@
 from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import discord  # pyright: ignore[reportMissingImports]
 import os
-import dotenv  # pyright: ignore[reportMissingImports]
 from assets.gifs import BANNED_GIF
-dotenv.load_dotenv()
-
-BYE_CHANNEL = int(os.getenv("BYE_CHANNEL"))
-TEST_CHANNEL = int(os.getenv("TEST_CHANNEL"))
-
-
 
 class BannedCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        bye_channel_value = self.bot.global_vars["BYE_CHANNEL"]
+        try:
+            self.bye_channel = int(bye_channel_value)  # Always convert to int
+        except ValueError:
+            raise ValueError("BYE_CHANNEL must be a valid integer string (e.g., '889516932468973679').")
+
 
     async def send_banned(
         self, member: discord.abc.User, channel: discord.TextChannel
@@ -33,22 +33,11 @@ class BannedCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_ban(self, member: discord.Member):
-        channel = self.bot.get_channel(BYE_CHANNEL)
+        channel = self.bot.get_channel(int(self.bye_channels) )  # Use the first channel in the list
         if channel is None:
             return
 
         await self.send_banned(member, channel)
-
-    # # Test
-    # @commands.command(name="test")
-    # async def test_banned(self, ctx: commands.Context):
-    #     channel = self.bot.get_channel(TEST_CHANNEL)
-    #     if channel is None:
-    #         await ctx.send("❌ Không tìm thấy channel test")
-    #         return
-
-    #     await self.send_banned(ctx.author, channel)
-    #     await ctx.reply("✅ Đã gửi banned embed test")
 
 async def setup(bot):
     await bot.add_cog(BannedCog(bot))
