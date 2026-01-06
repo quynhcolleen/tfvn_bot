@@ -16,8 +16,6 @@ class GoodbyeCog(commands.Cog):
         except ValueError:
             raise ValueError("BYE_CHANNEL must be a valid integer string (e.g., '889516932468973679').")
 
-        print("GoodbyeCog initialized with channel:", self.bye_channel, "Type:", type(self.bye_channel))  # Debug log
-
     async def send_goodbye(
         self, member: discord.abc.User, channel: discord.TextChannel
     ):
