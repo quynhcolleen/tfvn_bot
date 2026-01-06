@@ -7,8 +7,16 @@ import datetime
 class WordConnectCommandCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.word_list: list[str] = bot.WORD_CONNECT_WORDS
-        self.channel_games: list[str] = bot.WORD_CONNECT_GAMES_CHANNELS
+
+        print(self.bot.global_vars)  # Debug: print global variables
+
+        if (self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"] is None or self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"] == ""):
+            raise ValueError("WORD_CONNECT_GAMES_CHANNELS is not set in global variables.")
+        
+        if not isinstance(self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"], list):
+            self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"] = [self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"]]
+        self.word_list: list[str] = self.bot.WORD_CONNECT_WORDS
+        self.channel_games: list[str] = self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"]
         self.db = bot.db
         self.hint_timeout_datetime = None
         self.rate_icon = {
@@ -19,6 +27,12 @@ class WordConnectCommandCog(commands.Cog):
             "miss": discord.utils.get(self.bot.emojis, name="missmove") or "❓",
             "blunder": discord.utils.get(self.bot.emojis, name="blundermove") or "💥",
         }
+
+        # Initialize attributes before loading context
+        self.current_word = ""
+        self.used_words = []
+        self.last_player_id = None
+        self.last_valid_message_id = None
 
         context = self._load_context()
         self.current_word: str = context["current_word"]
@@ -37,7 +51,9 @@ class WordConnectCommandCog(commands.Cog):
                 "last_valid_message_id": record.get("last_valid_message_id"),
             }
 
+        self._clear_context()
         self._start_new_game()
+
         return {
             "current_word": self.current_word,
             "used_words": self.used_words,
