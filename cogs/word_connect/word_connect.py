@@ -19,13 +19,21 @@ class WordConnectCommandCog(commands.Cog):
         self.channel_games: list[str] = self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"]
         self.db = bot.db
         self.hint_timeout_datetime = None
+        # self.rate_icon = {
+        #     "brilliant": self.bot.get_emoji(1458179812177870984) or "🌟",
+        #     "great": self.bot.get_emoji(1458179830368567545) or "👍",
+        #     "good": self.bot.get_emoji(1458179823582318752) or "👌",
+        #     "forced": self.bot.get_emoji(1458179821615190116) or "⚡",
+        #     "miss": self.bot.get_emoji(1458179817781592124) or "❓",
+        #     "blunder": self.bot.get_emoji(1458179814014845071) or "💥",
+        # }
         self.rate_icon = {
-            "brilliant": discord.utils.get(self.bot.emojis, name="brilliantmove") or "🌟",  # Fallback to star
-            "great": discord.utils.get(self.bot.emojis, name="greatmove") or "👍",
-            "good": discord.utils.get(self.bot.emojis, name="goodmove") or "👌",
-            "forced": discord.utils.get(self.bot.emojis, name="forcedmove") or "⚡",
-            "miss": discord.utils.get(self.bot.emojis, name="missmove") or "❓",
-            "blunder": discord.utils.get(self.bot.emojis, name="blundermove") or "💥",
+            "brilliant": "<:brilliantmove:1458179812177870984>"  or "🌟",
+            "great":     "<:greatmove:1458179830368567545>" or "👍",
+            "good":      "<:goodmove:1458179823582318752>" or "👌",
+            "forced":    "<:forcedmove:1458179821615190116>" or "⚡",
+            "miss":      "<:missmove:1458179817781592124>" or "❓",
+            "blunder":   "<:blundermove:1458179814014845071>" or "💥",
         }
 
         # Initialize attributes before loading context

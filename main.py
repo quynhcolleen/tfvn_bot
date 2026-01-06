@@ -37,7 +37,8 @@ loader = DataLoader(base_path="data")
 
 bot.BANNED_WORDS = loader.load_lines("banned_word_list.txt")  # Now accessible as bot.BANNED_WORDS
 bot.WORD_CONNECT_WORDS = loader.load_lines("word_connect_valid_list.txt")  # Now accessible as bot.WORD_CONNECT_WORDS
-
+bot.FAKE_LOADING_SENTENCES = loader.load_lines("fake_loading_sentences.txt")  # Now accessible as bot.FAKE_LOADING_SENTENCES
+bot.FEMBOY_ROLE = loader.load_lines("femboy_role.txt")  # Now accessible as bot.FEMBOY_ROLE
 @bot.event
 async def on_ready():
     print("✅ Bot is ready!")
