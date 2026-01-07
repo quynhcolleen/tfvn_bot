@@ -67,6 +67,9 @@ class UserInteractionCog(commands.Cog):
     # KISS
     @commands.command(name="kiss")
     async def kiss(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("kiss", ctx, member)
+
         await self._send_embed(
             ctx,
             title="💋 Moah moahhh~",
@@ -77,6 +80,9 @@ class UserInteractionCog(commands.Cog):
     # HUG
     @commands.command(name="hug")
     async def hug(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("hug", ctx, member)
+
         await self._send_embed(
             ctx,
             title="🤗 Ỏoooo, ôm cái nào!",
@@ -87,6 +93,9 @@ class UserInteractionCog(commands.Cog):
     # PAT
     @commands.command(name="pat")
     async def pat(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("pat", ctx, member)
+
         await self._send_embed(
             ctx,
             title="😉 Xoa đầu cái nha~",
@@ -97,6 +106,9 @@ class UserInteractionCog(commands.Cog):
     # SLAP
     @commands.command(name="slap")
     async def slap(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("slap", ctx, member)
+
         await self._send_embed(
             ctx,
             title="🤬 Ăn tát đi!",
@@ -107,6 +119,9 @@ class UserInteractionCog(commands.Cog):
     # PUNCH
     @commands.command(name="punch")
     async def punch(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("punch", ctx, member)
+
         await self._send_embed(
             ctx,
             title="👊 Một đấm là nằm!",
@@ -117,6 +132,9 @@ class UserInteractionCog(commands.Cog):
     # HIT
     @commands.command(name="hit")
     async def hit(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("hit", ctx, member)
+
         await self._send_embed(
             ctx,
             title="💥 Bốp bốp!",
@@ -127,6 +145,9 @@ class UserInteractionCog(commands.Cog):
     # POKE
     @commands.command(name="poke")
     async def poke(self, ctx: commands.Context, member: discord.Member):
+
+        self.record_action("poke", ctx, member)
+
         await self._send_embed(
             ctx,
             title="👉 Chọc chọc!",
