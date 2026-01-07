@@ -24,6 +24,14 @@ class SlotMachineCog(commands.Cog):
             {"$inc": {"balance": -5}}
         )
 
+        self.db["transaction_logs"].insert_one({
+            "user_id": user_id,
+            "type": "slot_machine_play",
+            "transaction_type": "debit",
+            "amount": 5,
+            "timestamp": discord.utils.utcnow(),
+        })
+
         # Rolling animation
         msg = await ctx.send("🎰 Spinning... 🎰")
         await asyncio.sleep(1)
@@ -55,6 +63,15 @@ class SlotMachineCog(commands.Cog):
                 {"user_id": user_id},
                 {"$inc": {"balance": return_amount}}
             )
+
+            self.db["transaction_logs"].insert_one({
+                "user_id": user_id,
+                "type": "slot_machine_win",
+                "transaction_type": "credit",
+                "amount": return_amount,
+                "timestamp": discord.utils.utcnow(),
+            })
+
             await ctx.send(f"{ctx.author.mention}, bạn nhận được {return_amount} Trap Coins!")
 
 async def setup(bot: commands.Bot):
