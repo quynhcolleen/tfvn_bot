@@ -9,7 +9,7 @@ class ShipMeterCog(commands.Cog):
         self.bot = bot
         self.FAKE_LOADING_SENTENCES = bot.FAKE_LOADING_SENTENCES
 
-    @commands.command(name="shipmeter", help="Đo lường mức độ hợp đôi của hai người dùng.")
+    @commands.command(name="ship", help="Đo lường mức độ hợp đôi của hai người dùng.")
     async def ship_meter(self, ctx, member1: discord.Member = None, member2: discord.Member = None):
         if member1 is None or member2 is None:
             await ctx.send("Vui lòng đề cập hai thành viên để đo lường mức độ hợp đôi.")

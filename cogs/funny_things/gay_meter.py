@@ -10,14 +10,14 @@ class GayMeterCog(commands.Cog):
         self.bot = bot
         self.FAKE_LOADING_SENTENCES = bot.FAKE_LOADING_SENTENCES
 
-    @commands.command(name="gaymeter", help="Đo lường mức độ gay của một người dùng.")
+    @commands.command(name="gay", help="Đo lường mức độ gay của một người dùng.")
     async def gay_meter(self, ctx, member: discord.Member = None):
         if member is None:
             member = ctx.author
 
         # Simulate a loading process with fake sentences
         loading_message = await ctx.send("Đang kiểm tra độ gay... ⏳🏳️‍🌈")
-        await asyncio.sleep(3)  # Initial wait time
+        await asyncio.sleep(1)  # Initial wait time
 
         # get random 3 sentences to simulate loading
         random_sentences = random.sample(
@@ -48,11 +48,8 @@ class GayMeterCog(commands.Cog):
             color=discord.Color.from_rgb(255, 105, 180),
         )
         embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
+        
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.add_field(
-            name="Kết quả:", value=f"{bar} **{gay_percentage}%**", inline=False
-        )
-
         if gay_percentage < 10:
             tease = "Thẳng thế này thì chịu luông!"
         elif gay_percentage < 30:
@@ -65,9 +62,15 @@ class GayMeterCog(commands.Cog):
             tease = "Gay vãi chưởng!"
         else:
             tease = "Gay quáaaaa quỷ sứ hà ahihi!"
-
-        embed.set_footer(text=f"{tease}")
-
+            
+        embed.add_field(
+            name="Kết quả:",
+            value=f"{bar} **{gay_percentage}%**\n```{tease}```",
+            inline=False,
+        )
+        embed.set_footer(
+            text="Kết quả này là thật, phải gì ạ? Phải chịuuuuuu! 🌈"
+        )
         await loading_message.edit(embed=embed)
 
 
