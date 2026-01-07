@@ -1,0 +1,46 @@
+# Git
+.git/
+.gitignore
+
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+bot.log
+
+# Environment files (sensitive; pass via docker run -e instead)
+.env
+
+# Documentation and misc
+README.md
+docs/
+
+# Virtual environment
+venv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Test files (if any)
+test/
+tests/
+test_*.py
+
+# Docker files (not needed in image)
+Dockerfile
+.dockerignore

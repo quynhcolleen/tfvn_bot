@@ -164,7 +164,7 @@ class NSFWInteractionCog(commands.Cog):
             gif_url=self.cream_picker.pick(),
         )
 
-    @commands.command(name="ranknsfw", aliases=["rankingnsfw"])
+    @commands.command(name="ranknsfw", aliases=["nsfwrank"])
     async def ranknsfw(
         self,
         ctx: commands.Context,

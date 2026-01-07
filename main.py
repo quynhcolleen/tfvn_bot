@@ -37,7 +37,8 @@ loader = DataLoader(base_path="data")
 
 bot.BANNED_WORDS = loader.load_lines("banned_word_list.txt")  # Now accessible as bot.BANNED_WORDS
 bot.WORD_CONNECT_WORDS = loader.load_lines("word_connect_valid_list.txt")  # Now accessible as bot.WORD_CONNECT_WORDS
-
+bot.FAKE_LOADING_SENTENCES = loader.load_lines("fake_loading_sentences.txt")  # Now accessible as bot.FAKE_LOADING_SENTENCES
+bot.FEMBOY_ROLE = loader.load_lines("femboy_role.txt")  # Now accessible as bot.FEMBOY_ROLE
 @bot.event
 async def on_ready():
     print("✅ Bot is ready!")
@@ -86,6 +87,14 @@ async def load_cogs():
     else:
         # Production: Load all cogs from cogs directory
         cogs_to_load = get_cogs_from_path("cogs")
+
+    settings_cog = "cogs.settings.variable_setting"
+
+    # Prioritize loading the settings cog first
+    if settings_cog in cogs_to_load:
+        cogs_to_load.remove(settings_cog)
+        cogs_to_load.insert(0, settings_cog)  # Insert at the beginning
+
 
     for module in cogs_to_load:
         try:
