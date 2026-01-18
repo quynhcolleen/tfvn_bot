@@ -20,20 +20,21 @@ class WordConnectCommandCog(commands.Cog):
         self.db = bot.db
         self.hint_timeout_datetime = None
         # self.rate_icon = {
-        #     "brilliant": self.bot.get_emoji(1458179812177870984) or "🌟",
-        #     "great": self.bot.get_emoji(1458179830368567545) or "👍",
-        #     "good": self.bot.get_emoji(1458179823582318752) or "👌",
-        #     "forced": self.bot.get_emoji(1458179821615190116) or "⚡",
-        #     "miss": self.bot.get_emoji(1458179817781592124) or "❓",
-        #     "blunder": self.bot.get_emoji(1458179814014845071) or "💥",
+        #     "brilliant": "<:brilliantmove:1458179812177870984>"  or "🌟",
+        #     "great":     "<:greatmove:1458179830368567545>" or "👍",
+        #     "good":      "<:goodmove:1458179823582318752>" or "👌",
+        #     "forced":    "<:forcedmove:1458179821615190116>" or "⚡",
+        #     "miss":      "<:missmove:1458179817781592124>" or "❓",
+        #     "blunder":   "<:blundermove:1458179814014845071>" or "💥",
         # }
+
         self.rate_icon = {
-            "brilliant": "<:brilliantmove:1458179812177870984>"  or "🌟",
-            "great":     "<:greatmove:1458179830368567545>" or "👍",
-            "good":      "<:goodmove:1458179823582318752>" or "👌",
-            "forced":    "<:forcedmove:1458179821615190116>" or "⚡",
-            "miss":      "<:missmove:1458179817781592124>" or "❓",
-            "blunder":   "<:blundermove:1458179814014845071>" or "💥",
+            "brilliant":  self.bot.global_vars.get("BRILLIANT_MOVE_ICON", "🌟"),
+            "great":     self.bot.global_vars.get("GREAT_MOVE_ICON", "👍"),
+            "good":      self.bot.global_vars.get("GOOD_MOVE_ICON", "👌"),
+            "forced":    self.bot.global_vars.get("FORCED_MOVE_ICON", "⚡"),
+            "miss":      self.bot.global_vars.get("MISS_MOVE_ICON", "❓"),
+            "blunder":   self.bot.global_vars.get("BLUNDER_MOVE_ICON", "💥"),
         }
 
         # Initialize attributes before loading context
@@ -102,10 +103,6 @@ class WordConnectCommandCog(commands.Cog):
             word = self._random_word()
             if not self._is_dead_end(word):
                 break
-
-        # DEBUG ONLY - REMOVE IN PRODUCTION
-        # set initial game state for the word 'ốp đồng' for example
-        word = "ốp đồng"
 
         self.current_word = word
         self.used_words = [word]
