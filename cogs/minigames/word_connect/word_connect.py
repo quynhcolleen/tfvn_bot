@@ -161,7 +161,7 @@ class WordConnectCommandCog(commands.Cog):
             
         return results
 
-    def _normalize_old_tone(s: str) -> str:
+    def _normalize_old_tone(self, s: str) -> str:
         """
         Convert legacy tone placement → modern standard
         (mainly oa/oe/ua/ia/ya/ưa groups)
