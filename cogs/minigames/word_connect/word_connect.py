@@ -94,7 +94,7 @@ class WordConnectCommandCog(commands.Cog):
     def _is_dead_end(self, word: str) -> bool:
         last = word.split()[-1]
         return not any(
-            w.startswith(last) and w != word and w not in self.used_words
+            w.startswith(last + " ") and w != word and w not in self.used_words
             for w in self.word_list
         )
 
@@ -137,14 +137,14 @@ class WordConnectCommandCog(commands.Cog):
     def _count_next_possible_words(self, word: str, word_list: list[str]) -> int:
         last = word.split()[-1]
         candidates = [
-            w for w in word_list if w.startswith(last) and w != word
+            w for w in word_list if w.startswith(last + " ") and w != word
         ]
         return len(candidates)
 
     def _top_words(self, word: str) -> list[tuple[str, int]]:
         last = word.split()[-1]
         
-        candidates = [w for w in self.word_list if w.startswith(last)]
+        candidates = [w for w in self.word_list if w.startswith(last + " ")]
         
         if not candidates:
             return []
@@ -370,7 +370,7 @@ class WordConnectCommandCog(commands.Cog):
 
         # ❌ Nối sai
         last = self.current_word.split()[-1]
-        if not word.startswith(last):
+        if not word.startswith(last + " "):
             await message.add_reaction("❌")
             msg = await message.reply(f"❌ Từ phải bắt đầu bằng **{last}**.")
             await msg.delete(delay=5)
