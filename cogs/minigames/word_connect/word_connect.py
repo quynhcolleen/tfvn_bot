@@ -161,6 +161,43 @@ class WordConnectCommandCog(commands.Cog):
             
         return results
 
+    def _normalize_old_tone(s: str) -> str:
+        """
+        Convert legacy tone placement → modern standard
+        (mainly oa/oe/ua/ia/ya/ưa groups)
+        """
+        replacements = {
+            # oa group
+            'oà': 'òa', 'oá': 'óa', 'oả': 'ỏa', 'oã': 'õa', 'oạ': 'ọa',
+            'òa': 'òa', 'óa': 'óa', 'ỏa': 'ỏa', 'õa': 'õa', 'ọa': 'ọa',  # already correct
+
+            # oe group (rare)
+            'oè': 'òe', 'oé': 'óe', 'oẻ': 'ỏe', 'oẽ': 'õe', 'oẹ': 'ọe',
+
+            # ua group
+            'uà': 'ùa', 'uá': 'úa', 'uả': 'ủa', 'uã': 'ũa', 'uạ': 'ụa',
+
+            # ưa group
+            'ưà': 'ừa', 'ưá': 'ứa', 'ưả': 'ửa', 'ưã': 'ữa', 'ưạ': 'ựa',
+
+            # ia / ya group
+            'ià': 'ìa', 'iá': 'ía', 'iả': 'ỉa', 'iã': 'ĩa', 'ịa': 'ịa',
+            'yà': 'ỳa', 'yá': 'ýa', 'yả': 'ỷa', 'yã': 'ỹa', 'yạ': 'ỵa',
+
+            # uy group (very common in your data)
+            'uỳ': 'ủy', 'uý': 'úy', 'uỷ': 'ủy', 'uỹ': 'ũy', 'ụy': 'ụy',
+
+            # uô / ô group (less frequent misplacement)
+            'uồ': 'uồ', 'uố': 'uố', 'uổ': 'uổ', 'uỗ': 'uỗ', 'uộ': 'uộ',
+        }
+
+        for old, new in replacements.items():
+            s = s.replace(old, new)
+
+        # Optional: fix some very common mistakes seen in old texts
+        s = s.replace('quì', 'quỳ').replace('quỵ', 'quỵ')   # quỳ is usually kept
+
+        return s.strip()
 
     # COMMANDS
     @commands.group(name="noitu", invoke_without_command=True)
@@ -344,6 +381,9 @@ class WordConnectCommandCog(commands.Cog):
 
         if message.content.startswith(self.bot.command_prefix):
             return
+        
+        # standardize the word
+        word = self._normalize_old_tone(word)
 
         # ❌ Không được tự nối 2 lượt liên tiếp
         if self.last_player_id == message.author.id:
