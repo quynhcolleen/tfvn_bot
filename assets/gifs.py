@@ -1,23 +1,26 @@
+from ._loader import _load_local_gifs
+
 # ANNOUNCEMENT GIF ASSETS
 WELCOME_GIF = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHhxajVnN3pjcGx2cXlwbG91cG4xcW0wODdsczBjYXowbDdxcW80YSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6sr7BS9VaOz8UKGHPe/giphy.gif"
-
 GOODBYE_GIF = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdjd0MzBxeTl1MThoczVjeXM5dmswenFvdnVmZ3dveTVkNjQ4aGR0ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/D3qGw9pkYo4CkvbT8e/giphy.gif"
-
 BANNED_GIF = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExazRiYmlsMHd0NDhyMWVrY3owaXdqenM2NzF1eTgxc3Bia2lscTZpZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/eSihO7nRMcvSpfgnFQ/giphy.gif"
 
 
 # INTERACTION GIF ASSETS
-KISS_GIFS = [
+# Muốn thêm url gif thì thêm trực tiếp vào array, 
+# muốn thêm gif local thì thêm vào thư mục tương ứng trong /gifs/expressions/
+#
+KISS_GIFS = [*_load_local_gifs("gifs/expressions/kiss"),
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExY25nZHl2Nm90Y2ltcWFrMHAyZzhlY3duZHZvZGNkbXZlYXdoZ3Q5cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GBne10g7FKAHzSZKjb/giphy.gif",
     "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmFkcWMzczVqeDU3YXl5MTdxenpmY3k3MWFmNHpreTl5YjBuNDAybiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/j1smcQYt6ch7mBYLgy/giphy.gif",
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExeG41bGNuY3A4anI3c2VqdjQ2M3BhMWV5enIzdnd0M3M5NXloNzV0ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/iKoZNmgDiWcj2p4FbH/giphy.gif",
     "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdnI1Z3RldGkzM2Vna210dThtZm5hbmo3NmR0MGFyMno0azlpMXlwZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/rA8rzYcNTqYA0HtqTh/giphy.gif",
     "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExN2VjZjA1amUxaDhhOTkzN3h3dDR5YzgzY3BtMnRxbHQ3MWFpZGltOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/EVODaJHSXZGta/giphy.gif",
     "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExajBkMXQxbWlpbTNkNjR5NTF2NjZxd294M3I1MTdta2V4d3U4eGkyMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ciNN4YNQNncbe/giphy.gif",
-    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlmc3gzYm1uaGVweHp1Mml6ZHY4dmZmZTh4dWN3ZW12dzA1ejJ2MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/rvOyFjbMz86Mo/giphy.gif",
+    "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlmc3gzYm1uaGVweHp1Mml6ZHY4dmZmZTh4dWN3ZW12dzA1ejJ2MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/rvOyFjbMz86Mo/giphy.gif"
 ]
 
-HUG_GIFS = [
+HUG_GIFS = [*_load_local_gifs("gifs/expressions/hug"),
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjh1bzIybmkwMGJtdGRveXE4Z2NvcGtldGIyczBuanQ0ejVodjFiYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/BXrwTdoho6hkQ/giphy.gif",
     "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWhsN2xqZmZ5b29pZnExOHlqaXQ0d2I3NHI1dXBrenRzdXhtaTJ4bSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/EoCTpfMdqt0859OoXK/giphy.gif",
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXhiemhmazEzNnp5YjZjcXZ2YXZlNGUyczRibHlybnYzOGVhOHlvbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5eyhBKLvYhafu/giphy.gif",
@@ -27,7 +30,7 @@ HUG_GIFS = [
     "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGQ1amFnd2g3MTBneWoweXk5enlhdjBibmZlOHJtcDAyMHFoOG94MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3rgXBSoIApjSYTo8vK/giphy.gif",
 ]
 
-PAT_GIFS = [
+PAT_GIFS = [*_load_local_gifs("gifs/expressions/pat"),
     "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG5vZDZlY3VnNzl0MHJxd3doeWNvcHBnaXR6OHRxYW4weW9kaXI3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/CyO7bG8mcf0qwJTdxO/giphy.gif",
     "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmtlNWE3NnFzMWtmbjBzNGo4amIzcHBud202cHplY29jczRrcmhtciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/sjvseMWuSrJlu3qFKI/giphy.gif",
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExa3pweDVvNHNmZ25xMmM1ODh4c2h3ZDl0cjF2Nmo3Z3RtbmozOXFyOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/zTSnnFcB4q36UfFWvV/giphy.gif",
@@ -37,7 +40,7 @@ PAT_GIFS = [
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWs5Zjk4OGpsczZ3ZzBlODd4enZyNDBxNW1nNWllcGgxMG80Z25sNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ih6MLTg0laU4kp7tet/giphy.gif",
 ]
 
-SLAP_GIFS = [
+SLAP_GIFS = [*_load_local_gifs("gifs/expressions/slap"),
     "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNDg0bGNhOHJmZnRxcjZuNWRvbWtvMjJnODhja2dlcXJvMXY0OWt3cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ZANcIkwwkvHDoH0hND/giphy.gif",
     "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYXBnMzZnYTZhbXIydTU2a25ycGNzcXl6bjJ3M2phZjJ2bjVhejlnZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/B6AnpArAtFuVZJiCbo/giphy.gif",
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZHlxZTR0NmxtaTl4cWJvM3Y0cmRkeDF2aXFlc2FkeGRucHoxaHc2NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Wtz0UoUUt2PUt3fYy7/giphy.gif",
@@ -48,7 +51,7 @@ SLAP_GIFS = [
     "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWYzaHFjOHJocWdva2V3Mmxmd2dydDlxMGx6M2czZjMxZTVqMHV5MSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/LBXhFGWap84g2fRhyn/giphy.gif",
 ]
 
-PUNCH_GIFS = [
+PUNCH_GIFS = [*_load_local_gifs("gifs/expressions/punch"),
     "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaGY0aHZzcGV3ZWh3MmltczN5M204eTF0b3dzNnV2NGQ2NzFrcXc1bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Q9aAezdhG3rOfDwwVj/giphy.gif",
     "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExanNzY3RrdzVoM3l4b3d6NmMwOGZwNG5xb3I4dmM5dHIyMGRrbWs1eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/n9HM0w7IlUejWtKwEP/giphy.gif",
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWxlbmtnNTY1c2VuZHJtMjZ3Z3pqOTA5ejZ2aXN6eG53OHluOG1zdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/lhFlgqSoKI1ZTvwpUC/giphy.gif",
@@ -59,7 +62,7 @@ PUNCH_GIFS = [
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnh5ajRpNjBtMTdjcnE3d25lNHUwZGdiY2l6ZHRjeTd5dm9oaDNyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/AlsIdbTgxX0LC/giphy.gif",
 ]
 
-POKE_GIFS = [
+POKE_GIFS = [*_load_local_gifs("gifs/expressions/poke"),
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExd2NuN2p4aWZ0NDJtdXVlYzlzM3U5YXNvdzR1cHQ3azhmM3M1MXEzaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/aZSMD7CpgU4Za/giphy.gif",
     "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXZqN2hmbjBzNjQ3dWYxMmF3YzIyNDZ3NmZvcDQxd3o1dXdyMXpkayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/vaucvLYaM7UrNJHsgy/giphy.gif",
     "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExc2NxYzQ2N3lkMW51ZTVncDc0eTRlbWljajRsZ3Zzd2J2MDA2ZXduaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/0H0xhd3taWF2RLGtIE/giphy.gif",
@@ -68,8 +71,7 @@ POKE_GIFS = [
 ]
 
 # Meme GIF ASSETS
-
-GIFS_36 = [
+GIFS_36 = [*_load_local_gifs("gifs/meme/36"),    
     "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmF0Y2Q2dDU2eXd0NWJ2OHVydGkyeXVlMnVlOTZkNTljcXplem8xeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/h8gq7Jccz0at40OXlb/giphy.gif",
     "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnFybTlta3VucTNtOTQ5NXh3eXN4aDlwcjM0eTVreDBza2xxdnJrdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/MG3YeSJFNcgY5zW7wm/giphy.gif",
     "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXNpMjd2eWI3YWs4YzFwam9zM3dtdG1ybGY1Y2ZkODJoc2VpYWcxMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4S5NbkWaEvI9pZ4Cxq/giphy.gif",
