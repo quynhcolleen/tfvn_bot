@@ -94,7 +94,7 @@ class WordConnectCommandCog(commands.Cog):
     def _is_dead_end(self, word: str) -> bool:
         last = word.split()[-1]
         return not any(
-            w.startswith(last) and w != word and w not in self.used_words
+            w.startswith(last + " ") and w != word and w not in self.used_words
             for w in self.word_list
         )
 
@@ -137,14 +137,14 @@ class WordConnectCommandCog(commands.Cog):
     def _count_next_possible_words(self, word: str, word_list: list[str]) -> int:
         last = word.split()[-1]
         candidates = [
-            w for w in word_list if w.startswith(last) and w != word
+            w for w in word_list if w.startswith(last + " ") and w != word
         ]
         return len(candidates)
 
     def _top_words(self, word: str) -> list[tuple[str, int]]:
         last = word.split()[-1]
         
-        candidates = [w for w in self.word_list if w.startswith(last)]
+        candidates = [w for w in self.word_list if w.startswith(last + " ")]
         
         if not candidates:
             return []
@@ -161,6 +161,43 @@ class WordConnectCommandCog(commands.Cog):
             
         return results
 
+    def _normalize_old_tone(s: str) -> str:
+        """
+        Convert legacy tone placement → modern standard
+        (mainly oa/oe/ua/ia/ya/ưa groups)
+        """
+        replacements = {
+            # oa group
+            'oà': 'òa', 'oá': 'óa', 'oả': 'ỏa', 'oã': 'õa', 'oạ': 'ọa',
+            'òa': 'òa', 'óa': 'óa', 'ỏa': 'ỏa', 'õa': 'õa', 'ọa': 'ọa',  # already correct
+
+            # oe group (rare)
+            'oè': 'òe', 'oé': 'óe', 'oẻ': 'ỏe', 'oẽ': 'õe', 'oẹ': 'ọe',
+
+            # ua group
+            'uà': 'ùa', 'uá': 'úa', 'uả': 'ủa', 'uã': 'ũa', 'uạ': 'ụa',
+
+            # ưa group
+            'ưà': 'ừa', 'ưá': 'ứa', 'ưả': 'ửa', 'ưã': 'ữa', 'ưạ': 'ựa',
+
+            # ia / ya group
+            'ià': 'ìa', 'iá': 'ía', 'iả': 'ỉa', 'iã': 'ĩa', 'ịa': 'ịa',
+            'yà': 'ỳa', 'yá': 'ýa', 'yả': 'ỷa', 'yã': 'ỹa', 'yạ': 'ỵa',
+
+            # uy group (very common in your data)
+            'uỳ': 'ủy', 'uý': 'úy', 'uỷ': 'ủy', 'uỹ': 'ũy', 'ụy': 'ụy',
+
+            # uô / ô group (less frequent misplacement)
+            'uồ': 'uồ', 'uố': 'uố', 'uổ': 'uổ', 'uỗ': 'uỗ', 'uộ': 'uộ',
+        }
+
+        for old, new in replacements.items():
+            s = s.replace(old, new)
+
+        # Optional: fix some very common mistakes seen in old texts
+        s = s.replace('quì', 'quỳ').replace('quỵ', 'quỵ')   # quỳ is usually kept
+
+        return s.strip()
 
     # COMMANDS
     @commands.group(name="noitu", invoke_without_command=True)
@@ -344,6 +381,9 @@ class WordConnectCommandCog(commands.Cog):
 
         if message.content.startswith(self.bot.command_prefix):
             return
+        
+        # standardize the word
+        word = self._normalize_old_tone(word)
 
         # ❌ Không được tự nối 2 lượt liên tiếp
         if self.last_player_id == message.author.id:
@@ -370,7 +410,7 @@ class WordConnectCommandCog(commands.Cog):
 
         # ❌ Nối sai
         last = self.current_word.split()[-1]
-        if not word.startswith(last):
+        if not word.startswith(last + " "):
             await message.add_reaction("❌")
             msg = await message.reply(f"❌ Từ phải bắt đầu bằng **{last}**.")
             await msg.delete(delay=5)
