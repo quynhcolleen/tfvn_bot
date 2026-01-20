@@ -21,8 +21,6 @@ class MonitorAfkMessageCog(commands.Cog):
         )
         self.on_afk_dynamic_status = {reminder["user_id"] for reminder in afk_users}
 
-        print(f"Loaded {len(self.on_afk_dynamic_status)} dynamic AFK users.")
-
     def refresh_afk_status(self):
         """Call this method to refresh the AFK user set (e.g., after setting/unsetting AFK)."""
         self._load_dynamic_afk_users()
@@ -32,9 +30,7 @@ class MonitorAfkMessageCog(commands.Cog):
         if message.author.bot:
             return
 
-        print("message from: ", message.author.id, "afk list: ", self.on_afk_dynamic_status)
         if message.author.id in self.on_afk_dynamic_status:
-            print("Clearing AFK status for user:", message.author.id)
             # User is AFK dynamically, clear their AFK status
             self.db["afk_reminders"].delete_one({"user_id": message.author.id})
             self.on_afk_dynamic_status.remove(message.author.id)

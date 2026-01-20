@@ -212,8 +212,6 @@ class AFK(commands.Cog):
     @clear_afk.error
     async def clear_afk_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
-            print(f"[AFK CLEAR ERROR] {error}")
-
             embed = discord.Embed(
                 description="⚠️ Đã xảy ra lỗi khi xóa lời nhắc AFK.",
                 color=discord.Color.orange(),
