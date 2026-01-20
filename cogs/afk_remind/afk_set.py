@@ -49,7 +49,77 @@ class AFK(commands.Cog):
 
     @commands.group(name="afk", invoke_without_command=True)
     async def afk(self, ctx: commands.Context):
-        print(f"[AFK COMMAND] Invoked by {ctx.author} in guild {ctx.guild}")
+        """Set AFK reminder or clear existing one."""
+        embed = discord.Embed(
+            title="Cài đặt nhắc AFK ⌛",
+            description=(
+                "Sử dụng các lệnh con để cài đặt hoặc xóa lời nhắc AFK:\n"
+                "`!tf afk time` - Cài đặt lời nhắc AFK theo thời gian.\n"
+                "`!tf afk dynamic` - Cài đặt lời nhắc AFK (sẽ tự động xóa khi bạn gửi tin nhắn).\n"
+                "`!tf afk clear` - Xóa lời nhắc AFK hiện tại của bạn.\n"
+                "`!tf afk check` - Kiểm tra các ping AFK chưa đọc của bạn."
+            ),
+            color=discord.Color.blurple(),
+        )
+        await ctx.send(embed=embed)
+    
+    @afk.command(name="dynamic")
+    async def afk_dynamic(self, ctx: commands.Context, *, reason: str = "Không có lý do"):
+        # check if user already has an active AFK reminder
+        existing = self.db["afk_reminders"].find_one(
+            {
+                "user_id": ctx.author.id,
+                "$or": [
+                    {"end_at": None},
+                    {"end_at": {"$gt": datetime.utcnow()}}
+                ]
+            })
+        if existing:
+            embed = discord.Embed(
+                description="❌ Bạn đã có lời nhắc AFK đang hoạt động.",
+                color=discord.Color.red(),
+            )
+            await ctx.send(embed=embed)
+            return
+
+        embed = discord.Embed(
+            title="✅ Đã set nhắc AFK động!",
+            description=(
+                f"**Lý do:** {reason}\n\n"
+                "Lời nhắc AFK này sẽ tự động bị xóa khi bạn gửi tin nhắn."
+            ),
+            color=discord.Color.green(),
+        )
+        await ctx.send(embed=embed)
+
+        self.db["afk_reminders"].update_one(
+            {"user_id": ctx.author.id},
+            {"$set": {"message": reason, "start_at": datetime.utcnow(), "end_at": None}},
+            upsert=True,
+        )
+
+        monitor_cog = self.bot.get_cog('MonitorAfkMessageCog')
+        if monitor_cog:
+            monitor_cog._load_dynamic_afk_users()
+    
+    @afk.command(name="time")
+    async def afk_by_time(self, ctx: commands.Context):
+        existing = self.db["afk_reminders"].find_one(
+            {
+                "user_id": ctx.author.id,
+                "$or": [
+                    {"end_at": None},
+                    {"end_at": {"$gt": datetime.utcnow()}}
+                ]
+            })
+        if existing:
+            embed = discord.Embed(
+                description="❌ Bạn đã có lời nhắc AFK đang hoạt động.",
+                color=discord.Color.red(),
+            )
+            await ctx.send(embed=embed)
+            return
+        
         def check(m):
             return m.author == ctx.author and m.channel == ctx.channel
 
@@ -99,7 +169,7 @@ class AFK(commands.Cog):
 
         self.db["afk_reminders"].update_one(
             {"user_id": ctx.author.id},
-            {"$set": {"message": remind_message, "end_at": end_at}},
+            {"$set": {"message": remind_message, "start_at": datetime.utcnow(), "end_at": end_at}},
             upsert=True,
         )
 
@@ -150,7 +220,7 @@ class AFK(commands.Cog):
             )
             await ctx.send(embed=embed)
 
-    @afk.command(name="ping_check")
+    @afk.command(name="check")
     async def ping_check(self, ctx: commands.Context):
         pings = self.db["afk_pings"].find({"user_id": ctx.author.id, "is_read": False})
         ping_list = list(pings)
@@ -171,7 +241,7 @@ class AFK(commands.Cog):
 
             description += (
                 f"- Bị ping bởi {pinged_by.mention if pinged_by else 'Unknown User'} "
-                f"vào {timestamp} trong kênh {channel.mention if channel else 'Unknown Channel'}\n"
+                f"vào {timestamp} trong kênh {channel.mention if channel else 'Unknown Channel'} (nhảy đến tin nhắn: {ping.get('jump_url') or 'N/A'})\n"
             )
 
         embed = discord.Embed(
