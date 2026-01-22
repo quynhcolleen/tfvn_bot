@@ -397,14 +397,14 @@ class WordConnectCommandCog(commands.Cog):
         # ❌ Không có trong từ điển
         if word not in self.word_list:
             await message.add_reaction("❌")
-            msg = await message.reply("❌ Từ này không có trong từ điển.")
+            msg = await message.reply(f"❌ Từ này không có trong từ điển.\nTừ hiện tại: **{self.current_word}**")
             await msg.delete(delay=5)
             return
 
         # ❌ Đã dùng
         if word in self.used_words:
             await message.add_reaction("❌")
-            msg = await message.reply("❌ Từ này đã được sử dụng.")
+            msg = await message.reply("❌ Từ này đã được sử dụng. Các từ đã dùng: " + ", ".join(self.used_words))
             await msg.delete(delay=5)
             return
 
@@ -412,7 +412,7 @@ class WordConnectCommandCog(commands.Cog):
         last = self.current_word.split()[-1]
         if not word.startswith(last + " "):
             await message.add_reaction("❌")
-            msg = await message.reply(f"❌ Từ phải bắt đầu bằng **{last}**.")
+            msg = await message.reply(f"❌ Từ phải bắt đầu bằng **{last}**. Từ hiện tại: **{self.current_word}**")
             await msg.delete(delay=5)
             return
 
