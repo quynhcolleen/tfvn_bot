@@ -389,7 +389,7 @@ class WordConnectCommandCog(commands.Cog):
         if self.last_player_id == message.author.id:
             await message.add_reaction("❌")
             msg = await message.reply(
-                "❌ Bạn vừa nối từ trước đó rồi, hãy để người khác chơi nhé."
+                f"❌ Bạn vừa nối từ trước đó rồi, hãy để người khác chơi nhé. Từ hiện tại: **{self.current_word}**"
             )
             await msg.delete(delay=5)
             return
