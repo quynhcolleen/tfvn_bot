@@ -70,8 +70,6 @@ class NSFWSuperUser(commands.Cog):
             "cooldown_at": {"$gte": discord.utils.utcnow()}
         })
 
-        print(cooled_down)
-
         if cooled_down:
             await ctx.send(f"{ctx.author.mention}, cưng còn đang trong thời gian cooldown nha.")
             return
