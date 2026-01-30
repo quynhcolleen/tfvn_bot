@@ -1,5 +1,7 @@
 import asyncio
 import discord  # pyright: ignore[reportMissingImports]
+from datetime import datetime, timedelta
+
 from discord.ext import commands  # pyright: ignore[reportMissingImports]
 import random
 from collections import deque
@@ -37,14 +39,45 @@ class NSFWInteractionCog(commands.Cog):
         self.fuck_picker = GifPicker(FUCKING_GIFS, history_size=len(FUCKING_GIFS))
         self.cream_picker = GifPicker(CREAMPIE_GIFS, history_size=len(CREAMPIE_GIFS))
         self.db = bot.db
+        self.KING_ROLE_ID = None
+        self.QUEEN_ROLE_ID = None
 
-    def record_action(self, action: str, ctx: commands.Context, member: discord.Member):
+        if (
+            self.bot.global_vars["KING_ROLE_ID"] is None or 
+            self.bot.global_vars["KING_ROLE_ID"] == "" or
+            self.bot.global_vars["QUEEN_ROLE_ID"] is None or
+            self.bot.global_vars["QUEEN_ROLE_ID"] == ""
+        ):
+            raise ValueError("KING_ROLE_ID or QUEEN_ROLE_ID is not set in global variables.")
+        
+        KING_ROLE_ID = self.bot.global_vars["KING_ROLE_ID"]
+        QUEEN_ROLE_ID = self.bot.global_vars["QUEEN_ROLE_ID"]
+        try:
+            self.KING_ROLE_ID = int(KING_ROLE_ID)  # Always convert to int
+            self.QUEEN_ROLE_ID = int(QUEEN_ROLE_ID)  # Always convert to int
+        except ValueError:
+            raise ValueError("KING_ROLE_ID and QUEEN_ROLE_ID must be valid integers representing role IDs.")
+
+    def is_king(self, member_roles: list[int]) -> bool:
+        if self.KING_ROLE_ID in member_roles:
+            return True
+        
+        return False
+    
+    def is_queen(self, member_roles: list[int]) -> bool:
+        if self.QUEEN_ROLE_ID in member_roles:
+            return True
+        
+        return False
+
+    def record_action(self, action: str, ctx: commands.Context, member: discord.Member, coefficient: int = 1):
         document = {
             "message_id": ctx.message.id,
             "initMember": ctx.author.id,
             "targetMember": member.id,
             "action": action,
-            "created_at": discord.datetime.utcnow(),
+            "coefficient": coefficient,
+            "created_at": datetime.utcnow(),
         }
         self.db["interactions"].insert_one(document)
 
@@ -66,12 +99,15 @@ class NSFWInteractionCog(commands.Cog):
         title: str,
         description: str,
         gif_url: str,
+        footer: str | None = None,
     ):
         embed = discord.Embed(
             title=title,
             description=description,
         )
         embed.set_image(url=gif_url)
+        if footer:
+            embed.set_footer(text=footer)
         await ctx.send(embed=embed)
 
     # BLOWJOB
@@ -79,14 +115,25 @@ class NSFWInteractionCog(commands.Cog):
     async def blowjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
+        
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự bú cu mình được đâu 😳")
+            return
+        
+        member_roles = [role.id for role in ctx.author.roles]
 
-        self.record_action("bj", ctx, member)
+        coefficient = 1
+        if self.is_king(member_roles):
+            coefficient = 3
+
+        self.record_action("bj", ctx, member, coefficient=coefficient)
 
         await self._send_embed(
             ctx,
             title="👅 Bú bú",
             description=f"{ctx.author.mention} bú cu {member.mention} 💖",
             gif_url=self.bj_picker.pick(),
+            footer=f"Bị {ctx.author.name} bú x{coefficient} lần" if coefficient > 1 else None
         )
 
     # RIMJOB
@@ -94,14 +141,25 @@ class NSFWInteractionCog(commands.Cog):
     async def rimjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
+        
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự liếm lồn mình được đâu 😳")
+            return
 
-        self.record_action("rj", ctx, member)
+        member_roles = [role.id for role in ctx.author.roles]
+
+        coefficient = 1
+        if self.is_king(member_roles):
+            coefficient = 3
+
+        self.record_action("rj", ctx, member, coefficient=coefficient)
 
         await self._send_embed(
             ctx,
             title="🍑 Liếm cái ik~",
             description=f"{ctx.author.mention} liếm lồn {member.mention} 👅💦",
             gif_url=self.rj_picker.pick(),
+            footer=f"Bị {ctx.author.name} liếm lồn x{coefficient} lần" if coefficient > 1 else None
         )
 
     # HANDJOB
@@ -109,14 +167,25 @@ class NSFWInteractionCog(commands.Cog):
     async def handjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
+        
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự sục cặc mình được đâu 😳")
+            return
 
-        self.record_action("hj", ctx, member)
+        member_roles = [role.id for role in ctx.author.roles]
+
+        coefficient = 1
+        if self.is_king(member_roles):
+            coefficient = 3
+
+        self.record_action("hj", ctx, member, coefficient=coefficient)
 
         await self._send_embed(
             ctx,
             title="🥰 Sục cho nè~",
             description=f"{ctx.author.mention} sục cho {member.mention} 💦",
             gif_url=self.hj_picker.pick(),
+            footer=f"Bị {ctx.author.name} sục x{coefficient} lần" if coefficient > 1 else None
         )
 
     # FROTTING
@@ -125,13 +194,24 @@ class NSFWInteractionCog(commands.Cog):
         if not await self._nsfw_guard(ctx):
             return
 
-        self.record_action("frot", ctx, member)
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự đấu kiếm với mình được đâu 😳")
+            return
+
+        member_roles = [role.id for role in ctx.author.roles]
+
+        coefficient = 1
+        if self.is_king(member_roles):
+            coefficient = 3
+
+        self.record_action("frot", ctx, member, coefficient=coefficient)
 
         await self._send_embed(
             ctx,
             title="🤺 Đấu kiếm nhẹ nhàng nha~",
             description=f"{ctx.author.mention} frot với {member.mention} 🌸",
             gif_url=self.frot_picker.pick(),
+            footer=f"Bị {ctx.author.name} đấu kiếm x{coefficient} lần" if coefficient > 1 else None
         )
 
     # FUCKING
@@ -140,13 +220,24 @@ class NSFWInteractionCog(commands.Cog):
         if not await self._nsfw_guard(ctx):
             return
 
-        self.record_action("fuck", ctx, member)
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự chịch mình được đâu 😳")
+            return
+
+        member_roles = [role.id for role in ctx.author.roles]
+
+        coefficient = 1
+        if self.is_king(member_roles):
+            coefficient = 3
+            
+        self.record_action("fuck", ctx, member, coefficient=coefficient)
 
         await self._send_embed(
             ctx,
             title="Lên giường thôi 👉🏻👌🏻💦",
             description=f"{ctx.author.mention} chịch {member.mention} 💦",
             gif_url=self.fuck_picker.pick(),
+            footer=f"Bị {ctx.author.name} chịch x{coefficient} lần" if coefficient > 1 else None
         )
 
     # CREAMPIE
@@ -155,13 +246,24 @@ class NSFWInteractionCog(commands.Cog):
         if not await self._nsfw_guard(ctx):
             return
 
-        self.record_action("cream", ctx, member)
+        if member == ctx.author:
+            await ctx.send("Bạn không thể tự xuất trong mình được đâu 😳")
+            return
+
+        member_roles = [role.id for role in ctx.author.roles]
+
+        coefficient = 1
+        if self.is_king(member_roles):
+            coefficient = 3
+
+        self.record_action("cream", ctx, member, coefficient=coefficient)
 
         await self._send_embed(
             ctx,
             title="💦 Aaaahhh~! Em chịu không nổi nữa rồi...",
             description=f"{ctx.author.mention} ra bên trong {member.mention} 💦!",
             gif_url=self.cream_picker.pick(),
+            footer=f"Bị {ctx.author.name} xuất trong x{coefficient} lần" if coefficient > 1 else None
         )
 
     @commands.command(name="ranknsfw", aliases=["nsfwrank"])
@@ -213,8 +315,13 @@ class NSFWInteractionCog(commands.Cog):
 
         user_field = "$initMember" if mode == "given" else "$targetMember"
 
+        start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_of_month = (start_of_month + timedelta(days=32)).replace(day=1)
+
         pipeline = [
-            {"$group": {"_id": user_field, "count": {"$sum": 1}}},
+            {"$match": {"created_at": {"$gte": start_of_month, "$lt": end_of_month}}},
+            {"$addFields": {"coefficient": {"$ifNull": ["$coefficient", 1]}}},
+            {"$group": {"_id": user_field, "count": {"$sum": "$coefficient"}}},
             {"$sort": {"count": -1}},
             {"$limit": 10},
         ]
@@ -249,12 +356,15 @@ class NSFWInteractionCog(commands.Cog):
 
         description = "\n".join(lines) if lines else "Chưa có dữ liệu."
 
+        current_month = datetime.utcnow().month
+        current_year = datetime.utcnow().year
+
         if mode == "given":
-            title = "Top 10 con quỷ sex của server 😈"
+            title = f"Top 10 con quỷ sex của server tháng {current_month}/{current_year} 😈"
             if action:
                 title = f"🏆 Top 10 người {action_text_given[action]} nhiều nhất 💦"
         else:
-            title = "Top 10 noletinhduc 👉🏻👌🏻💦"
+            title = f"Top 10 noletinhduc tháng {current_month}/{current_year} 👉🏻👌🏻💦"
             if action:
                 title = f"🏆 Top 10 người {action_text_received[action]} nhiều nhất 💦"
 
