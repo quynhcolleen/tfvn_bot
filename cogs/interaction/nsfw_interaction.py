@@ -69,6 +69,14 @@ class NSFWInteractionCog(commands.Cog):
             return True
         
         return False
+    
+    def check_if_user_is_locked(self, member_id: int) -> bool:
+        is_locked = self.db["nsfw_settings"].find_one({
+            "user_locked": member_id,
+            "lock_until": {"$gte": datetime.utcnow()}
+        })
+
+        return is_locked is not None
 
     def record_action(self, action: str, ctx: commands.Context, member: discord.Member, coefficient: int = 1):
         document = {
@@ -120,6 +128,10 @@ class NSFWInteractionCog(commands.Cog):
             await ctx.send("Bạn không thể tự bú cu mình được đâu 😳")
             return
         
+        if (self.check_if_user_is_locked(ctx.author.id)):
+            await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
+            return
+
         member_roles = [role.id for role in ctx.author.roles]
 
         coefficient = 1
@@ -144,6 +156,10 @@ class NSFWInteractionCog(commands.Cog):
         
         if member == ctx.author:
             await ctx.send("Bạn không thể tự liếm lồn mình được đâu 😳")
+            return
+
+        if (self.check_if_user_is_locked(ctx.author.id)):
+            await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
             return
 
         member_roles = [role.id for role in ctx.author.roles]
@@ -172,6 +188,10 @@ class NSFWInteractionCog(commands.Cog):
             await ctx.send("Bạn không thể tự sục cặc mình được đâu 😳")
             return
 
+        if (self.check_if_user_is_locked(ctx.author.id)):
+            await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
+            return
+
         member_roles = [role.id for role in ctx.author.roles]
 
         coefficient = 1
@@ -196,6 +216,10 @@ class NSFWInteractionCog(commands.Cog):
 
         if member == ctx.author:
             await ctx.send("Bạn không thể tự đấu kiếm với mình được đâu 😳")
+            return
+
+        if (self.check_if_user_is_locked(ctx.author.id)):
+            await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
             return
 
         member_roles = [role.id for role in ctx.author.roles]
@@ -224,6 +248,10 @@ class NSFWInteractionCog(commands.Cog):
             await ctx.send("Bạn không thể tự chịch mình được đâu 😳")
             return
 
+        if (self.check_if_user_is_locked(ctx.author.id)):
+            await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
+            return
+
         member_roles = [role.id for role in ctx.author.roles]
 
         coefficient = 1
@@ -248,6 +276,10 @@ class NSFWInteractionCog(commands.Cog):
 
         if member == ctx.author:
             await ctx.send("Bạn không thể tự xuất trong mình được đâu 😳")
+            return
+
+        if (self.check_if_user_is_locked(ctx.author.id)):
+            await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
             return
 
         member_roles = [role.id for role in ctx.author.roles]
