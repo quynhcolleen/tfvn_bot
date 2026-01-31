@@ -408,6 +408,108 @@ class NSFWInteractionCog(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+    @commands.command(name="mrank")
+    @commands.has_permissions(administrator=True)
+    async def monthlyranknsfw(
+        self,
+        ctx: commands.Context,
+        month: int,
+        year: int
+    ):
+        if not await self._nsfw_guard(ctx):
+            return
+        
+        # the logic is similar to ranknsfw but for a specified month and year
+        # that need only rank 5 user over all interactions
+        # and later, make the embed and send 
+        start_of_month = datetime(year, month, 1)
+        end_of_month = (start_of_month + timedelta(days=32)).replace(day=1)
+        # Pipeline for "given" (người chủ động)
+        pipeline_given = [
+            {"$match": {"created_at": {"$gte": start_of_month, "$lt": end_of_month}}},
+            {"$addFields": {"coefficient": {"$ifNull": ["$coefficient", 1]}}},
+            {"$group": {"_id": "$initMember", "count": {"$sum": "$coefficient"}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5},
+        ]
+
+        # Pipeline for "received" (người bị động)
+        pipeline_received = [
+            {"$match": {"created_at": {"$gte": start_of_month, "$lt": end_of_month}}},
+            {"$addFields": {"coefficient": {"$ifNull": ["$coefficient", 1]}}},
+            {"$group": {"_id": "$targetMember", "count": {"$sum": "$coefficient"}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5},
+        ]
+
+        top_given = list(self.db["interactions"].aggregate(pipeline_given))
+        top_received = list(self.db["interactions"].aggregate(pipeline_received))
+
+        # Build "given" table
+        lines_given = []
+        for rank, record in enumerate(top_given, start=1):
+            user_id = record["_id"]
+            count = record["count"]
+            user = self.bot.get_user(user_id)
+            name = user.mention if user else f"ID {user_id}"
+            lines_given.append(f"**{rank}**. {name} – {count} lần")
+        
+        # Build "received" table
+        lines_received = []
+        for rank, record in enumerate(top_received, start=1):
+            user_id = record["_id"]
+            count = record["count"]
+            user = self.bot.get_user(user_id)
+            name = user.mention if user else f"ID {user_id}"
+            lines_received.append(f"**{rank}**. {name} – {count} lần")
+
+        title = f"📊 Tổng kết tháng {month}/{year}"
+        embed = discord.Embed(title=title, color=discord.Color.purple())
+        embed.set_author(name="BXH độ răm", icon_url=ctx.author.display_avatar.url)
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        
+        embed.add_field(
+            name="😈 Top 5 Con Quỷ Sex",
+            value="\n".join(lines_given) if lines_given else "Chưa có dữ liệu.",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="💦 Top 5 Nô Lệ Tình Dục",
+            value="\n".join(lines_received) if lines_received else "Chưa có dữ liệu.",
+            inline=False
+        )
+
+        next_month = month % 12 + 1
+        next_year = year if month < 12 else year + 1
+
+        # Add congratulations for new King and Queen
+        if top_given:
+            king_user_id = top_given[0]["_id"]
+            king_user = self.bot.get_user(king_user_id)
+            embed.add_field(
+            name="👑 Femboy King mới",
+            value=f"Chúc mừng {king_user.mention if king_user else f'<@{king_user_id}>'} đã trở thành **Femboy King** tháng {next_month}/{next_year}! 🎉",
+            inline=False
+            )
+
+        if top_received:
+            queen_user_id = top_received[0]["_id"]
+            queen_user = self.bot.get_user(queen_user_id)
+            embed.add_field(
+            name="👑 Femboy Queen mới",
+            value=f"Chúc mừng {queen_user.mention if queen_user else f'<@{queen_user_id}>'} đã trở thành **Femboy Queen** tháng {next_month}/{next_year}! 🎉",
+            inline=False
+            )
+
+        embed.set_image(
+            url="https://api-cdn.rule34.xxx//images/1500/85f729598f01b951f528e47b49078414.gif?1585014"
+        )
+        await ctx.send(embed=embed)
+
+
+
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(NSFWInteractionCog(bot))
