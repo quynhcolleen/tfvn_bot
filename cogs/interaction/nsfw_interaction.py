@@ -184,9 +184,10 @@ class NSFWInteractionCog(commands.Cog):
         if not await self._nsfw_guard(ctx):
             return
         
-        if member == ctx.author:
-            await ctx.send("Bạn không thể tự sục cặc mình được đâu 😳")
-            return
+        # ALLOW self-interaction for handjob but comment for future restriction if needed
+        # if member == ctx.author:
+        #     await ctx.send("Bạn không thể tự sục cặc mình được đâu 😳")
+        #     return
 
         if (self.check_if_user_is_locked(ctx.author.id)):
             await ctx.send(f"{member.mention} hiện đang bị khoá lệnh NSFW, không thể thực hiện tương tác này.")
