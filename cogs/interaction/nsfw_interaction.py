@@ -490,6 +490,10 @@ class NSFWInteractionCog(commands.Cog):
             name = user.mention if user else f"ID {user_id}"
             lines_given.append(f"**{rank}**. {name} – {count} lần")
         
+        # Fill remaining positions with blanks
+        for rank in range(len(top_given) + 1, 6):
+            lines_given.append(f"**{rank}**. —")
+        
         # Build "received" table
         lines_received = []
         for rank, record in enumerate(top_received, start=1):
@@ -498,6 +502,10 @@ class NSFWInteractionCog(commands.Cog):
             user = self.bot.get_user(user_id)
             name = user.mention if user else f"ID {user_id}"
             lines_received.append(f"**{rank}**. {name} – {count} lần")
+
+        # Fill remaining positions with blanks
+        for rank in range(len(top_received) + 1, 6):
+            lines_received.append(f"**{rank}**. —")
 
         title = f"📊 Tổng kết tháng {month}/{year}"
         embed = discord.Embed(title=title, color=discord.Color.purple())
