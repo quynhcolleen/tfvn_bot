@@ -120,6 +120,7 @@ class NSFWInteractionCog(commands.Cog):
 
     # BLOWJOB
     @commands.command(name="bj")
+    @commands.cooldown(1, 15, commands.BucketType.user)  # 1 use per 15 seconds per user
     async def blowjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
@@ -148,8 +149,14 @@ class NSFWInteractionCog(commands.Cog):
             footer=f"Bị {ctx.author.name} bú x{coefficient} lần" if coefficient > 1 else None
         )
 
+    @blowjob.error
+    async def blowjob_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.reply(f"⏳ Lệnh đang trong thời gian hồi, vui lòng chờ {error.retry_after:.1f} giây nữa.")
+
     # RIMJOB
     @commands.command(name="rj")
+    @commands.cooldown(1, 15, commands.BucketType.user)  # 1 use per 15 seconds per user
     async def rimjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
@@ -178,8 +185,14 @@ class NSFWInteractionCog(commands.Cog):
             footer=f"Bị {ctx.author.name} liếm lồn x{coefficient} lần" if coefficient > 1 else None
         )
 
+    @rimjob.error
+    async def rimjob_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.reply(f"⏳ Lệnh đang trong thời gian hồi, vui lòng chờ {error.retry_after:.1f} giây nữa.")
+
     # HANDJOB
     @commands.command(name="hj")
+    @commands.cooldown(1, 15, commands.BucketType.user)  # 1 use per 15 seconds per user
     async def handjob(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
@@ -208,9 +221,14 @@ class NSFWInteractionCog(commands.Cog):
             gif_url=self.hj_picker.pick(),
             footer=f"Bị {ctx.author.name} sục x{coefficient} lần" if coefficient > 1 else None
         )
+    @handjob.error
+    async def handjob_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.reply(f"⏳ Lệnh đang trong thời gian hồi, vui lòng chờ {error.retry_after:.1f} giây nữa.")
 
     # FROTTING
     @commands.command(name="frot")
+    @commands.cooldown(1, 15, commands.BucketType.user)  # 1 use per 15 seconds per user
     async def frotting(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
@@ -239,8 +257,14 @@ class NSFWInteractionCog(commands.Cog):
             footer=f"Bị {ctx.author.name} đấu kiếm x{coefficient} lần" if coefficient > 1 else None
         )
 
+    @frotting.error
+    async def frotting_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.reply(f"⏳ Lệnh đang trong thời gian hồi, vui lòng chờ {error.retry_after:.1f} giây nữa.")
+
     # FUCKING
     @commands.command(name="fuck")
+    @commands.cooldown(1, 15, commands.BucketType.user)  # 1 use per 15 seconds per user
     async def fucking(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
@@ -269,8 +293,14 @@ class NSFWInteractionCog(commands.Cog):
             footer=f"Bị {ctx.author.name} chịch x{coefficient} lần" if coefficient > 1 else None
         )
 
+    @fucking.error
+    async def fucking_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.reply(f"⏳ Lệnh đang trong thời gian hồi, vui lòng chờ {error.retry_after:.1f} giây nữa.")
+
     # CREAMPIE
     @commands.command(name="cream")
+    @commands.cooldown(1, 15, commands.BucketType.user)  # 1 use per 15 seconds per user
     async def creampie(self, ctx: commands.Context, member: discord.Member):
         if not await self._nsfw_guard(ctx):
             return
@@ -298,6 +328,11 @@ class NSFWInteractionCog(commands.Cog):
             gif_url=self.cream_picker.pick(),
             footer=f"Bị {ctx.author.name} xuất trong x{coefficient} lần" if coefficient > 1 else None
         )
+
+    @creampie.error
+    async def creampie_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.reply(f"⏳ Lệnh đang trong thời gian hồi, vui lòng chờ {error.retry_after:.1f} giây nữa.")
 
     @commands.command(name="ranknsfw", aliases=["nsfwrank"])
     async def ranknsfw(
@@ -507,6 +542,13 @@ class NSFWInteractionCog(commands.Cog):
             url="https://api-cdn.rule34.xxx//images/1500/85f729598f01b951f528e47b49078414.gif?1585014"
         )
         await ctx.send(embed=embed)
+
+    @monthlyranknsfw.error
+    async def monthlyranknsfw_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.reply("❌ Bạn cần quyền Quản trị viên để sử dụng lệnh này.")
+        elif isinstance(error, commands.BadArgument):
+            await ctx.reply("❌ Vui lòng cung cấp tháng và năm hợp lệ. Ví dụ: `!tf mrank 3 2024`")
 
 
 
