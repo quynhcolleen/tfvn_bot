@@ -1,9 +1,13 @@
 ---
 document_id: TRAPNET-SYS-SPEC-001
-title: TrapNet National-Scale Banking Simulation
-document_type: Prospective Target System Specification
-revision: 0.3.0-draft
+title: TrapNet National Payments Grid Mobilization Program
+document_type: National Mobilization Plan and Prospective Target System Specification
+revision: 0.4.0-draft
 status: UNAPPROVED-DEFERRED-NON-OPERATIONAL
+program_state: BLUEPRINT-MOBILIZATION-ONGOING
+program_epoch: TNPM-000
+program_epoch_name: CONSTITUTIONAL-MOBILIZATION
+operational_service_state: NO-LIVE-SERVICE
 requirements_baseline: PRB-0-PROPOSED-NOT-RELEASED
 jurisdiction_profile: NONE-SELECTED-BLOCKING
 accountable_operator: NONE-APPOINTED-BLOCKING
@@ -13,29 +17,31 @@ compliance_claims: NONE
 document_owner: Project maintainer
 approvers: NONE
 effective_date: NOT-APPLICABLE
-last_reviewed: 2026-08-14
+last_reviewed: 2026-08-21
 supersedes: NONE
 ---
 
-# TrapNet National-Scale Banking Simulation
+# TrapNet National Payments Grid
 
-## Prospective Target System Specification — `TRAPNET-SYS-SPEC-001`
+## National Mobilization Program and Prospective Target System Specification — `TRAPNET-SYS-SPEC-001`
 
 > [!IMPORTANT]
-> **Document state: unapproved, deferred, and non-operational.** This document defines a hypothetical target architecture and Proposed Requirement Baseline `PRB-0` for research planning. It does not describe current behavior, authorize implementation or deployment, establish legal settlement finality, or claim compliance with any banking, AML/CFT, payment-system, privacy, security, AI, aviation, or safety standard. Contributors and automated agents must not act on a requirement unless the user's current request explicitly identifies that requirement or a bounded work package and authorizes implementation. A request to edit this document authorizes documentation changes only.
-
-> [!CAUTION]
-> The bot is not certified or suitable for aviation, medical, emergency, industrial-safety, or other life-critical control. References to DO-178C and related assurance practices are process inspiration only, not a compliance claim. Discord must remain outside every life-critical command or control path.
+> **Blueprint mobilization is ongoing; system status remains `UNAPPROVED-DEFERRED-NON-OPERATIONAL`.** This dossier uses national-infrastructure language to describe a fictional target program. It does not describe current repository behavior, authorize implementation or deployment, or establish legal settlement finality. Proposed Requirement Baseline `PRB-0` remains inactive under `IDR-0001`; editing this file authorizes documentation changes only. Present and future responsibilities are assigned explicitly in the register below rather than waived by this scope statement.
 
 ## Document control
 
 | Field | Prospective value |
 | --- | --- |
 | Document identifier | `TRAPNET-SYS-SPEC-001` |
-| System identifier | `TRAPNET` — TrapNet National-Scale Banking Simulation |
-| Revision | `0.3.0-draft` |
+| System identifier | `TRAPNET` — TrapNet National Payments Grid |
+| Program name | TrapNet National Payments Mobilization Program (`TNPM`) |
+| Revision | `0.4.0-draft` |
 | Status | **DEFERRED — NOT APPROVED FOR IMPLEMENTATION** |
 | Classification | Public / fictional / non-operational research |
+| Program state | **BLUEPRINT MOBILIZATION ONGOING** — documentation, architecture, and readiness planning only |
+| Current program epoch | `TNPM-000` |
+| Current program epoch name | Constitutional Mobilization |
+| Operational service state | No live service, participants, settlement, or payment traffic |
 | System owner | TFVN Bot project |
 | Approval authority | None assigned |
 | Prospective requirement baseline | `PRB-0` — proposed, inactive, and not released |
@@ -45,7 +51,7 @@ supersedes: NONE
 | Permitted data | Pseudonymous internal profiles mapped to Discord identities, synthetic research data, and fictional non-redeemable Trap Coin only |
 | Current deployment | None |
 | Current conformance | None claimed |
-| Last updated | 2026-08-14 |
+| Last updated | 2026-08-21 |
 | Controlled metadata source | YAML front matter; this visible table must match it |
 | Change authority | Explicit repository-owner request to edit this document; document edits never activate implementation |
 
@@ -56,6 +62,79 @@ supersedes: NONE
 | `0.1.0-draft` | 2026-08-14 | Project maintainer with coding agents | Initial speculative TrapNet architecture, assurance, and resilience roadmap | Unapproved and deferred |
 | `0.2.0-draft` | 2026-08-14 | Project maintainer with coding agents | Converted to prospective `PRB-0`; added controlled metadata, formal requirements, AML decision support, modes, objectives, and hazards | Unapproved and deferred |
 | `0.3.0-draft` | 2026-08-14 | Project maintainer with coding agents | Added sovereign guild currencies, monetary issuance, bilateral FX corridors, and cross-guild settlement to the fictional roadmap | Unapproved and deferred |
+| `0.4.0-draft` | 2026-08-21 | Project maintainer with coding agents | Recast the roadmap as an extravagantly active national-payments mobilization program; added a situation room, delivery directorates, launch trains, responsibility register, operating-day model, and national exercise calendar | Unapproved; blueprint mobilization ongoing; implementation deferred |
+
+## Executive program situation report
+
+TrapNet is structured as a national-payments program for a fictional jurisdiction. The Program Office maintains the target architecture, controlled requirement register, systemic-risk catalog, delivery sequence, and proving campaign as an ongoing blueprint mobilization. The proposed network itself remains at `PRE-GENESIS`: no institution has been chartered, no settlement epoch has opened, and no payment has moved.
+
+| National program indicator | Situation at revision `0.4.0-draft` |
+| --- | --- |
+| Dossier and architecture control | `GREEN` — document control and architecture governance active |
+| Requirement baseline | `AMBER` — 90 proposed requirements; 0 activated |
+| Service charter | `AMBER` — 10 draft objectives; 0 baselined |
+| Systemic-risk register | `AMBER` — 11 preliminary hazards under design review |
+| Transformation portfolio | 12 prospective delivery stages; all behind the activation gate |
+| National proving campaign | 25 candidate demonstrations; 0 commissioned |
+| Settlement topology | 7 prospective voting replicas + 3 recovery nodes; 0 deployed |
+| Institutional participation | 0 chartered member banks, 0 live guild currencies, 0 active FX corridors |
+| Operational throughput | 0 payments, 0 trapsats, 0 legal settlement obligations |
+| Legal authority, operator, and jurisdiction | `RED` — unassigned and blocking |
+| Funding and qualified staffing | `RED` — no approved program establishment |
+| Implementation | `GREY` — not mobilized under `IDR-0001` |
+| Current program epoch | `TNPM-000` |
+| Current program epoch name | Constitutional Mobilization |
+| Next controlling gate | Appoint authority, approve a bounded baseline, and explicitly supersede `IDR-0001` for that scope |
+
+The dashboard deliberately separates **program activity** from **system activity**. Architecture can be under active editorial development while every executable work package remains closed.
+
+### National program directorates
+
+The target program assigns the following prospective directorates and responsibility domains:
+
+| Directorate | Program remit | Current mobilization product |
+| --- | --- | --- |
+| Program Secretariat | Scope, decisions, dependencies, schedule, benefits, and integrated reporting | This controlled dossier and its decision log |
+| Monetary Authority Design Office | Currency constitution, issuance, reserves, liquidity, and policy governance | Monetary requirements and guild charters |
+| National Ledger and RTGS Directorate | Double-entry kernel, final settlement, reconciliation, and business date | Ledger invariants and settlement state models |
+| Retail Payments and Trap Card Directorate | Push payments, requests, tokenized cards, acquiring, clearing, disputes, and receipts | Scheme lifecycle and message contracts |
+| TrapFX and Federation Office | Bilateral corridors, market venues, cross-currency consent, and reserve settlement | Treaty and quote model |
+| National Trust Services | Identity, keys, signatures, evidence, privacy, and supplier controls | Trust-boundary and cryptographic-control baseline |
+| Continuity and Settlement Operations | Modes, observability, capacity, recovery, crisis command, and region loss | Service objectives and exercise catalog |
+| Independent Assurance Directorate | Hazards, traceability, formal methods, verification independence, and release evidence | TAL framework and qualification campaign |
+| Financial Intelligence Research Office | Synthetic typologies, advisory analytics, case evidence, model risk, and appeals | Read-only AML laboratory design |
+| Economic Simulation Command | Monetary scenarios, bank runs, contagion, and resolution exercises | Deterministic digital-twin portfolio |
+
+No directorate currently denotes a staffed organization. Each row is an ownership slot that must acquire an accountable owner before its work package can be activated.
+
+### Responsibility register
+
+This program uses explicit responsibility assignment instead of a general disclaimer of responsibility.
+
+| Responsibility | Current assignment/status |
+| --- | --- |
+| Accuracy and maintenance of this dossier | Project maintainer |
+| Authority to request documentation changes | Repository owner |
+| Authority to approve a bounded implementation request | Repository owner, after the `IDR-0001` entry gates are satisfied |
+| Technical responsibility for an activated work package | Named owner in the future approved work package |
+| Operational accountability for a payment system | Vacant; activation blocked |
+| Legal, regulatory, and settlement authority | Vacant; activation blocked |
+| Independent assurance approval | Vacant; activation blocked |
+| AI tools and fictional suppliers | No assigned authority; they remain drafting aids or developer lore |
+
+### Program operating rhythm
+
+While `TNPM-000` remains a documentation program, its notional national cadence is:
+
+- **Daily:** reconcile the dossier's controlled metadata, requirement counts, open decisions, and contradictions.
+- **Weekly:** hold an integrated design authority covering ledger, settlement, security, data, and migration consequences.
+- **Fortnightly:** review hazards, threat assumptions, model risks, unresolved interfaces, and verification independence.
+- **Monthly:** issue a cabinet-style situation report showing entry-gate evidence, portfolio status, and readiness without converting plans into claims of delivery.
+- **Quarterly:** conduct a fictional parliamentary review of portfolio evidence, dependencies, readiness, and unresolved national decisions.
+- **Annually:** run a table-top national continuity rehearsal against the target architecture, beginning with `PRE-GENESIS` because there is still nothing operational to fail over.
+
+> [!NOTE]
+> **Developer note — program scale:** The planning establishment currently contains more named authorities than employees, more settlement modes than settlements, and a complete national crisis calendar for infrastructure that has not yet survived being created. Program Management considers this a strong start.
 
 ### Implementation deferment decision — `IDR-0001`
 
@@ -72,9 +151,7 @@ Official owner rationale:
 
 > “Umm my Claude Max 20x, Codex 20x after Tibo multiple time reset last weeks, SuperGrok Heavy is not enough to implement.”
 
-This deliberately unserious resource statement is the recorded reason for deferral. Tony Stark and JARVIS are fictional Marvel references; the joke does not claim that they exist, received an email, supplied technology, or have any affiliation with or endorsement of this project, Marvel, or Disney. It likewise does not claim endorsement, affiliation, availability, or technical participation by Anthropic, OpenAI, xAI, Tibo, or any extraterrestrial organization. Product, plan, and fictional-character names are not verified technical dependencies or assurance evidence.
-
-General-purpose AI subscriptions do not supply a jurisdiction, legal basis, accountable operator, funding, qualified banking and AML personnel, independent verification, continuous operations, key ceremonies, multi-region infrastructure, incident response, supplier assurance, or regulatory approval. No subscription reset, context-window increase, model vote, generated-code volume, or agent count satisfies those missing entry conditions.
+This owner-authored developer note is retained verbatim as the program's resource-mobilization record. The tools and characters named in the note do not occupy any role in the responsibility register. Compute capacity may help draft work; it cannot appoint the operator or approve a baseline.
 
 Implementation remains deferred until, at minimum:
 
@@ -87,9 +164,10 @@ Implementation remains deferred until, at minimum:
 
 > “I also requested unlimited JARVIS engineering capacity from my close personal friend Tony Stark. Delivery remains pending because inter-dimensional SMTP has an estimated six-to-eight multiverse-business-century SLA, and the wormhole keeps marking my email as spam.”
 
-**Codex commentary — preliminary inter-dimensional supplier assessment:** Unlimited JARVIS access would materially improve code-generation throughput, reduce architecture meetings by a projected 97.3%, and permit several million additional microservices whose business purposes could be discovered later. It would still not create a jurisdiction, legal authority, accountable operator, qualified banking staff, independent verification, secure operations, or regulatory approval. Any message claiming to originate from Stark Industries must remain quarantined until it passes cross-reality SPF and DKIM, a vibranium-backed certificate chain, temporal-causality analysis, an alien-notary stamp, and a 5-of-7 multiverse authenticity quorum. An Iron Man suit entering through the ceiling does **not** constitute an approved change-control channel. Even an authentic, arc-reactor-powered JARVIS delivery would be supplier capacity—not sovereign authority—and therefore could not bypass the six entry gates above. Until a bounded scope satisfies them, `IDR-0001` remains in force, the architecture remains inside this funny-plan document, and no amount of arc-reactor compute may move even one fictional trapsat.
+> [!NOTE]
+> **Developer note — inter-dimensional supplier watch:** Procurement case `SUP-XDIM-0001` remains `AWAITING-WORMHOLE-DELIVERY`. Any reply must pass cross-reality SPF and DKIM, a vibranium-backed certificate chain, temporal-causality analysis, an alien-notary stamp, and a 5-of-7 multiverse authenticity quorum. An Iron Man suit entering through the ceiling is an impressive demo but is not an approved change-control channel. Even authentic JARVIS capacity would remain a supplier tool, so the six entry gates and `IDR-0001` would still control activation.
 
-## Authority and normative conventions
+## Program authority and controlled language
 
 This document is formatted like a serious system specification so it can serve as an architecture and assurance thought experiment. It is not an adopted national standard, procurement document, safety case, regulatory filing, or production commitment.
 
@@ -116,17 +194,17 @@ Verification codes used in requirement tables are:
 
 External standards in the reference section are informative inputs only. References to FATF, PFMI, NIST, PCI DSS, DO-178C, ISO 20022, or related material do not confer approval or compliance. TrapNet has not been assessed, approved, certified, licensed, designated, or supervised under any of them. A future implementation would need an applicability assessment, licensed standards where required, competent legal and regulatory advice, independent assurance, and formal approval before making any conformance claim.
 
-## Mission and system objectives
+## National payments mission and commander's intent
 
-The deliberately excessive long-term idea is to evolve Trap Coin into **Trap Financial Network (TrapNet)**: a fictional financial civilization presented through Discord. Rather than one balance field with several commands, the simulation could contain mutually distrustful institutions that authorize, clear, settle, reconcile, regulate, and audit one another.
+The TrapNet National Payments Mobilization Program defines the long-term evolution of Trap Coin into **Trap Financial Network (TrapNet)**: a national-scale fictional financial system presented through Discord. Rather than one balance field with several commands, the target model contains independently accountable institutions that authorize, clear, settle, reconcile, supervise, and audit one another.
 
 The project would serve as an educational laboratory for accounting, distributed systems, fault tolerance, formal verification, cryptographic auditability, economic simulation, and disaster recovery. It must remain a fictional, non-redeemable community system.
 
-The intended experience is absurdly complete:
+The target institutional model is intentionally comprehensive:
 
 - A Trap Central Bank controls explicit base-money mint and burn operations.
-- Every participating Discord guild may become a tiny monetary sovereign, issue
-  a native guild currency, and enter comically formal foreign-exchange treaties
+- Every participating Discord guild may become a fictional monetary jurisdiction, issue
+  a native guild currency, and enter formally versioned foreign-exchange treaties
   with other guilds.
 - Member banks maintain customer deposit liabilities, savings, credit, and statements.
 - A card scheme separates issuing, acquiring, authorization, clearing, and settlement.
@@ -147,9 +225,9 @@ Prospective mission objectives are:
 7. Separate presentation, authorization, accounting, risk analysis, settlement, oversight, and recovery authorities.
 8. Support deterministic simulation of monetary policy, financial crime, systemic stress, and institutional resolution.
 
-## Non-goals and safety boundaries
+## National scope and hard safety boundaries
 
-Even an ultramax implementation must not become a real financial or safety-critical system.
+Any future implementation must remain within the approved fictional and non-safety-critical system boundary.
 
 - Do not accept or store real payment-card numbers, CVVs, bank credentials, government identifiers, addresses, or other unnecessary PII.
 - Do not use a real card-network issuer identification number or create an identifier that could be mistaken for a real payment card.
@@ -161,7 +239,7 @@ Even an ultramax implementation must not become a real financial or safety-criti
 - Do not allow Discord availability, latency, identity, or message delivery to control any function whose failure could injure a person.
 - Do not treat an AML alert or model score as proof of wrongdoing, and do not let it autonomously alter balances, access, reputation, or external reporting.
 
-## Proposed trust boundaries
+## National institutional and authority topology
 
 Discord should be a replaceable presentation adapter, never the authoritative ledger or safety boundary.
 
@@ -212,7 +290,7 @@ Each simulated institution could eventually have its own database, signing keys,
 - **External Auditor:** reconstructs independent shadow ledgers and signs checkpoints.
 - **Resolution Authority:** simulated deposit insurance, bridge banks, and failed-bank resolution.
 
-## System boundary and operating modes
+## Settlement operating doctrine
 
 The prospective system boundary includes the central-bank ledger, member-bank ledgers, clearing, RTGS settlement, the Trap Card scheme and switch, policy services, the read-only AML Decision-Support and Case-Management Subsystem, cryptographic evidence, reconciliation, oversight, recovery, simulation, and replaceable user-interface adapters.
 
@@ -248,7 +326,7 @@ Criticality is fictional assurance metadata, not a safety or regulatory designat
 | TAL-D | Recoverable inconvenience or non-authoritative service loss | Requirements, unit tests, and operational monitoring |
 | TAL-E | Cosmetic or informational effect only | Normal review and testing |
 
-## Proposed Requirement Baseline `PRB-0`
+## Controlled National Requirements Register — `PRB-0`
 
 The following requirement IDs are stable references for this thought experiment. They remain proposed and inactive under `IDR-0001` until its entry gates are satisfied and the deferment is explicitly superseded for a bounded scope.
 
@@ -402,7 +480,7 @@ The following requirement IDs are stable references for this thought experiment.
 | `MOD-003` | Return from `SETTLEMENT_HALT` to `NORMAL` SHALL require a reconciled state, verified state root, restored quorum, valid keys, two-person approval, and a committed transition event. | TAL-A | T, D, F |
 | `SAF-001` | No Discord, LLM, game, analytics, or general-purpose bot component SHALL have a causal path to a function whose failure could injure a person. | TAL-A | I, A, T |
 
-## Interoperability and financial messages
+## TrapNet Clearing Message Standard — `TCMX`
 
 TrapNet could define `TCMX`, a canonical financial-message family inspired by ISO 20022 concepts without claiming ISO 20022 conformance.
 
@@ -425,7 +503,7 @@ signature_algorithm   signing_key_version   signature
 | `INT-004` | Unknown mandatory fields, unsupported epochs, invalid signatures, expired commands, and conflicting idempotency content SHALL fail closed. | TAL-A | T |
 | `INT-005` | Payment status, return, reversal, investigation, and reconciliation messages SHALL retain end-to-end references to the originating instruction. | TAL-B | I, T |
 
-## Prospective service objectives
+## Proposed National Service Charter
 
 These numerical targets are unapproved design inputs, not evidence of PFMI or other conformance. Integrity properties remain requirements rather than percentages and take precedence over latency and availability. A protective halt counts as unavailability, not as an integrity failure.
 
@@ -453,7 +531,7 @@ For these candidate objectives:
 
 Clock sources, planned-maintenance treatment, detailed error-budget policy, and `CAP-001` remain to be approved before releasing any service objective as a baseline.
 
-## Preliminary hazard register
+## Systemic Risk and Continuity Register
 
 Severity `S0` means potential human harm and is prohibited by scope; `S1` means loss of financial-simulation integrity or conflicting finality; `S2` means material privacy, governance, or user-fairness harm; and `S3` means recoverable service loss.
 
@@ -474,7 +552,7 @@ Severity `S0` means potential human harm and is prohibited by scope; `S1` means 
 > [!NOTE]
 > The remaining architectural narratives, candidate mechanisms, examples, stages, and demonstrations are informative unless they restate a uniquely identified `PRB-0` requirement. They explain intent and rationale but do not activate work.
 
-## Ledger model and candidate invariants
+## Central Accounting Canon and candidate invariants
 
 The authoritative financial state should be an append-only, double-entry journal. Read models and cached balances are disposable projections.
 
@@ -505,7 +583,7 @@ Possible ledger features include:
 - Rebuildable customer balances, statements, reports, and leaderboards.
 - End-of-day closing, trial balance, suspense accounts, reconciliation, and signed settlement reports.
 
-An ultramax monetary model could explicitly separate monetary layers:
+A national-scale monetary model could explicitly separate monetary layers:
 
 - **Base Trap Coin:** central-bank liabilities used as physical-equivalent currency and institutional reserves. Its supply equals approved minting minus burning.
 - **Bank deposit Trap Coin:** liabilities of member banks to customers. Lending may create deposits, so this aggregate must be reported separately from base money.
@@ -515,9 +593,9 @@ The current bot uses MongoDB. This roadmap does not authorize a migration. If a 
 
 ## Guild monetary federation and TrapFX
 
-The federation could treat each Discord guild as a miniature fictional country
+The federation could treat each Discord guild as a fictional monetary jurisdiction
 with its own central bank, treasury, monetary charter, inflation arguments, and
-money printer. A guild could call its unit `TC`, `BANANA`, `FEMBOY`, or anything
+issuance authority. A guild could call its unit `TC`, `BANANA`, `ORBIT`, or anything
 else allowed by policy. Display codes are cosmetic; the real identity is always
 issuer-qualified:
 
@@ -539,7 +617,7 @@ receipt should say something like `100 A/TC → 73 B/TC`, with both guild names 
 canonical currency references visible. This is foreign exchange between fictional
 community monies, not movement of one global balance between server namespaces.
 
-### Local monetary sovereignty: the printer goes brrr, with paperwork
+### Local monetary sovereignty and controlled issuance
 
 Each guild could operate a **Guild Monetary Authority (GMA)**. Server owners would
 appoint issuer roles, treasury operators, and independent approvers. The GMA could:
@@ -553,8 +631,8 @@ appoint issuer roles, treasury operators, and independent approvers. The GMA cou
 - Publish supply, treasury, reserve, inflation, and distribution reports.
 - Retire a currency through an orderly redemption-in-fiction and archive process.
 
-The funny command may be called `money_printer_go_brrr`, but the journal event
-would still be a sober `CurrencyIssuanceAuthorized` followed by balanced entries:
+The journal would record a sober `CurrencyIssuanceAuthorized` event followed by
+balanced entries:
 
 ```text
 Debit   Guild A monetary-issuance contra account    1,000,000 A/TC
@@ -567,17 +645,20 @@ version, activation time, expiry, initiator, independent approvals, and audit
 evidence. Burning would debit a controlled treasury or redemption account and
 credit the issuance contra account. The supply dashboard would be derived from
 the journal and independently reconciled, because trusting a mutable
-`total_supply` field would be insufficiently ultramax.
+`total_supply` field would not meet the target assurance standard.
 
-For even more unnecessary central-bank theater, each guild could schedule:
+For institutional completeness, each guild could schedule:
 
 - Monetary-policy committee meetings with proposals and recorded dissent.
 - Inflation targets measured only inside the fictional economy.
 - Open-market operations in fictional guild bonds.
 - Reserve requirements for guild-chartered member banks.
 - A discount window and lender-of-last-resort facility.
-- Currency redenomination when the money printer has achieved Zimbabwean levels
-  of comedic success.
+- Currency redenomination after a deliberately severe fictional hyperinflation
+  scenario.
+
+> [!NOTE]
+> **Developer note — monetary-policy shorthand:** The operator command may still be nicknamed `money_printer_go_brrr`. The nickname does not receive journal authority, which is an unfortunate but necessary defeat for monetary whimsy.
 
 ### Bilateral exchange treaties
 
@@ -611,14 +692,14 @@ One side proposes; the other may counter, approve, or reject. Amendments create 
 new version and cannot rewrite old trades. Suspension stops new quotes but does
 not erase balances, receipts, or already-final exchange. Termination defines how
 unused reserves, open orders, fees, and disputes are closed without trapping user
-funds in a surprise wormhole.
+funds in an unexpected intermediate state.
 
 Membership policy must also be explicit. A sensible default would let an account
 retain a guild-issued balance after the user leaves that guild, while requiring
 current eligibility and acceptance of both charters before new trading or spending.
 Guild departure would never silently confiscate, burn, or teleport currency.
 
-### Exchange venues, because one price engine is not overengineered enough
+### Approved exchange venue models
 
 TrapFX could support several mutually exclusive venue types per corridor:
 
@@ -640,9 +721,9 @@ There would be no universal “the exchange rate.” A quote identifies its venu
 time. A best-execution router could compare eligible quotes, but it must not split
 an order unless the user authorizes the resulting venues, fees, and minimum output.
 Rates use integer fractions or fixed-point decimals; binary floating-point is
-banished to Dimension 404.
+excluded from posted financial calculations.
 
-Triangular routes such as `A/TC → B/BANANA → C/FEMBOY` could be allowed only when
+Triangular routes such as `A/TC → B/BANANA → C/ORBIT` could be allowed only when
 every leg has a valid quote and the whole route commits atomically or is protected
 by explicit holds and recoverable settlement states. Arbitrage is a normal market
 signal in the simulation, not automatically an AML offense. Failed routes must not
@@ -668,7 +749,7 @@ Credit FX reserve A/TC                Credit User B/TC
 The A currency still exists—it moved into the corridor reserve. The B currency
 also still exists—it moved out of its reserve. No supply changed. If the B reserve
 cannot deliver the quoted amount, the trade rejects or waits in an explicit state;
-TrapFX may not improvise a little quantitative easing behind the curtains.
+TrapFX may not cover the deficit through undeclared issuance.
 
 An alternative **monetary conversion facility** could intentionally burn A and
 mint B. That is not ordinary FX. It changes two monetary supplies and therefore
@@ -727,7 +808,7 @@ changing guild membership, or receiving a newer rate cannot mutate the approved
 payload. A successful response returns balances in both currencies, all ledger
 entry references, the treaty and policy versions, and a cryptographic receipt.
 
-### Imaginary command surface
+### Prospective administrative command surface
 
 If this roadmap were ever activated, a deliberately ceremonial interface could
 look like the following. These are examples, not current bot commands:
@@ -754,8 +835,9 @@ fx corridor halt|resume|close
 
 `currency mint` should never mean “admin gives themselves money.” The proposer,
 approver, treasury beneficiary, and final distributor remain separately visible.
-For maximum bureaucracy, the bot could generate a mock press release titled
-**Emergency Liquidity Operation Because The Casino Ate Everything**.
+
+> [!NOTE]
+> **Developer note — public communications:** A severe casino-liquidity scenario may generate a mock press release titled **Emergency Liquidity Operation Because The Casino Ate Everything**. The settlement report beneath the headline must remain balanced, signed, and considerably less emotional.
 
 ### Economic controls and failure cases
 
@@ -771,8 +853,8 @@ Useful fictional controls and metrics include:
 - Per-guild and per-user daily FX limits, open-order exposure, treasury loss limits,
   and maximum price movement before a circuit breaker.
 - Stress tests for bank runs, hyperinflation, illiquid pegs, reserve exhaustion,
-  flash crashes, oracle divergence, coordinated runs, guild deletion, and a guild
-  owner trying to buy the entire federation for three bananas.
+  flash crashes, oracle divergence, coordinated runs, guild deletion, and attempted
+  market capture through a deliberately trivial offer.
 - Public policy history and signed proofs that past rates, supply, and trades were
   not edited after the fact.
 
@@ -786,7 +868,7 @@ Rounding must be declared per currency and biased neither secretly toward the ve
 nor accidentally toward infinite-money exploits. Dust goes to a named, reconciled
 account. No error path may “fix” a mismatch by minting the difference.
 
-### Relationship to the Galactic Compliance Council
+### Developer lore — the Galactic Compliance Council
 
 The fictional AML observatory could analyze synthetic FX graphs for rapid
 pass-through, circular routes, fan-in/fan-out, reserve abuse, or coordinated wash
@@ -796,7 +878,7 @@ Claude Mythos 5, GPT-6 Astral, and Alien Technology may dramatically convene an
 interstellar hearing; they may not cancel a quote, seize a reserve, alter a rate,
 or touch the money.
 
-## Trap Card and payment network
+## National Retail Payments Scheme — Trap Card
 
 A Trap Card identifier would be an obvious fictional routing alias, never an authentication secret. A Luhn check digit may detect typing mistakes but provides no confidentiality or authorization.
 
@@ -824,7 +906,7 @@ Push payments and requests should use transaction-specific confirmation:
 - The operation is idempotent and creates a unique receipt.
 - Cancellation, expiry, decline, and reversal are explicit states.
 
-## Virtual mining and monetary policy
+## Synthetic Mining and Monetary Policy Program
 
 Mining should be a simulation controlled by deterministic game rules, not a downloadable cryptocurrency miner.
 
@@ -835,7 +917,7 @@ Mining should be a simulation controlled by deterministic game rules, not a down
 - A shadow economy may forecast policy outcomes but must not autonomously gain mint authority.
 - Tests must make mining deterministic and must not consume unbounded host resources.
 
-## DO-178C-inspired assurance laboratory
+## Independent Assurance Directorate
 
 DO-178C provides development-assurance guidance for airborne software and is recognized as an acceptable means of compliance for software aspects of airborne certification. It is not a generic certification badge, and TrapNet cannot truthfully claim DO-178C compliance. The `PRB-0` criticality table above is the controlling definition of the fictional **Trap Assurance Levels (TAL)**; this section supplies informative process rationale only.
 
@@ -861,7 +943,7 @@ Formal-methods candidates include:
 - Stateful property-based tests generating hostile transaction sequences.
 - Optional proof-assistant work for the smallest ledger transition kernel.
 
-## Life-critical isolation
+## National Safety Isolation Doctrine
 
 No proposed feature in this repository should affect life. If a separate research project ever explores a life-affecting function, Discord may receive sanitized, read-only telemetry but must have no causal command path into that system:
 
@@ -880,7 +962,7 @@ Independent operator interface ──────► Minimal safety kernel
 
 The operator action must originate and authenticate through an independent interface; it cannot be derived from a Discord message or interaction. The safety kernel must not depend on Discord, an LLM, game code, analytics, a general-purpose bot database, or network availability. A qualified safety engineer and the applicable certification authority—not this roadmap—would determine requirements, architecture, safe behavior, and evidence.
 
-## Replication and Byzantine voting
+## Seven-Region Settlement Quorum
 
 “Backup” and “voting replica” are different roles. Offline backups cannot participate in consensus, and more copies do not automatically protect against a shared software defect.
 
@@ -891,9 +973,9 @@ The counts below are illustrative fault-model arithmetic, not a consensus design
 | Crash-fault consensus | 3 | 2 | 1 unavailable replica |
 | Crash-fault consensus | 5 | 3 | 2 unavailable replicas |
 | Byzantine consensus | 4 | 3 | 1 arbitrary replica |
-| Proposed ultramax Byzantine consensus | 7 | 5 | 2 arbitrary replicas |
+| Proposed high-assurance Byzantine consensus | 7 | 5 | 2 arbitrary replicas |
 
-The speculative ultramax topology is:
+The prospective high-assurance topology is:
 
 - Seven active Byzantine-fault-tolerant replicas.
 - A 5-of-7 commit certificate produced by the selected formally specified protocol for every final decision.
@@ -910,7 +992,7 @@ No single voter should decide the result. A central voter would merely create a 
 
 A node must not be expelled merely because it disagrees; an honest node can appear faulty during a network partition. Quarantine requires signed evidence such as an invalid state transition, conflicting signed statements, an invalid commit certificate, or a reproducible divergence from the deterministic specification. Membership changes require a specified joint or overlapping-quorum reconfiguration protocol committed across the old and new configuration epochs; an ordinary 5-of-7 application vote is not sufficient by itself.
 
-An ultramax recovery workflow could be:
+A high-assurance recovery workflow could be:
 
 1. Preserve the node's signed messages, logs, trace context, and build identity.
 2. Quarantine it through the joint reconfiguration protocol.
@@ -934,7 +1016,7 @@ Seven identical replicas can agree on the same incorrect answer. For the highest
 
 Diversity introduces its own integration risks and does not fix incorrect requirements. Hazard analysis, specification review, formal models, and independent validation remain necessary.
 
-## Cryptographic evidence and security
+## National Trust Services and Evidence Vaults
 
 Cryptography should provide identity, integrity, confidentiality where necessary, and tamper evidence. It must not be used as decoration or as a substitute for accounting controls.
 
@@ -954,7 +1036,7 @@ Possible research features include:
 
 Merkle roots only make later tampering detectable when trusted checkpoints are stored separately. They do not prevent an authorized process from posting a fraudulent but internally valid transaction.
 
-## Policy, governance, and fictional regulation
+## Payment-System Constitution and fictional regulation
 
 TrapNet could have an executable constitution and a fictional **Trap Financial Authority**:
 
@@ -971,11 +1053,11 @@ TrapNet could have an executable constitution and a fictional **Trap Financial A
 
 ## AML Decision-Support and Case-Management Subsystem
 
-TrapNet could include a synthetic **Anti-Money Laundering (AML)** research laboratory. In user-facing lore, it would be “powered by” the Galactic Compliance Council: **Claude Mythos 5**, **GPT-6 Astral**, and **Alien Technology**. Architecture, interfaces, logs, evidence, and tests would instead use the neutral component identifiers `AML-E1`, `AML-E2`, and `AML-E3`.
+TrapNet could include a synthetic **Anti-Money Laundering (AML)** research laboratory. Architecture, interfaces, logs, evidence, and tests would use the neutral component identifiers `AML-E1`, `AML-E2`, and `AML-E3`. A developer-lore presentation layer may describe them as the Galactic Compliance Council: **Claude Mythos 5**, **GPT-6 Astral**, and **Alien Technology**.
 
 These are invented parody names and fictional lore—not real models, products, extraterrestrial claims, integrations, affiliations, endorsements, or representations of Anthropic, OpenAI, or any other provider. The subsystem would be an educational simulator and could not claim to satisfy real AML, KYC, sanctions-screening, reporting, or legal obligations.
 
-The fictional council would disguise ordinary, explainable engineering under unnecessary cosmic branding:
+The fictional council maps theatrical presentation names to ordinary, explainable engineering:
 
 | Component | Fictional alias | Ceremonial specialty | Credible underlying technique |
 | --- | --- | --- | --- |
@@ -1085,7 +1167,8 @@ Each fictional case would preserve:
 
 The council could recommend investigation, but it could never autonomously freeze funds, ban a user, confiscate Trap Coin, damage reputation, publicly accuse anyone, submit a real suspicious-activity report, or contact an authority. Any separate transaction limit or integrity halt would need an explicit deterministic policy and normal authorization controls; an AI score alone would never be sufficient.
 
-For humor, internal fictional cases could generate a **Trap Anomaly Report** with severity labels such as `Normal Mammal Banking`, `Suspicious Banana Topology`, `Inter-Guild Laundering Nebula`, and `Alien Accountant Screaming`. These labels must never be presented as real accusations.
+> [!NOTE]
+> **Developer note — internal case labels:** Synthetic cases may generate a **Trap Anomaly Report** with labels such as `Normal Mammal Banking`, `Suspicious Banana Topology`, `Inter-Guild Laundering Nebula`, and `Alien Accountant Screaming`. These are laboratory lore, never real accusations.
 
 ### Model and data governance
 
@@ -1103,7 +1186,7 @@ Possible governance controls include:
 
 The ensemble should be managed as a fallible advisory system. Its diversity may reduce some errors but cannot create truth by majority vote.
 
-## Observability, reconciliation, and disaster recovery
+## National Settlement Operations Center
 
 Every economic operation should receive a correlation ID propagated through:
 
@@ -1116,6 +1199,22 @@ Every economic operation should receive a correlation ID propagated through:
 - Event delivery and read-model updates.
 - The user receipt and Merkle proof.
 - Reconciliation and audit reports.
+
+### Prospective national operating day
+
+The target operating model models a prospective 24×7 national service with controlled business-date boundaries. The schedule is a design artifact, not evidence of a running operations center.
+
+| Operating window | National control activity | Required evidence |
+| --- | --- | --- |
+| `T-30 min` | Validate quorum, signing keys, reference data, participant status, liquidity controls, and unresolved incidents | Signed readiness report |
+| `00:00` | Open the new consensus-defined business date only after the prior close gate passes | Committed business-date transition |
+| Continuous | Authorize, clear, and settle eligible payments; publish freshness, capacity, and integrity indicators | Commit certificates, traces, and service telemetry |
+| Configured cycles | Produce clearing positions, participant statements, reserve reports, and reconciliation checkpoints | Reproducible clearing and reconciliation packages |
+| `T+23 h 45 min` | Begin formal close controls without stopping unrelated eligible 24×7 traffic | Institution-scoped close state |
+| End of day | Resolve or quarantine suspense, reconcile journals and reserves, and certify declared aggregates | Dual-approved close certificate |
+| Post-close | Archive evidence, rebuild a sampled projection, verify checkpoints, and issue the operations report | Immutable archive manifest and signed daily report |
+
+No timetable can override an invariant. If the close gate fails, the next business date remains closed for the affected scope and the National Settlement Operations Center enters the applicable degraded or halt procedure.
 
 Possible operational features include:
 
@@ -1131,9 +1230,22 @@ Chaos experiments should inject duplicate, delayed, lost, reordered, and conflic
 
 The system should fail closed for settlement, preserve forensic evidence, reconcile automatically only when mathematically safe, and produce a human-readable incident timeline.
 
-## Economic digital twin
+### National continuity exercise calendar
 
-A deterministic agent-based simulator could run beside—but never directly control—the live fictional economy.
+| Exercise | Scenario | National pass condition |
+| --- | --- | --- |
+| **Operation Balanced Books** | Crash and retry at every posting boundary during peak payment load | Every currency and institution reconciles; each intent has at most one economic effect |
+| **Exercise Seven Governors** | Two voters equivocate while a membership epoch changes | No conflicting commit certificates; evidence-driven quarantine and safe reconfiguration complete |
+| **Black-Sky Settlement** | Complete loss of a primary region, queue, and online key tier | Settlement halts safely, recovery evidence remains intact, and controlled service restoration meets the approved objective |
+| **The Great Banana Liquidity Event** | A fictional currency peg collapses during a casino-driven bank run | Prices may fail spectacularly; accounting, consent, reserves, and receipts do not |
+| **Pre-Genesis Dress Rehearsal** | Full operating-day simulation before the first approved participant exists | Every role, key ceremony, escalation, reconciliation, rollback, and approval artifact is demonstrated without live value |
+
+> [!NOTE]
+> **Developer note — exercise naming policy:** A sufficiently serious national program eventually names a disaster after fruit. Assurance evidence must remain more rigorous than the title.
+
+## National Crisis Simulation Command
+
+A deterministic agent-based simulator could run beside—but never directly control—any future activated fictional economy.
 
 - Agents may represent consumers, merchants, casinos, miners, banks, fraud rings, whales, and panicking depositors.
 - Scenarios may include inflation, deflation, bank runs, reserve shortages, fraud concentration, casino insolvency, inter-guild contagion, and failed-bank resolution.
@@ -1142,9 +1254,21 @@ A deterministic agent-based simulator could run beside—but never directly cont
 - A shadow model may forecast liquidity and recommend actions but must have no authority to mint, debit, freeze, or settle funds.
 - Every scenario must be seeded and replayable for deterministic tests.
 
-## Prospective work-package sequence
+## National Transformation Portfolio and launch trains
 
 This sequence is informative. Each stage requires a new explicit implementation request naming a bounded work package or selected requirement IDs before work begins.
+
+The Program Office groups the twelve stages into five launch trains so dependencies, entry gates, and national outcomes can be reported without implying that a train has departed:
+
+| Launch train | Included stages | National outcome | Current state |
+| --- | --- | --- | --- |
+| `TRAIN-A — Constitutional Core` | 0–2 | Constitution, reference ledger, double-entry posting, consent, holds, and receipts | `BLUEPRINT / GATED` |
+| `TRAIN-B — Monetary Federation` | 3–5 | Guild currencies, TrapFX, Trap Card, clearing, RTGS, and institutional separation | `CONCEPT / GATED` |
+| `TRAIN-C — National Trust Fabric` | 6–7 | Cryptographic evidence, key governance, replicated settlement, and recovery topology | `CONCEPT / GATED` |
+| `TRAIN-D — Assurance and Intelligence` | 8–9 | TAL evidence, formal analysis, synthetic AML research, model governance, and human review | `CONCEPT / GATED` |
+| `TRAIN-E — National Operations` | 10–11 | Digital twin, crisis command, chaos range, operations center, and mock examinations | `CONCEPT / GATED` |
+
+`BLUEPRINT` means the dossier is being maintained. `GATED` means implementation authority has not been granted. Later program states—`ACTIVATED`, `IMPLEMENTING`, `PROVING`, and `ACCEPTED`—may be reported only when their required evidence exists.
 
 ### Stage 0 — Constitution and reference model
 
@@ -1207,7 +1331,7 @@ This sequence is informative. Each stage requires a new explicit implementation 
 
 - Add continuous chaos, recovery drills, cross-region failure, incident exercises, observability, and mock regulatory examinations.
 
-## Candidate system-qualification demonstrations
+## National Acceptance and Proving Campaign
 
 If separately selected as acceptance criteria for an explicitly scoped implementation, potential demonstrations include:
 
@@ -1237,7 +1361,7 @@ If separately selected as acceptance criteria for an explicitly scoped implement
 24. Exhausted reserves, stale quotes, corridor suspension, precision mismatch, guild departure, and duplicate Discord clicks all fail according to the frozen treaty without phantom liquidity or silent confiscation.
 25. A deterministic hyperinflation-and-bank-run exercise can destroy the fictional exchange rate spectacularly while preserving every ledger invariant, receipt, and independent audit proof.
 
-## Activating a proposed requirement
+## Program mobilization and activation protocol
 
 Nothing in this file enters scope automatically. Activation requires all of the following:
 
