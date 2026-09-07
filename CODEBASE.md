@@ -73,8 +73,9 @@ tfvn_bot/
 │   ├── test_community_features.py  Pure validation/time/helper regression tests
 │   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
-│   ├── test_highlight.py           Highlight 💀 listener, threshold, and 300s spacing tests
-│   ├── test_highlight_card.py      Discord-chat highlight PNG and timestamp tests
+│   ├── test_highlight.py           Highlight listener, spacing, media download, and posting tests
+│   ├── test_highlight_card.py      Discord-chat highlight PNG, embed, and gallery tests
+│   ├── test_highlight_media.py     Embed extraction, media limits, and Discord proxy URL tests
 │   ├── test_hash_verification.py    Signed proof, forgery, tamper, producer, and privacy tests
 │   ├── test_meter_number_bars.py   unittest coverage for signed meter formatting
 │   ├── test_role_exam.py           Role-exam invitation, UI, safety, and role-grant tests
@@ -209,9 +210,10 @@ tfvn_bot/
     └── utils/
         ├── giveaway.py                  Persistent views, entries, scheduling, and rerolls
         ├── vote.py                      Persistent reaction polls and result scheduling
-        ├── highlight.py                 Background 💀 listener; chat PNG after 5 votes; TV congrats reply
+        ├── highlight.py                 Background 💀 listener; media downloads, chat PNG, TV congrats reply
         ├── _highlight_helpers.py        Skull/interval knobs, NSFW skip, channel helpers
-        ├── _highlight_card.py           Discord dark-theme chat PNG rendering
+        ├── _highlight_card.py           Discord dark-theme chat PNG, image gallery, and embed rendering
+        ├── _highlight_media.py          Bounded attachment/embed snapshots and Discord media URL validation
         ├── quote.py                     Text-embed and PNG message quote modes
         ├── _quote_card.py               Quote text wrapping and PNG card rendering
         ├── hash_verify.py               Signature-first femboy-card/quote proof verification

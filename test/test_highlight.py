@@ -1,10 +1,13 @@
 import asyncio
 import unittest
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
+import aiohttp
 import discord
+from PIL import Image
 from pymongo import DESCENDING, ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
@@ -17,6 +20,7 @@ from cogs.utils._highlight_helpers import (
     STATUS_POSTED,
     STATUS_POSTING,
     HighlightConfigError,
+    HighlightLookupError,
     channel_is_nsfw,
     collect_skull_voter_ids,
     count_unique_skull_voters,
@@ -30,6 +34,7 @@ from cogs.utils._highlight_helpers import (
     seconds_until_highlight_slot,
     should_post_highlight,
 )
+from cogs.utils._highlight_media import collect_highlight_media
 from cogs.utils.highlight import HighlightCog
 
 
@@ -40,6 +45,12 @@ HIGHLIGHT_CHANNEL_ID = 99
 MESSAGE_ID = 123456789012345678
 SECOND_MESSAGE_ID = 123456789012345679
 NOW = datetime(2026, 9, 7, 14, 30, tzinfo=timezone.utc)
+
+
+def _image_bytes() -> bytes:
+    output = BytesIO()
+    Image.new("RGB", (160, 100), (30, 180, 90)).save(output, format="PNG")
+    return output.getvalue()
 
 
 class AsyncIterator:
@@ -330,6 +341,7 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
             clean_content="Tin nhắn hài",
             content="Tin nhắn hài",
             attachments=[],
+            embeds=[],
             reactions=[],
             jump_url=(
                 f"https://discord.com/channels/{GUILD_ID}/"
@@ -472,10 +484,35 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_highlight_channel_stays_pending(self):
         self.bot.global_vars = {}
-        with patch("cogs.utils.highlight.logger.exception"):
+        with self.assertLogs("cogs.utils.highlight", level="WARNING") as captured:
             await self._add_skulls(self._threshold_users())
         self.assertEqual(self.collection.docs[0]["status"], STATUS_PENDING)
         self.highlight_channel.send.assert_not_awaited()
+        self.assertIn("HIGHLIGHT_CHANNEL", " ".join(captured.output))
+
+    async def test_startup_without_settings_cog_logs_configuration_fix(self):
+        del self.bot.global_vars
+        with self.assertLogs("cogs.utils.highlight", level="WARNING") as captured:
+            await self.cog.cog_load()
+        warning = " ".join(captured.output)
+        self.assertIn("cogs.settings.variable_setting", warning)
+        self.assertIn("HIGHLIGHT_CHANNEL", warning)
+
+    async def test_loaded_settings_allow_pending_highlight_to_post(self):
+        del self.bot.global_vars
+        with self.assertLogs("cogs.utils.highlight", level="WARNING"):
+            await self._add_skulls(self._threshold_users())
+        self.assertEqual(self.collection.docs[0]["status"], STATUS_PENDING)
+        self.highlight_channel.send.assert_not_awaited()
+
+        self.bot.global_vars = {"HIGHLIGHT_CHANNEL": str(HIGHLIGHT_CHANNEL_ID)}
+        with patch(
+            "cogs.utils.highlight.render_highlight_card",
+            return_value=b"\x89PNG\r\n\x1a\nxxxx",
+        ):
+            await self.cog._flush_guild(GUILD_ID)
+        self.highlight_channel.send.assert_awaited_once()
+        self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
 
     async def test_second_cas_does_not_publish_twice(self):
         await self._add_skulls(self._below_threshold_users())
@@ -667,6 +704,159 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
             await self.cog._publish_highlight(nomination)
         self.message.reply.assert_not_awaited()
         self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
+
+    async def test_image_embed_without_message_text_publishes_png(self):
+        self.message.clean_content = self.message.content = ""
+        self.message.embeds = [discord.Embed.from_dict({
+            "type": "image",
+            "image": {
+                "url": "https://example.com/photo.png",
+                "proxy_url": "https://images-ext-1.discordapp.net/external/abc/photo.png",
+            },
+        })]
+        self.cog._embed_image_bytes = AsyncMock(return_value=_image_bytes())
+
+        await self._add_skulls(self._threshold_users())
+        await asyncio.gather(*list(self.cog._flush_tasks.values()))
+
+        self.highlight_channel.send.assert_awaited_once()
+        uploaded = self.highlight_channel.send.await_args.kwargs["file"]
+        with Image.open(uploaded.fp) as card:
+            self.assertEqual(card.format, "PNG")
+        self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
+
+    async def test_rich_embed_survives_failed_image_download(self):
+        self.message.clean_content = self.message.content = ""
+        embed = discord.Embed(title="Bảng kết quả", description="Bạn đã thắng!")
+        embed.add_field(name="Điểm", value="100")
+        embed.set_image(url="https://cdn.discordapp.com/attachments/1/2/photo.png")
+        self.message.embeds = [embed]
+        self.cog._embed_image_bytes = AsyncMock(return_value=None)
+
+        await self.cog._publish_highlight(self._posting_nomination())
+
+        self.highlight_channel.send.assert_awaited_once()
+        self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
+
+    async def test_unavailable_or_corrupt_image_only_source_marks_failed(self):
+        self.message.clean_content = self.message.content = ""
+        self.message.embeds = [discord.Embed().set_image(
+            url="https://cdn.discordapp.com/attachments/1/2/photo.png",
+        )]
+        for downloaded in (None, b"invalid image"):
+            with self.subTest(downloaded=downloaded):
+                self.collection.docs.clear()
+                self.cog._embed_image_bytes = AsyncMock(return_value=downloaded)
+                with self.assertRaises(HighlightLookupError):
+                    await self.cog._publish_highlight(self._posting_nomination())
+                self.assertEqual(self.collection.docs[0]["status"], STATUS_FAILED)
+        self.highlight_channel.send.assert_not_awaited()
+
+    async def test_attachment_is_rendered_once_inside_referencing_embed(self):
+        data = _image_bytes()
+        attachment = SimpleNamespace(
+            filename="photo.png", content_type="image/png", size=len(data),
+            url="https://cdn.discordapp.com/attachments/1/2/photo.png?ex=123",
+            proxy_url="https://media.discordapp.net/attachments/1/2/photo.png?ex=123",
+            read=AsyncMock(return_value=data),
+        )
+        self.message.attachments = [attachment]
+        self.message.embeds = [discord.Embed(title="Ảnh").set_image(
+            url="attachment://photo.png",
+        )]
+        self.cog._embed_image_bytes = AsyncMock()
+
+        images, embeds = await self.cog._load_highlight_media(
+            collect_highlight_media(self.message),
+        )
+
+        self.assertEqual(images, [])
+        self.assertEqual(embeds[0].image_bytes, data)
+        attachment.read.assert_awaited_once()
+        self.cog._embed_image_bytes.assert_not_awaited()
+
+    async def test_failed_first_attachment_keeps_second_image(self):
+        data = _image_bytes()
+        bad = SimpleNamespace(
+            filename="bad.png", content_type="image/png", size=0,
+            read=AsyncMock(side_effect=OSError("unavailable")),
+        )
+        good = SimpleNamespace(
+            filename="good.png", content_type="image/png", size=len(data),
+            read=AsyncMock(return_value=data),
+        )
+        self.message.attachments = [bad, good]
+        with patch("cogs.utils.highlight.logger.warning"):
+            images, embeds = await self.cog._load_highlight_media(
+                collect_highlight_media(self.message),
+            )
+        self.assertEqual(images, [data])
+        self.assertEqual(embeds, [])
+
+
+class TestHighlightMediaDownloads(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        bot = SimpleNamespace(db={"highlight_nominations": FakeCollection()})
+        self.cog = HighlightCog(bot)
+        self.url = "https://images-ext-1.discordapp.net/external/abc/photo.png"
+
+    def _session(self, *, status=200, chunks=(b"image",), length=None, mime="image/png"):
+        response = SimpleNamespace(
+            status=status, content_length=length, headers={"Content-Type": mime},
+            content=SimpleNamespace(iter_chunked=lambda size: AsyncIterator(chunks)),
+        )
+        context = AsyncMock()
+        context.__aenter__.return_value = response
+        return SimpleNamespace(get=Mock(return_value=context))
+
+    async def test_streams_proxy_image_without_redirects(self):
+        session = self._session(chunks=(b"part1", b"part2"))
+        self.assertEqual(
+            await self.cog._embed_image_bytes(session, self.url), b"part1part2",
+        )
+        session.get.assert_called_once_with(self.url, allow_redirects=False)
+
+    async def test_invalid_host_is_rejected_before_request(self):
+        session = self._session()
+        result = await self.cog._embed_image_bytes(session, "https://localhost/a.png")
+        self.assertIsNone(result)
+        session.get.assert_not_called()
+
+    async def test_redirect_error_and_non_image_responses_are_skipped(self):
+        for options in ({"status": 302}, {"status": 404}, {"mime": "text/html"}):
+            with self.subTest(options=options):
+                self.assertIsNone(await self.cog._embed_image_bytes(
+                    self._session(**options), self.url,
+                ))
+
+    async def test_size_limit_applies_to_header_and_stream(self):
+        with patch("cogs.utils.highlight.MAX_ATTACHMENT_BYTES", 5):
+            for session in (
+                self._session(length=6),
+                self._session(chunks=(b"123", b"456")),
+            ):
+                self.assertIsNone(await self.cog._embed_image_bytes(session, self.url))
+
+    async def test_network_failure_and_timeout_skip_image(self):
+        for error in (aiohttp.ClientConnectionError(), asyncio.TimeoutError()):
+            session = self._session()
+            session.get.side_effect = error
+            with self.subTest(error=type(error)), patch(
+                "cogs.utils.highlight.logger.warning",
+            ):
+                self.assertIsNone(await self.cog._embed_image_bytes(session, self.url))
+
+    async def test_attachment_size_checked_before_and_after_read(self):
+        for size in (6, 1):
+            attachment = SimpleNamespace(size=size, read=AsyncMock(return_value=b"123456"))
+            with self.subTest(size=size), patch(
+                "cogs.utils.highlight.MAX_ATTACHMENT_BYTES", 5,
+            ):
+                self.assertIsNone(await self.cog._attachment_bytes(attachment))
+            if size == 6:
+                attachment.read.assert_not_awaited()
+            else:
+                attachment.read.assert_awaited_once()
 
 
 if __name__ == "__main__":

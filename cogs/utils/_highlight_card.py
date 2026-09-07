@@ -8,6 +8,11 @@ import unicodedata
 
 from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
 
+from cogs.utils._highlight_media import (
+    MAX_HIGHLIGHT_EMBEDS,
+    MAX_HIGHLIGHT_IMAGES,
+    HighlightEmbed,
+)
 from cogs.utils._quote_card import (
     _FallbackFont,
     _HORIZONTAL_WHITESPACE,
@@ -42,6 +47,16 @@ TIMESTAMP_FONT_SIZE = 24
 HEADER_FONT_SIZE = 32
 LINE_SPACING = 10
 MIN_IMAGE_HEIGHT = 80
+MAX_IMAGE_PIXELS = 24_000_000
+GALLERY_GAP = 12
+EMBED_PADDING = 20
+EMBED_GAP = 10
+EMBED_FONT_SIZE = 24
+EMBED_TITLE_FONT_SIZE = 28
+EMBED_META_FONT_SIZE = 20
+EMBED_THUMBNAIL_SIZE = 120
+EMBED_BACKGROUND = (43, 45, 49)
+EMBED_TITLE_TEXT = (0, 168, 252)
 
 BACKGROUND = (49, 51, 56)
 HEADER_BACKGROUND = (43, 45, 49)
@@ -204,12 +219,14 @@ def _prepare_avatar(
     if avatar_bytes:
         try:
             with Image.open(BytesIO(avatar_bytes)) as source:
+                if source.width * source.height > MAX_IMAGE_PIXELS:
+                    return _placeholder_avatar(display_name, accent)
                 return ImageOps.fit(
                     source.convert("RGB"),
                     (AVATAR_SIZE, AVATAR_SIZE),
                     method=Image.Resampling.LANCZOS,
                 )
-        except (OSError, ValueError, UnidentifiedImageError):
+        except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError):
             pass
     return _placeholder_avatar(display_name, accent)
 
@@ -223,15 +240,28 @@ def _prepare_attachment_image(
         return None
     try:
         with Image.open(BytesIO(image_bytes)) as source:
+            if source.width * source.height > MAX_IMAGE_PIXELS:
+                return None
+            # The first frame gives animated GIF/WebP embeds a stable PNG preview.
             source.load()
-            frame = source.convert("RGB")
-    except (OSError, ValueError, UnidentifiedImageError):
+            frame = ImageOps.exif_transpose(source)
+            frame = _contain_image(frame, max_width, max_height)
+            frame = frame.convert("RGBA")
+            background = Image.new("RGBA", frame.size, BACKGROUND)
+            frame = Image.alpha_composite(background, frame).convert("RGB")
+    except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError):
         return None
-    return ImageOps.contain(
-        frame,
-        (max_width, max_height),
-        method=Image.Resampling.LANCZOS,
+    return frame
+
+
+def _contain_image(image: Image.Image, max_width: int, max_height: int) -> Image.Image:
+    """Keep extreme aspect ratios valid even when one dimension rounds below 1px."""
+    scale = min(max_width / image.width, max_height / image.height)
+    size = (
+        max(1, min(max_width, round(image.width * scale))),
+        max(1, min(max_height, round(image.height * scale))),
     )
+    return image.resize(size, Image.Resampling.LANCZOS)
 
 
 def _paste_circle(
@@ -282,68 +312,179 @@ def _card_height(
     return max(MIN_CARD_HEIGHT, HEADER_HEIGHT + PADDING + body + PADDING)
 
 
-def _fit_body(
-    *,
+def _fit_lines(
     text: str,
-    font,
+    font: _FallbackFont,
+    width: int,
+    height: int,
     spacing: int,
-    name_height: int,
-    attachment: Image.Image | None,
-) -> tuple[list[str], Image.Image | None]:
-    lines = wrap_quote_text(text, font, TEXT_MAX_WIDTH) if text else []
-    image = attachment
+) -> list[str]:
+    lines = wrap_quote_text(text, font, width) if text else []
     truncated = False
-
-    def height_for(current_lines: list[str], image_height: int) -> int:
-        return _card_height(
-            name_height=name_height,
-            lines=current_lines,
-            font=font,
-            spacing=spacing,
-            image_height=image_height,
-        )
-
-    image_height = image.height if image is not None else 0
-    while (
-        len(lines) > 1
-        and height_for(lines, image_height) > MAX_CARD_HEIGHT
-    ):
+    while lines and _text_block_height(lines, font, spacing) > height:
         lines.pop()
         truncated = True
-
-    if height_for(lines, image_height) > MAX_CARD_HEIGHT and image is not None:
-        overflow = height_for(lines, image_height) - MAX_CARD_HEIGHT
-        new_height = image.height - overflow
-        if new_height < MIN_IMAGE_HEIGHT:
-            image = None
-            image_height = 0
-        else:
-            new_width = max(
-                1,
-                round(image.width * (new_height / image.height)),
-            )
-            image = image.resize(
-                (new_width, new_height),
-                Image.Resampling.LANCZOS,
-            )
-            image_height = image.height
-
-    if height_for(lines, image_height) > MAX_CARD_HEIGHT and lines:
-        while (
-            len(lines) > 1
-            and height_for(lines, image_height) > MAX_CARD_HEIGHT
-        ):
-            lines.pop()
-            truncated = True
-
     if truncated and lines:
-        lines[-1] = _truncate_to_width(
-            lines[-1],
-            font,
-            TEXT_MAX_WIDTH,
-            force_suffix=True,
+        lines[-1] = _truncate_to_width(lines[-1], font, width, force_suffix=True)
+    return lines
+
+
+def _render_gallery(images: list[Image.Image], max_height: int) -> Image.Image:
+    """Preserve the full image in each tile, including tall or wide attachments."""
+    if len(images) == 1:
+        return _contain_image(images[0], TEXT_MAX_WIDTH, max_height)
+    columns = 2
+    rows = (len(images) + columns - 1) // columns
+    tile_width = (TEXT_MAX_WIDTH - GALLERY_GAP) // columns
+    tile_height = max(1, (max_height - GALLERY_GAP * (rows - 1)) // rows)
+    tiles = [
+        _contain_image(image, tile_width, tile_height)
+        for image in images
+    ]
+    row_heights = [
+        max(tile.height for tile in tiles[start:start + columns])
+        for start in range(0, len(tiles), columns)
+    ]
+    gallery = Image.new(
+        "RGB", (TEXT_MAX_WIDTH, sum(row_heights) + GALLERY_GAP * (rows - 1)),
+        BACKGROUND,
+    )
+    y = 0
+    for row, row_height in enumerate(row_heights):
+        for column, tile in enumerate(tiles[row * columns:(row + 1) * columns]):
+            x = column * (tile_width + GALLERY_GAP) + (tile_width - tile.width) // 2
+            _paste_rounded(gallery, tile, (x, y), IMAGE_CORNER_RADIUS)
+        y += row_height + GALLERY_GAP
+    return gallery
+
+
+def _embed_text(value: str) -> str:
+    return normalize_highlight_text(value, allow_empty=True)
+
+
+def _render_embed_panel(
+    embed: HighlightEmbed,
+    main_image: Image.Image | None,
+    thumbnail: Image.Image | None,
+    max_height: int,
+) -> Image.Image | None:
+    """Fit an embed's text and media inside one bounded Discord-style panel."""
+    body_font = _load_fallback_font(EMBED_FONT_SIZE)
+    bold_font = _load_fallback_font(EMBED_FONT_SIZE, bold=True)
+    title_font = _load_fallback_font(EMBED_TITLE_FONT_SIZE, bold=True)
+    meta_font = _load_fallback_font(EMBED_META_FONT_SIZE)
+    inner_width = TEXT_MAX_WIDTH - 2 * EMBED_PADDING
+    inner_height = max_height - 2 * EMBED_PADDING
+    text_width = inner_width
+    if thumbnail is not None:
+        text_width -= EMBED_THUMBNAIL_SIZE + EMBED_GAP
+
+    # A block remains independently styled when it is shortened to make room.
+    blocks: list[tuple[list[str], _FallbackFont, tuple[int, int, int]]] = []
+    sections = [
+        (embed.author_name, meta_font, BODY_TEXT),
+        (embed.title, title_font, EMBED_TITLE_TEXT),
+        (embed.description, body_font, BODY_TEXT),
+    ]
+    for name, value in embed.fields[:25]:
+        sections.extend(((name, bold_font, BODY_TEXT), (value, body_font, BODY_TEXT)))
+    for value, font, color in sections:
+        text = _embed_text(value)
+        if text:
+            blocks.append((wrap_quote_text(text, font, text_width), font, color))
+
+    footer_lines = _fit_lines(
+        _embed_text(embed.footer_text), meta_font, inner_width,
+        min(60, inner_height // 4), EMBED_GAP,
+    )
+    footer_height = (
+        _text_block_height(footer_lines, meta_font, EMBED_GAP)
+        if footer_lines else 0
+    )
+    footer_space = footer_height + EMBED_GAP if footer_lines else 0
+    image_reserve = (
+        min(main_image.height, max(MIN_IMAGE_HEIGHT, inner_height // 3)) + EMBED_GAP
+        if main_image is not None else 0
+    )
+    text_budget = max(0, inner_height - footer_space - image_reserve)
+
+    block_heights = [
+        _text_block_height(lines, font, EMBED_GAP)
+        for lines, font, _ in blocks
+    ]
+
+    def blocks_height() -> int:
+        return sum(block_heights) + EMBED_GAP * max(0, len(blocks) - 1)
+
+    shortened: set[int] = set()
+    while blocks and blocks_height() > text_budget:
+        longest = max(range(len(blocks)), key=lambda index: len(blocks[index][0]))
+        if len(blocks[longest][0]) > 1:
+            lines, font, _ = blocks[longest]
+            line_step = max(1, font.primary.getbbox("A")[3] + EMBED_GAP)
+            overflow = blocks_height() - text_budget
+            remove_count = min(
+                len(lines) - 1, max(1, (overflow + line_step - 1) // line_step),
+            )
+            del lines[-remove_count:]
+            block_heights[longest] = _text_block_height(lines, font, EMBED_GAP)
+            shortened.add(longest)
+        else:
+            blocks.pop()
+            block_heights.pop()
+            if blocks:
+                shortened.add(len(blocks) - 1)
+    for index in shortened:
+        if index < len(blocks):
+            lines, font, _ = blocks[index]
+            lines[-1] = _truncate_to_width(
+                lines[-1], font, text_width, force_suffix=True,
+            )
+
+    if thumbnail is not None:
+        thumbnail = _contain_image(
+            thumbnail,
+            EMBED_THUMBNAIL_SIZE,
+            max(1, min(EMBED_THUMBNAIL_SIZE, text_budget)),
         )
-    return lines, image
+    top_height = max(blocks_height(), thumbnail.height if thumbnail is not None else 0)
+    if main_image is not None:
+        image_budget = max(1, inner_height - top_height - footer_space - EMBED_GAP)
+        main_image = _contain_image(main_image, inner_width, image_budget)
+    image_space = (
+        main_image.height + (EMBED_GAP if top_height else 0)
+        if main_image is not None else 0
+    )
+    if not blocks and thumbnail is None and main_image is None and not footer_lines:
+        return None
+    height = 2 * EMBED_PADDING + top_height + image_space + footer_space
+    panel = Image.new("RGB", (TEXT_MAX_WIDTH, height), EMBED_BACKGROUND)
+    draw = ImageDraw.Draw(panel)
+    draw.rectangle((0, 0, 5, height), fill=embed.color_rgb or DEFAULT_ACCENT)
+
+    y = EMBED_PADDING
+    for lines, font, color in blocks:
+        top = font.multiline_bbox(lines, EMBED_GAP)[1]
+        font.draw_multiline(draw, (EMBED_PADDING, y - top), lines, color, EMBED_GAP)
+        y += _text_block_height(lines, font, EMBED_GAP) + EMBED_GAP
+    if thumbnail is not None:
+        _paste_rounded(
+            panel, thumbnail,
+            (TEXT_MAX_WIDTH - EMBED_PADDING - thumbnail.width, EMBED_PADDING), 6,
+        )
+    y = EMBED_PADDING + top_height
+    if main_image is not None:
+        if top_height:
+            y += EMBED_GAP
+        _paste_rounded(panel, main_image, (EMBED_PADDING, y), 6)
+        y += main_image.height
+    if footer_lines:
+        y += EMBED_GAP
+        top = meta_font.multiline_bbox(footer_lines, EMBED_GAP)[1]
+        meta_font.draw_multiline(
+            draw, (EMBED_PADDING, y - top), footer_lines, MUTED_TEXT, EMBED_GAP,
+        )
+    return panel
 
 
 def render_highlight_card(
@@ -355,10 +496,11 @@ def render_highlight_card(
     timestamp_label: str,
     accent_rgb: tuple[int, int, int] | None = None,
     attachment_bytes: bytes | None = None,
+    attachment_images: list[bytes] | None = None,
+    embeds: list[HighlightEmbed] | None = None,
 ) -> bytes:
-    """Render a variable-height Discord dark-theme chat PNG."""
-    allow_empty = attachment_bytes is not None
-    text = normalize_highlight_text(message_text, allow_empty=allow_empty)
+    """Render message text, image attachments, and rich embeds as a bounded PNG."""
+    text = normalize_highlight_text(message_text, allow_empty=True)
     display_name = _single_line(display_name, "Discord user")
     timestamp_label = _single_line(timestamp_label, "Discord")
     name_color = _name_color(accent_rgb)
@@ -373,22 +515,54 @@ def render_highlight_card(
         name_font.primary.getmetrics()[0] + name_font.primary.getmetrics()[1],
     )
 
-    attachment = _prepare_attachment_image(
-        attachment_bytes,
-        TEXT_MAX_WIDTH,
-        IMAGE_MAX_HEIGHT,
-    )
-    if not text and attachment is None:
+    image_sources = list(attachment_images or [])
+    if attachment_bytes is not None:
+        image_sources.insert(0, attachment_bytes)
+    images = [
+        image for data in image_sources[:MAX_HIGHLIGHT_IMAGES]
+        if (image := _prepare_attachment_image(data, TEXT_MAX_WIDTH, IMAGE_MAX_HEIGHT))
+        is not None
+    ]
+    prepared_embeds = []
+    for embed in (embeds or [])[:MAX_HIGHLIGHT_EMBEDS]:
+        main_image = _prepare_attachment_image(
+            embed.image_bytes, TEXT_MAX_WIDTH - 2 * EMBED_PADDING, IMAGE_MAX_HEIGHT,
+        )
+        thumbnail = _prepare_attachment_image(
+            embed.thumbnail_bytes, EMBED_THUMBNAIL_SIZE, EMBED_THUMBNAIL_SIZE,
+        )
+        text_values = [embed.author_name, embed.title, embed.description, embed.footer_text]
+        text_values.extend(value for pair in embed.fields[:25] for value in pair)
+        if main_image is not None or thumbnail is not None or any(
+            _embed_text(value) for value in text_values
+        ):
+            prepared_embeds.append((embed, main_image, thumbnail))
+    block_count = bool(images) + len(prepared_embeds)
+    if not text and not block_count:
         raise ValueError("Tin nhắn không có chữ hoặc ảnh để tạo highlight.")
 
-    lines, attachment = _fit_body(
-        text=text,
-        font=body_font,
-        spacing=LINE_SPACING,
-        name_height=name_height,
-        attachment=attachment,
+    body_budget = (
+        MAX_CARD_HEIGHT - HEADER_HEIGHT - 2 * PADDING - name_height - TEXT_TOP_GAP
     )
-    image_height = attachment.height if attachment is not None else 0
+    # Long captions cannot consume the area reserved for attachments and embeds.
+    text_budget = min(body_budget, 260) if block_count else body_budget
+    lines = _fit_lines(text, body_font, TEXT_MAX_WIDTH, text_budget, LINE_SPACING)
+    text_height = _text_block_height(lines, body_font, LINE_SPACING) if lines else 0
+    media: list[Image.Image] = []
+    if block_count:
+        block_budget = (
+            body_budget - text_height - IMAGE_TOP_GAP * block_count
+        ) // block_count
+        if images:
+            media.append(_render_gallery(images, min(IMAGE_MAX_HEIGHT, block_budget)))
+        for embed, main_image, thumbnail in prepared_embeds:
+            panel = _render_embed_panel(embed, main_image, thumbnail, block_budget)
+            if panel is not None:
+                media.append(panel)
+    image_height = (
+        sum(item.height for item in media) + IMAGE_TOP_GAP * (len(media) - 1)
+        if media else 0
+    )
     height = _card_height(
         name_height=name_height,
         lines=lines,
@@ -468,14 +642,16 @@ def render_highlight_card(
         )
         content_y += _text_block_height(lines, body_font, LINE_SPACING)
 
-    if attachment is not None:
-        image_y = content_y + IMAGE_TOP_GAP if lines else content_y
+    for index, item in enumerate(media):
+        if lines or index:
+            content_y += IMAGE_TOP_GAP
         _paste_rounded(
             card,
-            attachment,
-            (text_x, image_y),
+            item,
+            (text_x, content_y),
             IMAGE_CORNER_RADIUS,
         )
+        content_y += item.height
 
     output = BytesIO()
     card.save(output, format="PNG", optimize=True)

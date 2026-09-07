@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from datetime import datetime
 from io import BytesIO
 import logging
 
+import aiohttp
 import discord
 from discord.ext import commands
 from pymongo import ASCENDING, DESCENDING, ReturnDocument
@@ -33,15 +35,21 @@ from cogs.utils._highlight_helpers import (
     channel_is_nsfw,
     collect_skull_voter_ids,
     count_unique_skull_voters,
-    first_image_attachment,
     format_highlight_caption,
     format_highlight_congrats,
-    has_renderable_content,
     ignore_reaction_user,
     is_skull_emoji,
     parse_highlight_channel_id,
     seconds_until_highlight_slot,
     should_post_highlight,
+)
+from cogs.utils._highlight_media import (
+    MAX_HIGHLIGHT_IMAGES,
+    HighlightEmbed,
+    HighlightMedia,
+    collect_highlight_media,
+    discord_media_url,
+    media_url_key,
 )
 
 
@@ -54,6 +62,7 @@ CONGRATS_MENTIONS = discord.AllowedMentions(
     replied_user=True,
 )
 TERMINAL_STATUSES = (STATUS_POSTED, STATUS_FAILED)
+MEDIA_TIMEOUT_SECONDS = 10
 
 
 class HighlightCog(commands.Cog):
@@ -108,6 +117,14 @@ class HighlightCog(commands.Cog):
         self._guild_locks.clear()
 
     async def cog_load(self) -> None:
+        try:
+            self._highlight_channel_id()
+        except HighlightConfigError:
+            logger.warning(
+                "Highlights are waiting for HIGHLIGHT_CHANNEL in bot.global_vars. "
+                "Load cogs.settings.variable_setting before cogs.utils.highlight "
+                "and configure HIGHLIGHT_CHANNEL with setting set_variable."
+            )
         if self.bot.is_ready():
             await self._restore_pending_nominations()
 
@@ -162,14 +179,123 @@ class HighlightCog(commands.Cog):
         if size > MAX_ATTACHMENT_BYTES:
             return None
         try:
-            return await attachment.read()
-        except (discord.DiscordException, OSError):
+            data = await asyncio.wait_for(attachment.read(), MEDIA_TIMEOUT_SECONDS)
+            return data if len(data) <= MAX_ATTACHMENT_BYTES else None
+        except asyncio.TimeoutError:
+            logger.warning("Timed out downloading highlight attachment")
+            return None
+        except (discord.DiscordException, aiohttp.ClientError, OSError):
             logger.warning(
                 "Could not download highlight attachment %s",
                 getattr(attachment, "id", "unknown"),
                 exc_info=True,
             )
             return None
+
+    async def _embed_image_bytes(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+    ) -> bytes | None:
+        """Read a bounded image from Discord's proxy without following redirects."""
+        if discord_media_url(url) is None:
+            return None
+        try:
+            async with session.get(url, allow_redirects=False) as response:
+                if response.status != 200:
+                    return None
+                content_type = response.headers.get("Content-Type", "").split(";", 1)[0]
+                if content_type and not (
+                    content_type.lower().startswith("image/")
+                    or content_type.lower() == "application/octet-stream"
+                ):
+                    return None
+                if (
+                    response.content_length is not None
+                    and response.content_length > MAX_ATTACHMENT_BYTES
+                ):
+                    return None
+                data = bytearray()
+                async for chunk in response.content.iter_chunked(64 * 1024):
+                    if len(data) + len(chunk) > MAX_ATTACHMENT_BYTES:
+                        return None
+                    data.extend(chunk)
+                return bytes(data) or None
+        except asyncio.TimeoutError:
+            logger.warning("Timed out downloading highlight embed image")
+        except (aiohttp.ClientError, OSError):
+            logger.warning("Could not download highlight embed image")
+        return None
+
+    async def _load_highlight_media(
+        self,
+        media: HighlightMedia,
+    ) -> tuple[list[bytes], list[HighlightEmbed]]:
+        """Download selected media once and omit attachment/preview duplicates."""
+        attachment_data = await asyncio.gather(
+            *(self._attachment_bytes(item) for item in media.attachments)
+        )
+        cache: dict[str, bytes | None] = {}
+        attachment_keys: list[set[str]] = []
+        for attachment, data in zip(media.attachments, attachment_data):
+            keys = {
+                media_url_key(url)
+                for raw in (getattr(attachment, "url", None),
+                            getattr(attachment, "proxy_url", None))
+                if (url := discord_media_url(raw)) is not None
+            }
+            attachment_keys.append(keys)
+            if data:
+                cache.update({key: data for key in keys})
+
+        urls = {
+            media_url_key(url): url
+            for embed in media.embeds
+            for url in (embed.image_url, embed.thumbnail_url)
+            if url and media_url_key(url) not in cache
+        }
+        if urls:
+            timeout = aiohttp.ClientTimeout(total=MEDIA_TIMEOUT_SECONDS)
+            # One session is reused by all media requests in this highlight.
+            async with aiohttp.ClientSession(
+                timeout=timeout,
+                cookie_jar=aiohttp.DummyCookieJar(),
+            ) as session:
+                semaphore = asyncio.Semaphore(3)
+
+                async def download(url: str) -> bytes | None:
+                    async with semaphore:
+                        return await self._embed_image_bytes(session, url)
+
+                downloaded = await asyncio.gather(*(download(url) for url in urls.values()))
+                cache.update(zip(urls, downloaded))
+
+        used_keys: set[str] = set()
+        embeds: list[HighlightEmbed] = []
+        preview_images: list[bytes] = []
+        for embed in media.embeds:
+            pixels: list[bytes | None] = []
+            for url in (embed.image_url, embed.thumbnail_url):
+                key = media_url_key(url) if url else None
+                data = cache.get(key) if key and key not in used_keys else None
+                pixels.append(data)
+                if data and key:
+                    used_keys.add(key)
+            image_data, thumbnail_data = pixels
+            if embed.has_text:
+                embeds.append(replace(
+                    embed, image_bytes=image_data, thumbnail_bytes=thumbnail_data,
+                ))
+            else:
+                preview_images.extend(data for data in pixels if data)
+
+        images: list[bytes] = []
+        for data, keys in zip(attachment_data, attachment_keys):
+            if data and not keys.intersection(used_keys):
+                images.append(data)
+                used_keys.update(keys)
+        images.extend(preview_images)
+        return images[:MAX_HIGHLIGHT_IMAGES], embeds
 
     async def _get_channel(
         self,
@@ -224,29 +350,25 @@ class HighlightCog(commands.Cog):
         self,
         message: discord.Message,
         highlight_channel: object,
-    ) -> tuple[str, object | None]:
+    ) -> tuple[str, HighlightMedia]:
         if message.channel.id == getattr(highlight_channel, "id", None):
             raise HighlightLookupError(
                 "Không thể highlight tin nhắn trong kênh highlight."
             )
-        image = first_image_attachment(list(message.attachments))
+        media = collect_highlight_media(message)
         raw_text = self._source_text(message)
         try:
             text = normalize_highlight_text(
                 raw_text,
-                allow_empty=image is not None,
+                allow_empty=media.has_content,
             )
         except ValueError as exc:
             raise HighlightLookupError(str(exc)) from exc
-        if not has_renderable_content(text=text, has_image=image is not None):
-            raise HighlightLookupError(
-                "Tin nhắn không có chữ hoặc ảnh để tạo highlight."
-            )
         if channel_is_nsfw(message.channel):
             raise HighlightLookupError(
                 "Không highlight tin nhắn từ kênh NSFW."
             )
-        return text, image
+        return text, media
 
     async def _require_highlight_channel(
         self,
@@ -362,7 +484,7 @@ class HighlightCog(commands.Cog):
             raise
 
         try:
-            text, image = self._validate_source(message, highlight_channel)
+            text, media = self._validate_source(message, highlight_channel)
         except HighlightLookupError:
             self.collection.update_one(
                 {"_id": nomination["_id"], "status": STATUS_POSTING},
@@ -375,26 +497,27 @@ class HighlightCog(commands.Cog):
         channel_name = getattr(message.channel, "name", "channel")
         timestamp_label = format_highlight_timestamp(message.created_at)
         avatar_bytes = await self._avatar_bytes(author)
-        attachment_bytes = await self._attachment_bytes(image)
-        if image is not None and attachment_bytes is None and not text:
+        attachment_images, embeds = await self._load_highlight_media(media)
+        try:
+            card_bytes = await asyncio.to_thread(
+                render_highlight_card,
+                avatar_bytes=avatar_bytes,
+                display_name=display_name,
+                channel_name=channel_name,
+                message_text=text,
+                timestamp_label=timestamp_label,
+                accent_rgb=self._accent_color(author),
+                attachment_images=attachment_images,
+                embeds=embeds,
+            )
+        except ValueError as exc:
             self.collection.update_one(
                 {"_id": nomination["_id"], "status": STATUS_POSTING},
                 {"$set": {"status": STATUS_FAILED}},
             )
             raise HighlightLookupError(
                 "Tin nhắn không có chữ hoặc ảnh để tạo highlight."
-            )
-
-        card_bytes = await asyncio.to_thread(
-            render_highlight_card,
-            avatar_bytes=avatar_bytes,
-            display_name=display_name,
-            channel_name=channel_name,
-            message_text=text,
-            timestamp_label=timestamp_label,
-            accent_rgb=self._accent_color(author),
-            attachment_bytes=attachment_bytes,
-        )
+            ) from exc
         jump_url = nomination.get("source_jump_url") or message.jump_url
         filename = f"highlight-{message.id}.png"
         sent = await highlight_channel.send(
@@ -481,7 +604,13 @@ class HighlightCog(commands.Cog):
                 try:
                     await self._publish_highlight(claimed)
                     posted = True
-                except HighlightLookupError:
+                except HighlightLookupError as exc:
+                    logger.warning(
+                        "Could not publish highlight guild=%s source=%s: %s",
+                        guild_id,
+                        claimed.get("source_message_id"),
+                        exc,
+                    )
                     still_posting = self.collection.find_one(
                         {"_id": claimed["_id"], "status": STATUS_POSTING}
                     )

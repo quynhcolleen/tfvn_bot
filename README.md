@@ -169,6 +169,12 @@ Add one dotted module path per line as you work. For example, `cogs.mod.*` loads
 The profile supports blank lines, comments, explicit modules, and `.*`
 wildcards.
 
+Include `cogs.settings.variable_setting` when enabling features that use MongoDB
+global variables, including `cogs.utils.highlight`. The loader moves the settings
+cog to the front only when it is listed in the profile. Without it, highlights
+cannot read `HIGHLIGHT_CHANNEL` and qualified messages remain pending; startup and
+posting warnings in `bot.log` identify the missing configuration.
+
 For Tiên Lộ development, also load `cogs.cultivation.cultivation` together with
 the account cogs used to view and earn Trap Coin.
 
