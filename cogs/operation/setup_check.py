@@ -20,6 +20,7 @@ CHANNEL_VARIABLES = {
     "ROLE_CHANNEL": "Chọn role",
     "BYE_CHANNEL": "Thông báo rời/kick/ban",
     "BIRTHDAY_CHANNEL": "Thông báo sinh nhật",
+    "HIGHLIGHT_CHANNEL": "Kênh highlight",
     "AREA_51_CHANNEL_ID": "Area 51 guard",
 }
 ROLE_VARIABLES = {

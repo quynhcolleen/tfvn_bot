@@ -196,6 +196,7 @@ Common settings include:
 | --- | --- | --- |
 | Join and leave/kick/ban announcements | `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL` | `STRING` |
 | Birthday announcements | `BIRTHDAY_CHANNEL` | `STRING` |
+| Chat highlights | `HIGHLIGHT_CHANNEL` | `STRING` |
 | Word games | `WORD_CONNECT_GAMES_CHANNELS`, `VIETNAMESE_KING_GAMES_CHANNELS` | `ARRAY` |
 | Verification | `FALLEN_FEMBOY_ROLE_ID` | `STRING` |
 | Booster placement | `BOOSTER_CUSTOM_ROLE_ANCHOR_ID`, `BOOSTER_CUSTOM_VOICE_CATEGORY_ID` | `STRING` |

@@ -13,7 +13,8 @@ depending on system font packages. They were downloaded from Google Fonts on
 | `NotoSansSymbols2-Regular.ttf` | [`NotoSansSymbols2-Regular.ttf`](https://github.com/google/fonts/tree/main/ofl/notosanssymbols2) | `7D5FB73B7CA67A6798101741F5D280A3D016A56A197AFCD4199DBB57B4B82A21` | [NotoSansSymbols2-OFL.txt](NotoSansSymbols2-OFL.txt) |
 
 All four fonts use the SIL Open Font License 1.1. Noto Sans is the primary
-Vietnamese-capable text font. The other three are offline fallbacks for emoji,
+Vietnamese-capable text font. Quote cards and highlight chat mockups share this
+same bundled set. The other three are offline fallbacks for emoji,
 music marks, dingbats, and decorative symbols that would otherwise render as
 blank rectangles. The renderer draws supported single-glyph emoji with Noto
 Emoji and converts complex or newer unsupported sequences to readable
