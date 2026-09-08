@@ -831,6 +831,10 @@ HELP_TOPICS = (
                 name="Tiện ích",
                 entries=(
                     _entry(
+                        "highlight",
+                        "Xem điều kiện để tin nhắn được đưa lên highlight; chỉ dùng trong server.",
+                    ),
+                    _entry(
                         "quote",
                         (
                             "Quote reply/link/ID dạng embed; thêm `image` để tạo PNG; "
@@ -933,6 +937,7 @@ HELP_TOPICS = (
                 name="Dữ liệu tương tác",
                 note=(
                     "• Giveaway, vote và lời cầu hôn được lên lịch/kết thúc tự động.\n"
+                    "• Tin SFW đủ 5 💀 (không tính bot) được đăng ảnh chat vào HIGHLIGHT_CHANNEL, cách nhau tối thiểu 300 giây; bot reply chúc mừng tiếng Việt trên tin gốc; bỏ qua kênh NSFW.\n"
                     "• Nối Từ và Vua Tiếng Việt nhận đáp án từ tin nhắn thường trong kênh game.\n"
                     "• Tương tác SFW giữa vợ/chồng tự cộng XP và thông báo khi lên hạng."
                 ),

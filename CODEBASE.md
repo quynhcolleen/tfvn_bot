@@ -73,6 +73,11 @@ tfvn_bot/
 │   ├── test_community_features.py  Pure validation/time/helper regression tests
 │   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
+│   ├── test_highlight.py           Highlight listener, spacing, media download, and posting tests
+│   ├── test_highlight_card.py      Discord-chat highlight PNG, embed, and gallery tests
+│   ├── test_highlight_font.py      Highlight meter symbols and composite emoji rendering tests
+│   ├── test_highlight_media.py     Embed extraction, media limits, and Discord proxy URL tests
+│   ├── test_highlight_text.py      Embed Markdown parsing, styled wrapping, and text drawing tests
 │   ├── test_hash_verification.py    Signed proof, forgery, tamper, producer, and privacy tests
 │   ├── test_meter_number_bars.py   unittest coverage for signed meter formatting
 │   ├── test_role_exam.py           Role-exam invitation, UI, safety, and role-grant tests
@@ -207,6 +212,12 @@ tfvn_bot/
     └── utils/
         ├── giveaway.py                  Persistent views, entries, scheduling, and rerolls
         ├── vote.py                      Persistent reaction polls and result scheduling
+        ├── highlight.py                 Requirements command, 💀 listener, media downloads, chat PNG, TV congrats reply
+        ├── _highlight_helpers.py        Skull/interval knobs, NSFW skip, channel helpers
+        ├── _highlight_card.py           Discord dark-theme chat PNG, image gallery, and embed rendering
+        ├── _highlight_font.py           Portable meter-block and rainbow-flag drawing with bundled fonts
+        ├── _highlight_media.py          Bounded embed snapshots, mention names, and Discord media URLs
+        ├── _highlight_text.py           Embed Markdown styles, code blocks, and measured text wrapping
         ├── quote.py                     Text-embed and PNG message quote modes
         ├── _quote_card.py               Quote text wrapping and PNG card rendering
         ├── hash_verify.py               Signature-first femboy-card/quote proof verification
@@ -246,8 +257,8 @@ MongoDB collections are created lazily. Major groups are:
   avatars, attachments, or embeds. Deployments must not share keyrings. Quote
   text and names stay out of the readable token and are returned only inside the
   exact source channel/thread; PyMongo reads/writes run in worker threads
-- Scheduling: `tasks`, `votes`, `giveaways`, `birthdays`, `birthday_announcements`,
-  `bedtime_reminders`. Bedtime records are guild/member scoped and hold normalized
+- Scheduling: `tasks`, `votes`, `giveaways`, `highlight_nominations`, `birthdays`, `birthday_announcements`,
+  `bedtime_reminders`. Highlight rows are guild/source-message unique and created when a SFW message first reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀; they CAS `pending` → `posting` → `posted` before uploading a chat-theme PNG to `HIGHLIGHT_CHANNEL`, with at least `HIGHLIGHT_MIN_INTERVAL_SECONDS` between posts in a guild. NSFW source channels are ignored. Bedtime records are guild/member scoped and hold normalized
   sleep minutes, announcement channel, next UTC deadline, local-date deduplication,
   and audit timestamps; unique guild/member and due-time indexes enforce one schedule
   per member and support the minute scheduler

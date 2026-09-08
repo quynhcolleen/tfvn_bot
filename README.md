@@ -169,6 +169,12 @@ Add one dotted module path per line as you work. For example, `cogs.mod.*` loads
 The profile supports blank lines, comments, explicit modules, and `.*`
 wildcards.
 
+Include `cogs.settings.variable_setting` when enabling features that use MongoDB
+global variables, including `cogs.utils.highlight`. The loader moves the settings
+cog to the front only when it is listed in the profile. Without it, highlights
+cannot read `HIGHLIGHT_CHANNEL` and qualified messages remain pending; startup and
+posting warnings in `bot.log` identify the missing configuration.
+
 For Tiên Lộ development, also load `cogs.cultivation.cultivation` together with
 the account cogs used to view and earn Trap Coin.
 
@@ -196,6 +202,7 @@ Common settings include:
 | --- | --- | --- |
 | Join and leave/kick/ban announcements | `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL` | `STRING` |
 | Birthday announcements | `BIRTHDAY_CHANNEL` | `STRING` |
+| Chat highlights | `HIGHLIGHT_CHANNEL` | `STRING` |
 | Word games | `WORD_CONNECT_GAMES_CHANNELS`, `VIETNAMESE_KING_GAMES_CHANNELS` | `ARRAY` |
 | Verification | `FALLEN_FEMBOY_ROLE_ID` | `STRING` |
 | Booster placement | `BOOSTER_CUSTOM_ROLE_ANCHOR_ID`, `BOOSTER_CUSTOM_VOICE_CATEGORY_ID` | `STRING` |

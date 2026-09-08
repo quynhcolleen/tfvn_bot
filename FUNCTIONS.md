@@ -480,6 +480,7 @@ Duration range: 10 seconds–30 days; max 20 winners.
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
+| `highlight` | — | Everyone (guild) | Show the current unique non-bot 💀 threshold, eligible message content and SFW channel requirements, destination channel, and minimum interval between highlight posts in the server |
 | `quote [image] [message_link\|message_id]` | `q`, `quotes` | Everyone (guild) | Quote a replied/current-channel message as a text embed by default. Add `image` before the optional link/ID to generate a PNG card with bundled offline emoji/symbol fallback fonts. Both modes use the author's server avatar when available, link to the original message, include a signed TFVN proof bound to the source snapshot, and have a 5s per-user cooldown |
 | `hash_verify <proof_code>` | — | Everyone (guild) | Resolve a short `tfp1_…` code to its hidden signed token, require the requested/record/signed IDs to match, and verify the saved Femboy Card or quote snapshot against the signed digest. Full legacy `tfv1.…` tokens also work. Results are limited to the signed guild; private quote text is shown only in the exact source channel/thread with history access. Limited to 3 checks per 10 seconds per user |
 | `big_speaker <size> <message>` | `loa`, `speaker` | Everyone (guild) | Re-speak a message in large Discord markdown. **`size` is 1–6**; TC cost by size: **1 / 2 / 5 / 10 / 20 / 50**. Sizes 5–6 add separators; 6 is bold H1. Mentions: user only; strips `@everyone`, `@here`, role pings. 30s cooldown |
@@ -628,7 +629,7 @@ custom_role, update_custom_role, custom_room
 jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
 giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
-vote, quote, hash_verify, big_speaker, random_member, save_image
+vote, highlight, quote, hash_verify, big_speaker, random_member, save_image
 kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn
 nickchange, roleroll, roleunroll, rolecopy
 purge, purge_user, clean_before
@@ -638,7 +639,33 @@ area51_fire
 setting, setting set_variable, setting get_variable
 ```
 
-**Automatic features:** random bot activity rotation at random 5–15 minute intervals; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
+**Automatic features:** random bot activity rotation at random 5–15 minute intervals; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
+
+Use `highlight` with the configured bot prefix (for example, `!tfd highlight`)
+to view the current requirements and destination channel, or a notice when no
+channel is configured. The command reads the threshold and spacing used by the
+automatic feature. Qualified messages wait for the guild's posting interval and
+must still have enough reactions when posted; each source message is posted once.
+
+Highlight cards include message text, up to four gallery images, and up to four
+embeds with their titles, descriptions, authors, fields, footers, images, and
+thumbnails. Embed mentions resolve to cached member, role, and channel names;
+missing references use an unknown-name label. Embed text supports bold, italic,
+underline, strikethrough, inline/fenced code, and link labels. Code keeps its literal
+contents and spacing. Meter blocks and rainbow flags render
+without relying on system fonts. Messages containing only an image or embed are
+supported. Link previews
+use the image Discord supplies; videos and GIFs appear as static image previews
+when available. The gallery selects from the first four image attachments and
+image-only embeds. Uploaded or pasted images appear below the source message's
+caption, or on their own when it has no text. Extensionless uploads can use
+Discord's image dimensions for detection. Long content is truncated to fit the
+card. Image downloads are limited to 8 MiB each; embed images use Discord's CDN or
+media proxy. If the original attachment cannot be downloaded or exceeds the
+limit, its cached Discord preview is tried with the same download limit. Unavailable,
+oversized, or unreadable media is skipped while remaining text and media still
+render. No post is sent if nothing renderable remains. Threshold and spacing knobs
+live in `cogs/utils/_highlight_helpers.py`.
 
 Bot status data uses `type` + `think` for `CUSTOM` entries. All other activity types use `type` + `text` so their action-card text remains prominent.
 
