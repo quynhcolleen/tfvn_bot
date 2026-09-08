@@ -1291,7 +1291,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(view.confirm.disabled)
         interaction.followup.send.assert_awaited_once()
 
-    async def test_bot_status_command_opens_dashboard_without_replacing_server_stats(
+    async def test_operation_dashboard_command_opens_dashboard_without_replacing_server_stats(
         self,
     ) -> None:
         cog = object.__new__(OperationDashboardCog)
@@ -1306,7 +1306,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
             reply=AsyncMock(return_value=sent_message),
         )
 
-        await OperationDashboardCog.show_bot_status.callback(cog, ctx)
+        await OperationDashboardCog.show_operation_dashboard.callback(cog, ctx)
 
         ctx.reply.assert_awaited_once()
         kwargs = ctx.reply.await_args.kwargs
@@ -1317,7 +1317,9 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
             [child.label for child in kwargs["view"].children],
             ["Làm mới", "Audit logs", "Tải CSV", "Dọn log", "Doctor"],
         )
-        self.assertEqual(OperationDashboardCog.show_bot_status.name, "bot_status")
+        self.assertEqual(
+            OperationDashboardCog.show_operation_dashboard.name, "operation_dashboard"
+        )
         self.assertEqual(ServerStatsCog.server_stats.name, "server_stats")
 
     async def test_owner_opened_dashboard_adds_only_the_two_global_controls(
@@ -1334,7 +1336,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
             reply=AsyncMock(return_value=SimpleNamespace(id=123)),
         )
 
-        await OperationDashboardCog.show_bot_status.callback(cog, ctx)
+        await OperationDashboardCog.show_operation_dashboard.callback(cog, ctx)
 
         view = ctx.reply.await_args.kwargs["view"]
         self.assertEqual(view.owner_id, 77)
@@ -1368,7 +1370,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
         )
 
         with patch.object(dashboard_module.logger, "exception") as log_failure:
-            await OperationDashboardCog.show_bot_status.callback(cog, ctx)
+            await OperationDashboardCog.show_operation_dashboard.callback(cog, ctx)
 
         view = ctx.reply.await_args.kwargs["view"]
         self.assertIsNone(view.owner_id)

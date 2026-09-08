@@ -262,7 +262,7 @@ menu focused on their respective topics.
 | Economy and games | `daily`, `user_balance`, `user_transactions`, `shop`, `blackjack`, `poker`, `crocodile challenge`, `slot`, `flip_coin`, `sicbo_start`, `noitu`, `vtv` |
 | Tiên Lộ | `tutien`, `tutien thucong`, `tutien dotpha`, `tutien bicanh`, `tutien thiluyen`, `tutien doido` |
 | Moderation | `kick`, `ban`, `unban`, `softban`, `mute`, `timeout`, `warn`, `case`, `purge`, `slowmode`, `verified` |
-| Operations | `ping`, `server_stats`, `bot_status`, `setup check` |
+| Operations | `ping`, `server_stats`, `operation_dashboard`, `setup check` |
 | Utilities | `quote`, `hash_verify`, `big_speaker`, `random_member` |
 | Booster tools | `custom_role`, `update_custom_role`, `custom_room` |
 | Social and fun | `kiss`, `hug`, `pat`, `avatar`, `quote`, `rank`, `ship`, `aura`, `redflag`, configurable `triggerreply`, and other meter commands |
@@ -405,7 +405,7 @@ Run `!tf setup check` after configuration to inspect required environment settin
 enabled features, MongoDB connectivity, channel/role IDs, bot permissions, and role
 hierarchy. It uses the same read-only diagnostics as the dashboard's Doctor panel.
 
-Administrators can run `!tf bot_status` for an interactive health dashboard without
+Administrators can run `!tf operation_dashboard` for an interactive health dashboard without
 changing the existing `!tf server_stats` report. The dashboard can browse recognized
 guild command outcomes, export retained records as CSV, and prune old records after
 confirmation. These records are guild-scoped in MongoDB's `operation_logs` collection;
@@ -427,7 +427,7 @@ exception messages are never included in diagnostics. MongoDB checks run in a
 worker thread with a five-second deadline, so a database failure still leaves
 other findings available.
 
-If the invoking Administrator is also the Bot owner, `bot_status` adds private
+If the invoking Administrator is also the Bot owner, `operation_dashboard` adds private
 panels for the bot's joined servers and lifecycle history. The server manager can
 inspect every connected guild and confirm leaving a selected guild, but it cannot
 leave the guild where the dashboard was opened. This restriction applies only to

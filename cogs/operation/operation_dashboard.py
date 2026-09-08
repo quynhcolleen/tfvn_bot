@@ -1505,7 +1505,7 @@ class JoinedServerView(BotOwnerGuildAdminView):
             if target_id is None or target_id == self.guild_id:
                 await _send_private(
                     interaction,
-                    "Không thể rời server đang dùng lệnh bot_status.",
+                    "Không thể rời server đang dùng lệnh operation_dashboard.",
                 )
                 return
             if not self.leave_armed:
@@ -1800,7 +1800,7 @@ class DoctorView(GuildAdminView):
             await _send_private(
                 interaction,
                 "Không thể xác minh quyền Administrator hiện tại. "
-                "Hãy mở lại bot_status khi quyền và cache đã được cập nhật.",
+                "Hãy mở lại operation_dashboard khi quyền và cache đã được cập nhật.",
             )
             return False
         return True
@@ -1825,7 +1825,7 @@ class DoctorView(GuildAdminView):
                     "error",
                     "Server hiện tại",
                     "Không tìm thấy server trong bộ nhớ của bot.",
-                    "Mở lại bot_status sau khi bot kết nối lại server.",
+                    "Mở lại operation_dashboard sau khi bot kết nối lại server.",
                 )
             ]
         else:
@@ -1952,7 +1952,7 @@ class OperationDashboardView(GuildAdminView):
         if self.owner_id is None:
             await _send_private(
                 interaction,
-                "Bảng bot_status này không được mở bởi bot owner.",
+                "Bảng operation_dashboard này không được mở bởi bot owner.",
             )
             return False
         return await _check_owner_access(
@@ -2633,13 +2633,13 @@ class OperationDashboardCog(commands.Cog):
         return embed
 
     @commands.command(
-        name="bot_status",
+        name="operation_dashboard",
         help="Mở dashboard trạng thái bot, Doctor và audit command.",
     )
     @commands.guild_only()
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 10, commands.BucketType.guild)
-    async def show_bot_status(self, ctx: commands.Context) -> None:
+    async def show_operation_dashboard(self, ctx: commands.Context) -> None:
         try:
             is_owner = await self.bot.is_owner(ctx.author)
         except Exception:
@@ -2662,21 +2662,21 @@ class OperationDashboardCog(commands.Cog):
             allowed_mentions=NO_MENTIONS,
         )
 
-    @show_bot_status.error
-    async def bot_status_error(
+    @show_operation_dashboard.error
+    async def operation_dashboard_error(
         self,
         ctx: commands.Context,
         error: commands.CommandError,
     ) -> None:
         if isinstance(error, commands.NoPrivateMessage):
-            await ctx.send("Lệnh bot_status chỉ dùng được trong server.")
+            await ctx.send("Lệnh operation_dashboard chỉ dùng được trong server.")
             return
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("Bạn cần quyền Administrator để mở bot_status.")
+            await ctx.send("Bạn cần quyền Administrator để mở operation_dashboard.")
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send(
-                f"Hãy thử mở bot_status lại sau {error.retry_after:.1f} giây."
+                f"Hãy thử mở operation_dashboard lại sau {error.retry_after:.1f} giây."
             )
             return
         raise error

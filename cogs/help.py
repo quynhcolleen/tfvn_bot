@@ -1168,10 +1168,10 @@ HELP_TOPICS = (
                         ),
                     ),
                     _entry(
-                        "bot_status",
+                        "operation_dashboard",
                         (
-                            "Status/audit — Admin; riêng chủ bot xem/rời server "
-                            "(trừ server gốc) + 10 sự kiện vòng đời."
+                            "Doctor/audit — Admin; chủ bot xem/rời server khác "
+                            "+ lịch sử kết nối."
                         ),
                     ),
                     _entry(
