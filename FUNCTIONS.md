@@ -642,11 +642,20 @@ setting, setting set_variable, setting get_variable
 
 Highlight cards include message text, up to four gallery images, and up to four
 embeds with their titles, descriptions, authors, fields, footers, images, and
-thumbnails. Messages containing only an image or embed are supported. Link previews
+thumbnails. Embed mentions resolve to cached member, role, and channel names;
+missing references use an unknown-name label. Embed text supports bold, italic,
+underline, strikethrough, inline/fenced code, and link labels. Code keeps its literal
+contents and spacing. Meter blocks and rainbow flags render
+without relying on system fonts. Messages containing only an image or embed are
+supported. Link previews
 use the image Discord supplies; videos and GIFs appear as static image previews
 when available. The gallery selects from the first four image attachments and
-image-only embeds. Long content is truncated to fit the card. Image downloads are
-limited to 8 MiB each; embed images use Discord's CDN or media proxy. Unavailable,
+image-only embeds. Uploaded or pasted images appear below the source message's
+caption, or on their own when it has no text. Extensionless uploads can use
+Discord's image dimensions for detection. Long content is truncated to fit the
+card. Image downloads are limited to 8 MiB each; embed images use Discord's CDN or
+media proxy. If the original attachment cannot be downloaded or exceeds the
+limit, its cached Discord preview is tried with the same download limit. Unavailable,
 oversized, or unreadable media is skipped while remaining text and media still
 render. No post is sent if nothing renderable remains. Threshold and spacing knobs
 live in `cogs/utils/_highlight_helpers.py`.

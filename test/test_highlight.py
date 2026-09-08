@@ -14,6 +14,7 @@ from pymongo.errors import DuplicateKeyError
 from cogs.utils._highlight_helpers import (
     HIGHLIGHT_MIN_INTERVAL_SECONDS,
     HIGHLIGHT_THRESHOLD,
+    MAX_ATTACHMENT_BYTES,
     SKULL_EMOJI,
     STATUS_FAILED,
     STATUS_PENDING,
@@ -47,9 +48,9 @@ SECOND_MESSAGE_ID = 123456789012345679
 NOW = datetime(2026, 9, 7, 14, 30, tzinfo=timezone.utc)
 
 
-def _image_bytes() -> bytes:
+def _image_bytes(color: tuple[int, int, int] = (30, 180, 90)) -> bytes:
     output = BytesIO()
-    Image.new("RGB", (160, 100), (30, 180, 90)).save(output, format="PNG")
+    Image.new("RGB", (160, 100), color).save(output, format="PNG")
     return output.getvalue()
 
 
@@ -725,6 +726,52 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(card.format, "PNG")
         self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
 
+    async def _assert_attachment_message_publishes(
+        self,
+        caption: str,
+        colors: list[tuple[int, int, int]],
+    ) -> None:
+        self.message.clean_content = self.message.content = caption
+        attachments = []
+        for index, color in enumerate(colors):
+            data = _image_bytes(color)
+            attachments.append(SimpleNamespace(
+                filename=f"photo-{index}.png", content_type="image/png", size=len(data),
+                url=f"https://cdn.discordapp.com/attachments/1/{index}/photo.png",
+                proxy_url=f"https://media.discordapp.net/attachments/1/{index}/photo.png",
+                read=AsyncMock(return_value=data),
+            ))
+        self.message.attachments = attachments
+        self.cog._embed_image_bytes = AsyncMock()
+
+        await self._add_skulls(self._threshold_users())
+        await asyncio.gather(*list(self.cog._flush_tasks.values()))
+
+        self.highlight_channel.send.assert_awaited_once()
+        uploaded = self.highlight_channel.send.await_args.kwargs["file"]
+        with Image.open(uploaded.fp) as card:
+            self.assertEqual(card.format, "PNG")
+            pixel_counts = {
+                color: count for count, color in card.getcolors(card.width * card.height)
+            }
+            for color in colors:
+                self.assertGreater(pixel_counts.get(color, 0), 100)
+        for attachment in attachments:
+            attachment.read.assert_awaited_once()
+        self.cog._embed_image_bytes.assert_not_awaited()
+        self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
+
+    async def test_image_attachment_without_caption_publishes_source_pixels(self):
+        await self._assert_attachment_message_publishes("", [(30, 180, 90)])
+
+    async def test_image_attachment_with_caption_publishes_source_pixels(self):
+        await self._assert_attachment_message_publishes("Photo caption", [(30, 180, 90)])
+
+    async def test_multiple_image_attachments_publish_all_source_pixels(self):
+        await self._assert_attachment_message_publishes(
+            "Four photos", [(233, 20, 30), (22, 233, 40), (33, 40, 233), (233, 190, 44)],
+        )
+
     async def test_rich_embed_survives_failed_image_download(self):
         self.message.clean_content = self.message.content = ""
         embed = discord.Embed(title="Bảng kết quả", description="Bạn đã thắng!")
@@ -857,6 +904,100 @@ class TestHighlightMediaDownloads(unittest.IsolatedAsyncioTestCase):
                 attachment.read.assert_not_awaited()
             else:
                 attachment.read.assert_awaited_once()
+
+    def _attachment(self, *, size: int = 1, error: Exception | None = None):
+        return SimpleNamespace(
+            filename="photo.png", content_type="image/png", size=size,
+            url="https://cdn.discordapp.com/attachments/1/2/photo.png?ex=abc",
+            proxy_url="https://media.discordapp.net/attachments/1/2/photo.png?ex=abc",
+            read=AsyncMock(side_effect=error, return_value=_image_bytes()),
+        )
+
+    async def test_failed_attachment_download_uses_discord_image_proxy(self):
+        attachment = self._attachment(error=OSError("original unavailable"))
+        data = _image_bytes()
+        self.cog._embed_image_bytes = AsyncMock(return_value=data)
+        message = SimpleNamespace(attachments=[attachment], embeds=[])
+
+        with patch("cogs.utils.highlight.logger.warning"):
+            images, embeds = await self.cog._load_highlight_media(
+                collect_highlight_media(message),
+            )
+
+        self.assertEqual(images, [data])
+        self.assertEqual(embeds, [])
+        attachment.read.assert_awaited_once()
+        self.cog._embed_image_bytes.assert_awaited_once()
+        requested_url = self.cog._embed_image_bytes.await_args.args[1]
+        self.assertTrue(requested_url.startswith(
+            "https://media.discordapp.net/attachments/1/2/photo.png",
+        ))
+
+    async def test_oversized_attachment_uses_smaller_discord_image_preview(self):
+        attachment = self._attachment(size=MAX_ATTACHMENT_BYTES + 1)
+        data = _image_bytes()
+        self.cog._embed_image_bytes = AsyncMock(return_value=data)
+        message = SimpleNamespace(attachments=[attachment], embeds=[])
+
+        images, embeds = await self.cog._load_highlight_media(
+            collect_highlight_media(message),
+        )
+
+        self.assertEqual(images, [data])
+        self.assertEqual(embeds, [])
+        attachment.read.assert_not_awaited()
+        self.cog._embed_image_bytes.assert_awaited_once()
+
+    async def test_unavailable_attachment_proxy_keeps_other_image(self):
+        failed = self._attachment(error=OSError("original unavailable"))
+        good = self._attachment()
+        good.url = "https://cdn.discordapp.com/attachments/1/3/good.png"
+        good.proxy_url = "https://media.discordapp.net/attachments/1/3/good.png"
+        self.cog._embed_image_bytes = AsyncMock(return_value=None)
+        message = SimpleNamespace(attachments=[failed, good], embeds=[])
+
+        with patch("cogs.utils.highlight.logger.warning"):
+            images, embeds = await self.cog._load_highlight_media(
+                collect_highlight_media(message),
+            )
+
+        self.assertEqual(images, [_image_bytes()])
+        self.assertEqual(embeds, [])
+        self.cog._embed_image_bytes.assert_awaited_once()
+
+    async def test_unsafe_attachment_proxy_is_never_downloaded(self):
+        attachment = self._attachment(error=OSError("original unavailable"))
+        attachment.proxy_url = "https://localhost/photo.png"
+        self.cog._embed_image_bytes = AsyncMock()
+        message = SimpleNamespace(attachments=[attachment], embeds=[])
+
+        with patch("cogs.utils.highlight.logger.warning"):
+            images, embeds = await self.cog._load_highlight_media(
+                collect_highlight_media(message),
+            )
+
+        self.assertEqual(images, [])
+        self.assertEqual(embeds, [])
+        self.cog._embed_image_bytes.assert_not_awaited()
+
+    async def test_attachment_proxy_shared_with_embed_downloads_and_renders_once(self):
+        attachment = self._attachment(error=OSError("original unavailable"))
+        data = _image_bytes()
+        self.cog._embed_image_bytes = AsyncMock(return_value=data)
+        message = SimpleNamespace(
+            attachments=[attachment],
+            embeds=[discord.Embed(title="Photo").set_image(url=attachment.proxy_url)],
+        )
+
+        with patch("cogs.utils.highlight.logger.warning"):
+            images, embeds = await self.cog._load_highlight_media(
+                collect_highlight_media(message),
+            )
+
+        self.assertEqual(images, [])
+        self.assertEqual(len(embeds), 1)
+        self.assertEqual(embeds[0].image_bytes, data)
+        self.cog._embed_image_bytes.assert_awaited_once()
 
 
 if __name__ == "__main__":

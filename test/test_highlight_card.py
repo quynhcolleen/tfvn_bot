@@ -283,6 +283,31 @@ class TestHighlightMediaRendering(unittest.TestCase):
         )
         self.assert_color_present(card, (0, 168, 252))
 
+    def test_meter_embed_draws_markdown_styles_and_literal_code(self):
+        from cogs.utils._highlight_text import CODE_BACKGROUND, EmbedTextFont
+
+        drawn_runs = []
+        original = EmbedTextFont.draw_multiline
+
+        def record_text(font, draw, xy, lines, color, spacing):
+            drawn_runs.extend(run for line in lines for run in line.runs)
+            return original(font, draw, xy, lines, color, spacing)
+
+        with patch.object(EmbedTextFont, "draw_multiline", record_text):
+            card = self.render(
+                message_text="Hoàn thành đo độ gay! 🎉",
+                embeds=[HighlightEmbed(
+                    title="🏳️‍🌈 Gay Meter 🏳️‍🌈",
+                    description="Mức độ gay của @Kien",
+                    fields=(("Kết quả:", "████████░░ **68%**\n```Bóng lộ bà ơi!```"),),
+                    footer_text="Kết quả này là thật!",
+                )],
+            )
+        self.assertTrue(any(run.text == "68%" and run.style.bold for run in drawn_runs))
+        self.assertTrue(any(run.text == "Bóng lộ bà ơi!" and run.style.code for run in drawn_runs))
+        self.assertNotIn("```", "".join(run.text for run in drawn_runs))
+        self.assert_color_present(card, CODE_BACKGROUND)
+
     def test_corrupt_media_falls_back_to_message_text(self):
         card = self.render(
             message_text="Caption survives",

@@ -16,6 +16,8 @@ All four fonts use the SIL Open Font License 1.1. Noto Sans is the primary
 Vietnamese-capable text font. Quote cards and highlight chat mockups share this
 same bundled set. The other three are offline fallbacks for emoji,
 music marks, dingbats, and decorative symbols that would otherwise render as
-blank rectangles. The renderer draws supported single-glyph emoji with Noto
-Emoji and converts complex or newer unsupported sequences to readable
+blank rectangles. Quote cards draw supported single-glyph emoji with Noto
+Emoji and convert complex or newer unsupported sequences to readable
 `:shortcode:` text so output stays consistent without a system shaping engine.
+Highlight cards preserve Unicode emoji and draw meter blocks (`█`, `░`) and the
+rainbow flag directly, including on systems without a text shaping engine.

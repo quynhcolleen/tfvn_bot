@@ -7,6 +7,7 @@ from cogs.utils._highlight_media import (
     MAX_HIGHLIGHT_EMBEDS,
     MAX_HIGHLIGHT_IMAGES,
     HighlightMedia,
+    clean_embed_mentions,
     collect_highlight_media,
     discord_media_url,
     media_url_key,
@@ -37,6 +38,98 @@ def collect_embeds(
 
 
 class TestHighlightMediaExtraction(unittest.TestCase):
+    def test_image_upload_with_mixed_case_mime_is_collected(self):
+        attachment = make_attachment("pasted-upload")
+        attachment.content_type = "Image/PNG; charset=binary"
+
+        media = collect_embeds(attachments=(attachment,))
+
+        self.assertEqual(media.attachments, (attachment,))
+        self.assertTrue(media.has_content)
+
+    def test_extensionless_pasted_image_uses_discord_dimensions(self):
+        for content_type in (None, "application/octet-stream"):
+            with self.subTest(content_type=content_type):
+                attachment = make_attachment("pasted-upload")
+                attachment.content_type = content_type
+                attachment.width, attachment.height = 640, 480
+
+                media = collect_embeds(attachments=(attachment,))
+
+                self.assertEqual(media.attachments, (attachment,))
+                self.assertTrue(media.has_content)
+
+    def test_dimensions_do_not_turn_non_image_files_into_gallery_images(self):
+        cases = (
+            ("clip.mp4", None, 640, 480),
+            ("clip", "video/mp4", 640, 480),
+            ("file", None, None, None),
+            ("file", None, 640, 0),
+        )
+        for filename, content_type, width, height in cases:
+            with self.subTest(filename=filename, content_type=content_type, height=height):
+                attachment = make_attachment(filename)
+                attachment.content_type = content_type
+                attachment.width, attachment.height = width, height
+
+                self.assertFalse(collect_embeds(attachments=(attachment,)).has_content)
+
+    def test_embed_only_mentions_resolve_from_guild_members_roles_and_threads(self):
+        member = SimpleNamespace(id=42, display_name="Tên trong server", name="username")
+        role = SimpleNamespace(id=43, name="Người chơi")
+        channel = SimpleNamespace(id=44, name="thảo-luận")
+        guild = SimpleNamespace(
+            get_member=lambda target: member if target == member.id else None,
+            get_role=lambda target: role if target == role.id else None,
+            get_channel_or_thread=lambda target: channel if target == channel.id else None,
+        )
+        embed = discord.Embed(title="<@42>", description="Mức độ gay của <@!42>")
+        embed.add_field(name="<@&43>", value="Xem <#44>")
+        embed.set_author(name="<@42>")
+        embed.set_footer(text="<@&43>")
+        snapshot = collect_highlight_media(SimpleNamespace(
+            guild=guild, mentions=[], embeds=[embed],
+        )).embeds[0]
+
+        self.assertEqual(snapshot.title, "@Tên trong server")
+        self.assertEqual(snapshot.description, "Mức độ gay của @Tên trong server")
+        self.assertEqual(snapshot.fields, (("@Người chơi", "Xem #thảo-luận"),))
+        self.assertEqual(snapshot.author_name, "@Tên trong server")
+        self.assertEqual(snapshot.footer_text, "@Người chơi")
+
+    def test_mentions_fall_back_to_source_author_and_message_context(self):
+        source = SimpleNamespace(
+            author=SimpleNamespace(id=42, display_name="Tác giả"),
+            mentions=[SimpleNamespace(id=43, display_name="Bạn bè")],
+            channel=SimpleNamespace(id=44, name="chat"),
+        )
+        self.assertEqual(
+            clean_embed_mentions("<@42> <@!43> <#44>", source),
+            "@Tác giả @Bạn bè #chat",
+        )
+
+    def test_unknown_mentions_are_readable_and_nickname_markdown_stays_literal(self):
+        source = SimpleNamespace(author=SimpleNamespace(id=42, display_name="**literal_name**"))
+        self.assertEqual(
+            clean_embed_mentions("<@42>", source), r"@\*\*literal\_name\*\*",
+        )
+        self.assertEqual(
+            clean_embed_mentions("<@123> <@&124> <#125>", source),
+            "@người dùng không xác định @role không xác định #kênh không xác định",
+        )
+
+    def test_code_and_escaped_mentions_are_not_resolved(self):
+        source = SimpleNamespace(author=SimpleNamespace(id=42, display_name="Tên"))
+        text = "`<@42>`\n```python\nprint('<@42>')\n```\n\\<@42> <@42>"
+        self.assertEqual(
+            clean_embed_mentions(text, source),
+            "`<@42>`\n```python\nprint('<@42>')\n```\n\\<@42> @Tên",
+        )
+        self.assertEqual(
+            clean_embed_mentions("``code `<@42>` **literal**``", source),
+            "``code `<@42>` **literal**``",
+        )
+
     def test_rich_embed_preserves_visible_text_and_color(self):
         embed = discord.Embed(
             title="Tiêu đề",

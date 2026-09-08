@@ -254,6 +254,16 @@ class HighlightCog(commands.Cog):
             for url in (embed.image_url, embed.thumbnail_url)
             if url and media_url_key(url) not in cache
         }
+        # Discord can retain a usable image preview when the original attachment
+        # is unavailable. Keep this fallback inside the same bounded downloader
+        # and cache as embed images so a referenced attachment is only fetched once.
+        attachment_proxies = [
+            discord_media_url(getattr(attachment, "proxy_url", None))
+            for attachment in media.attachments
+        ]
+        for data, proxy_url in zip(attachment_data, attachment_proxies):
+            if not data and proxy_url and media_url_key(proxy_url) not in cache:
+                urls.setdefault(media_url_key(proxy_url), proxy_url)
         if urls:
             timeout = aiohttp.ClientTimeout(total=MEDIA_TIMEOUT_SECONDS)
             # One session is reused by all media requests in this highlight.
@@ -269,6 +279,13 @@ class HighlightCog(commands.Cog):
 
                 downloaded = await asyncio.gather(*(download(url) for url in urls.values()))
                 cache.update(zip(urls, downloaded))
+
+        for index, (data, proxy_url) in enumerate(zip(attachment_data, attachment_proxies)):
+            if not data and proxy_url:
+                recovered = cache.get(media_url_key(proxy_url))
+                if recovered:
+                    attachment_data[index] = recovered
+                    cache.update({key: recovered for key in attachment_keys[index]})
 
         used_keys: set[str] = set()
         embeds: list[HighlightEmbed] = []

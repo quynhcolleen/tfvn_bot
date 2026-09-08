@@ -115,12 +115,21 @@ def channel_is_nsfw(channel: object) -> bool:
 def first_image_attachment(attachments: list[Any] | tuple[Any, ...] | None) -> Any | None:
     """Return the first image-like Discord attachment, if any."""
     for attachment in attachments or ():
-        content_type = str(getattr(attachment, "content_type", None) or "")
+        content_type = str(getattr(attachment, "content_type", None) or "").lower()
+        content_type = content_type.split(";", 1)[0].strip()
         if content_type.startswith("image/"):
             return attachment
         filename = str(getattr(attachment, "filename", "")).lower()
         if Path(filename).suffix in _IMAGE_EXTENSIONS:
             return attachment
+        # Some pasted uploads have neither a MIME type nor a filename extension.
+        # Discord's dimensions still identify them as media; known file types
+        # such as videos must not take a slot in the image gallery.
+        if not Path(filename).suffix and content_type in ("", "application/octet-stream"):
+            width = getattr(attachment, "width", None)
+            height = getattr(attachment, "height", None)
+            if isinstance(width, int) and width > 0 and isinstance(height, int) and height > 0:
+                return attachment
     return None
 
 

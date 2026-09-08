@@ -8,23 +8,31 @@ import unicodedata
 
 from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
 
+from cogs.utils._highlight_font import load_highlight_font as _load_fallback_font
 from cogs.utils._highlight_media import (
     MAX_HIGHLIGHT_EMBEDS,
     MAX_HIGHLIGHT_IMAGES,
     HighlightEmbed,
 )
+from cogs.utils._highlight_text import (
+    EmbedTextFont,
+    TextLine,
+    truncate_embed_line,
+    wrap_embed_text,
+)
 from cogs.utils._quote_card import (
+    MAX_NORMALIZED_TEXT_LENGTH,
+    MAX_SOURCE_TEXT_LENGTH,
+    _CUSTOM_EMOJI,
     _FallbackFont,
     _HORIZONTAL_WHITESPACE,
     _UNSUPPORTED_GLYPH,
-    _load_fallback_font,
     _load_font,
     _mix,
     _safe_accent,
     _single_line,
     _text_block_height,
     _truncate_to_width,
-    normalize_quote_text,
     wrap_quote_text,
 )
 
@@ -152,16 +160,34 @@ def normalize_highlight_text(
     content: str,
     *,
     allow_empty: bool = False,
+    preserve_whitespace: bool = False,
 ) -> str:
-    """Prepare message text for a chat mockup; empty is optional for images."""
-    try:
-        return normalize_quote_text(content)
-    except ValueError:
+    """Bound chat text while retaining Unicode emoji and optional code spacing."""
+    content = content[:MAX_SOURCE_TEXT_LENGTH]
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    content = _CUSTOM_EMOJI.sub(r":\1:", content)
+    if preserve_whitespace:
+        normalized = content.strip("\n")
+    else:
+        lines: list[str] = []
+        for raw_line in content.split("\n"):
+            line = _HORIZONTAL_WHITESPACE.sub(" ", raw_line).strip()
+            if line:
+                lines.append(line)
+            elif lines and lines[-1] != "":
+                lines.append("")
+        while lines and not lines[-1]:
+            lines.pop()
+        normalized = "\n".join(lines)
+    if not normalized.strip():
         if allow_empty:
             return ""
         raise ValueError(
             "Tin nhắn không có chữ hoặc ảnh để tạo highlight."
         ) from None
+    if len(normalized) > MAX_NORMALIZED_TEXT_LENGTH:
+        normalized = normalized[:MAX_NORMALIZED_TEXT_LENGTH - 1].rstrip() + "…"
+    return normalized
 
 
 def format_highlight_timestamp(
@@ -359,7 +385,7 @@ def _render_gallery(images: list[Image.Image], max_height: int) -> Image.Image:
 
 
 def _embed_text(value: str) -> str:
-    return normalize_highlight_text(value, allow_empty=True)
+    return normalize_highlight_text(value, allow_empty=True, preserve_whitespace=True)
 
 
 def _render_embed_panel(
@@ -369,10 +395,10 @@ def _render_embed_panel(
     max_height: int,
 ) -> Image.Image | None:
     """Fit an embed's text and media inside one bounded Discord-style panel."""
-    body_font = _load_fallback_font(EMBED_FONT_SIZE)
-    bold_font = _load_fallback_font(EMBED_FONT_SIZE, bold=True)
-    title_font = _load_fallback_font(EMBED_TITLE_FONT_SIZE, bold=True)
-    meta_font = _load_fallback_font(EMBED_META_FONT_SIZE)
+    body_font = EmbedTextFont(EMBED_FONT_SIZE)
+    bold_font = EmbedTextFont(EMBED_FONT_SIZE, bold=True)
+    title_font = EmbedTextFont(EMBED_TITLE_FONT_SIZE, bold=True)
+    meta_font = EmbedTextFont(EMBED_META_FONT_SIZE)
     inner_width = TEXT_MAX_WIDTH - 2 * EMBED_PADDING
     inner_height = max_height - 2 * EMBED_PADDING
     text_width = inner_width
@@ -380,7 +406,7 @@ def _render_embed_panel(
         text_width -= EMBED_THUMBNAIL_SIZE + EMBED_GAP
 
     # A block remains independently styled when it is shortened to make room.
-    blocks: list[tuple[list[str], _FallbackFont, tuple[int, int, int]]] = []
+    blocks: list[tuple[list[TextLine], EmbedTextFont, tuple[int, int, int]]] = []
     sections = [
         (embed.author_name, meta_font, BODY_TEXT),
         (embed.title, title_font, EMBED_TITLE_TEXT),
@@ -391,12 +417,16 @@ def _render_embed_panel(
     for value, font, color in sections:
         text = _embed_text(value)
         if text:
-            blocks.append((wrap_quote_text(text, font, text_width), font, color))
+            blocks.append((wrap_embed_text(text, font, text_width), font, color))
 
-    footer_lines = _fit_lines(
-        _embed_text(embed.footer_text), meta_font, inner_width,
-        min(60, inner_height // 4), EMBED_GAP,
-    )
+    footer_text = _embed_text(embed.footer_text)
+    footer_lines = wrap_embed_text(footer_text, meta_font, inner_width) if footer_text else []
+    footer_truncated = False
+    while footer_lines and _text_block_height(footer_lines, meta_font, EMBED_GAP) > min(60, inner_height // 4):
+        footer_lines.pop()
+        footer_truncated = True
+    if footer_truncated and footer_lines:
+        footer_lines[-1] = truncate_embed_line(footer_lines[-1], meta_font, inner_width)
     footer_height = (
         _text_block_height(footer_lines, meta_font, EMBED_GAP)
         if footer_lines else 0
@@ -437,9 +467,7 @@ def _render_embed_panel(
     for index in shortened:
         if index < len(blocks):
             lines, font, _ = blocks[index]
-            lines[-1] = _truncate_to_width(
-                lines[-1], font, text_width, force_suffix=True,
-            )
+            lines[-1] = truncate_embed_line(lines[-1], font, text_width)
 
     if thumbnail is not None:
         thumbnail = _contain_image(
