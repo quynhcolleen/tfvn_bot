@@ -11,9 +11,9 @@ from cogs.operation._setup_helpers import parse_discord_id
 
 SKULL_EMOJI = "\N{SKULL}"
 # Unique non-bot 💀 reactions required before a message can be highlighted.
-HIGHLIGHT_THRESHOLD = 1
+HIGHLIGHT_THRESHOLD = 5
 # Minimum seconds between highlight posts in the same guild.
-HIGHLIGHT_MIN_INTERVAL_SECONDS = 60
+HIGHLIGHT_MIN_INTERVAL_SECONDS = 300
 HIGHLIGHT_CHANNEL_VARIABLE = "HIGHLIGHT_CHANNEL"
 HIGHLIGHT_COLLECTION = "highlight_nominations"
 MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024

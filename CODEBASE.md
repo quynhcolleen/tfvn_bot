@@ -212,7 +212,7 @@ tfvn_bot/
     └── utils/
         ├── giveaway.py                  Persistent views, entries, scheduling, and rerolls
         ├── vote.py                      Persistent reaction polls and result scheduling
-        ├── highlight.py                 Background 💀 listener; media downloads, chat PNG, TV congrats reply
+        ├── highlight.py                 Requirements command, 💀 listener, media downloads, chat PNG, TV congrats reply
         ├── _highlight_helpers.py        Skull/interval knobs, NSFW skip, channel helpers
         ├── _highlight_card.py           Discord dark-theme chat PNG, image gallery, and embed rendering
         ├── _highlight_font.py           Portable meter-block and rainbow-flag drawing with bundled fonts

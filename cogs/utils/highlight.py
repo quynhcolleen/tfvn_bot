@@ -26,6 +26,7 @@ from cogs.utils._highlight_helpers import (
     HIGHLIGHT_MIN_INTERVAL_SECONDS,
     HIGHLIGHT_THRESHOLD,
     MAX_ATTACHMENT_BYTES,
+    SKULL_EMOJI,
     STATUS_FAILED,
     STATUS_PENDING,
     STATUS_POSTED,
@@ -66,7 +67,7 @@ MEDIA_TIMEOUT_SECONDS = 10
 
 
 class HighlightCog(commands.Cog):
-    """Background 💀 listener that posts chat-theme highlights."""
+    """Automatic chat-theme highlights and their public requirements command."""
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -127,6 +128,46 @@ class HighlightCog(commands.Cog):
             )
         if self.bot.is_ready():
             await self._restore_pending_nominations()
+
+    @commands.command(
+        name="highlight",
+        help="Xem điều kiện để tin nhắn được đưa lên highlight.",
+    )
+    @commands.guild_only()
+    async def highlight(self, ctx: commands.Context) -> None:
+        try:
+            destination = f"<#{self._highlight_channel_id()}>"
+        except HighlightConfigError:
+            destination = "Chưa được thiết lập. Hãy nhờ quản trị viên cấu hình kênh highlight."
+
+        embed = discord.Embed(
+            title="Điều kiện lên Highlight",
+            description=f"Thả {SKULL_EMOJI} vào tin nhắn bạn muốn đưa lên highlight!",
+            color=0x5865F2,
+        )
+        embed.add_field(
+            name="Điều kiện",
+            value=(
+                f"• Ít nhất **{HIGHLIGHT_THRESHOLD}** lượt {SKULL_EMOJI} "
+                "từ **những người khác nhau**, không tính bot.\n"
+                "• Tin nhắn ở kênh **SFW**, ngoài kênh highlight.\n"
+                "• Có văn bản, ảnh hoặc embed mà bot có thể đọc và hiển thị.\n"
+                "• Mỗi tin nhắn chỉ được đưa lên highlight một lần."
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="Khi nào được đăng?",
+            value=(
+                f"Các bài highlight trong server cách nhau ít nhất "
+                f"**{HIGHLIGHT_MIN_INTERVAL_SECONDS} giây**. "
+                "Tin nhắn đủ điều kiện sẽ chờ đến lượt và cần giữ đủ "
+                f"lượt {SKULL_EMOJI} cho đến lúc đăng."
+            ),
+            inline=False,
+        )
+        embed.add_field(name="Kênh highlight", value=destination, inline=False)
+        await ctx.send(embed=embed, allowed_mentions=NO_MENTIONS)
 
     def _global_var(self, name: str) -> object:
         return getattr(self.bot, "global_vars", {}).get(name)

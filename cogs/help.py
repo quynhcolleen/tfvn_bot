@@ -831,6 +831,10 @@ HELP_TOPICS = (
                 name="Tiện ích",
                 entries=(
                     _entry(
+                        "highlight",
+                        "Xem điều kiện để tin nhắn được đưa lên highlight; chỉ dùng trong server.",
+                    ),
+                    _entry(
                         "quote",
                         (
                             "Quote reply/link/ID dạng embed; thêm `image` để tạo PNG; "
