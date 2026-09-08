@@ -16,7 +16,7 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
 - **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
 - **Social and fun commands:** member interactions, rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
-- **Operations:** an Administrator dashboard for bot/server health, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
+- **Operations:** an Administrator dashboard for bot/server health, private Doctor diagnostics, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
 - **Optional age-restricted features:** NSFW interactions and Rule34/Gelbooru searches, guarded by Discord's NSFW channel setting.
 - **Persistent state:** MongoDB-backed balances, cultivation profiles, interactions, Crocodile Dentist games, game context, reminders, settings, giveaways, booster resources, moderation data, signed content proofs, guild command audit logs, and append-only bot lifecycle events.
 
@@ -401,14 +401,31 @@ The bot tries to DM it to the unbanned user and otherwise shows it privately to
 the moderator for manual delivery. Reinviting is best-effort after the unban and
 case are complete, so an invite-service failure never repeats the moderation action.
 
-Run `!tf setup check` after configuration to inspect MongoDB connectivity,
-loaded cogs, channel/role IDs, bot permissions, and role hierarchy.
+Run `!tf setup check` after configuration to inspect required environment settings,
+enabled features, MongoDB connectivity, channel/role IDs, bot permissions, and role
+hierarchy. It uses the same read-only diagnostics as the dashboard's Doctor panel.
 
 Administrators can run `!tf bot_status` for an interactive health dashboard without
 changing the existing `!tf server_stats` report. The dashboard can browse recognized
 guild command outcomes, export retained records as CSV, and prune old records after
 confirmation. These records are guild-scoped in MongoDB's `operation_logs` collection;
 direct messages and unknown commands are not retained.
+
+Click **🩺 Doctor** for a private Vietnamese report of current configuration and
+permission problems, with suggested fixes. The report shows error/warning totals,
+scan time, and five findings per page; Previous/Next and Refresh controls let the
+opening administrator inspect and rerun the scan. Access is checked on every click
+and the panel expires after 180 seconds. Doctor works without loading `setup_check`.
+Checks apply to enabled features in the current server, including selected
+extensions that failed to load; disabled features and known other-server targets
+are skipped. Channel permission overrides are checked separately from server
+permissions, and role hierarchy is checked only for roles the bot manages.
+Missing optional settings do not produce warnings. The scan uses current process
+environment and runtime configuration, flags settings that need a cog reload,
+and does not reload `.env`, change settings, or store reports. Secrets and raw
+exception messages are never included in diagnostics. MongoDB checks run in a
+worker thread with a five-second deadline, so a database failure still leaves
+other findings available.
 
 If the invoking Administrator is also the Bot owner, `bot_status` adds private
 panels for the bot's joined servers and lifecycle history. The server manager can

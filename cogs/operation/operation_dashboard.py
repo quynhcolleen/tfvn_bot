@@ -14,6 +14,7 @@ from discord.ext import commands
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
+from cogs.operation._doctor import collect_doctor_checks
 from cogs.operation._operation_helpers import (
     AUDIT_RANGE_LABELS,
     AUDIT_TIME_RANGES,
@@ -30,12 +31,14 @@ from cogs.operation._operation_helpers import (
     sanitize_command_arguments,
     split_audit_csv,
 )
+from cogs.operation._setup_helpers import SetupCheck, summarize_checks
 
 
 logger = logging.getLogger(__name__)
 
 LOG_COLLECTION = "operation_logs"
 DASHBOARD_TIMEOUT_SECONDS = 180
+DOCTOR_PAGE_SIZE = 5
 JOINED_SERVER_PAGE_SIZE = 10
 AUDIT_PAGE_SIZE = 5
 AUDIT_BROWSER_MAX_ROWS = 1_000
@@ -1766,6 +1769,166 @@ class JoinedServerView(BotOwnerGuildAdminView):
             )
 
 
+class DoctorView(GuildAdminView):
+    """Private, read-only diagnostics for the administrator who opened it."""
+
+    def __init__(
+        self,
+        *,
+        cog: "OperationDashboardCog",
+        guild_id: int,
+        author_id: int,
+        channel: discord.abc.GuildChannel | discord.Thread | None,
+    ) -> None:
+        super().__init__(guild_id=guild_id, author_id=author_id)
+        self.cog = cog
+        self.channel = channel
+        self.findings: list[SetupCheck] = []
+        self.page = 0
+        self.generated_at = discord.utils.utcnow()
+        self._lock = asyncio.Lock()
+        self._sync_controls()
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if not await super().interaction_check(interaction):
+            return False
+        # Interaction members are snapshots; consult the live cache after scans
+        # and queued actions so a revoked administrator cannot read fresh results.
+        guild = self.cog.bot.get_guild(self.guild_id)
+        member = guild.get_member(interaction.user.id) if guild is not None else None
+        if member is None or not member.guild_permissions.administrator:
+            await _send_private(
+                interaction,
+                "Không thể xác minh quyền Administrator hiện tại. "
+                "Hãy mở lại bot_status khi quyền và cache đã được cập nhật.",
+            )
+            return False
+        return True
+
+    @property
+    def page_count(self) -> int:
+        return max(1, math.ceil(len(self.findings) / DOCTOR_PAGE_SIZE))
+
+    def _sync_controls(self) -> None:
+        self.page = min(max(0, self.page), self.page_count - 1)
+        if self.is_finished():
+            _disable_view(self)
+            return
+        self.previous_page.disabled = self.page == 0
+        self.next_page.disabled = self.page >= self.page_count - 1
+
+    async def load_checks(self) -> None:
+        guild = self.cog.bot.get_guild(self.guild_id)
+        if guild is None:
+            checks = [
+                SetupCheck(
+                    "error",
+                    "Server hiện tại",
+                    "Không tìm thấy server trong bộ nhớ của bot.",
+                    "Mở lại bot_status sau khi bot kết nối lại server.",
+                )
+            ]
+        else:
+            checks = await collect_doctor_checks(self.cog.bot, guild, self.channel)
+        severity = {"error": 0, "warning": 1}
+        self.findings = sorted(
+            (check for check in checks if check.level in severity),
+            key=lambda check: (severity[check.level], check.name.casefold()),
+        )
+        self.generated_at = discord.utils.utcnow()
+        self.page = 0
+        self._sync_controls()
+
+    def build_embed(self) -> discord.Embed:
+        self._sync_controls()
+        totals = summarize_checks(self.findings)
+        color = (
+            discord.Color.red()
+            if totals["error"]
+            else discord.Color.orange()
+            if totals["warning"]
+            else discord.Color.green()
+        )
+        embed = discord.Embed(
+            title="🩺 Doctor · Chẩn đoán bot",
+            description=(
+                f"❌ {totals['error']} lỗi · ⚠️ {totals['warning']} cảnh báo\n"
+                "Kiểm tra tính năng đang bật trong server hiện tại.\n"
+                f"Lần kiểm tra: <t:{int(self.generated_at.timestamp())}:F>"
+            ),
+            color=color,
+            timestamp=self.generated_at,
+        )
+        if not self.findings:
+            embed.add_field(
+                name="✅ Không có cảnh báo",
+                value="Không phát hiện lỗi hoặc cảnh báo trong các kiểm tra hiện có.",
+                inline=False,
+            )
+        start = self.page * DOCTOR_PAGE_SIZE
+        for check in self.findings[start : start + DOCTOR_PAGE_SIZE]:
+            icon = "❌" if check.level == "error" else "⚠️"
+            name = _safe_display(discord.utils.escape_mentions(check.name), 180)
+            detail = _safe_display(discord.utils.escape_mentions(check.detail), 530)
+            fix = _safe_display(
+                discord.utils.escape_mentions(check.fix or "Kiểm tra cấu hình tính năng."),
+                320,
+            )
+            embed.add_field(
+                name=f"{icon} {name}",
+                value=f"{detail}\n**Cách sửa:** {fix}",
+                inline=False,
+            )
+        embed.set_footer(
+            text=(
+                f"Trang {self.page + 1}/{self.page_count} · "
+                "Làm mới để kiểm tra lại · Bảng hoạt động 3 phút"
+            )
+        )
+        return embed
+
+    async def _change_page(self, interaction: discord.Interaction, delta: int) -> None:
+        await interaction.response.defer(ephemeral=True)
+        async with self._lock:
+            if self.is_finished() or not await self.interaction_check(interaction):
+                return
+            self.page += delta
+            await interaction.edit_original_response(
+                embed=self.build_embed(), view=self, allowed_mentions=NO_MENTIONS
+            )
+
+    @discord.ui.button(label="Trước", emoji="◀️", style=discord.ButtonStyle.secondary)
+    async def previous_page(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        await self._change_page(interaction, -1)
+
+    @discord.ui.button(label="Sau", emoji="▶️", style=discord.ButtonStyle.secondary)
+    async def next_page(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        await self._change_page(interaction, 1)
+
+    @discord.ui.button(label="Làm mới", emoji="🔄", style=discord.ButtonStyle.primary)
+    async def refresh(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        await interaction.response.defer(ephemeral=True)
+        async with self._lock:
+            if self.is_finished() or not await self.interaction_check(interaction):
+                return
+            await self.load_checks()
+            if not await self.interaction_check(interaction):
+                return
+            await interaction.edit_original_response(
+                embed=self.build_embed(), view=self, allowed_mentions=NO_MENTIONS
+            )
+
+    async def on_timeout(self) -> None:
+        async with self._lock:
+            await super().on_timeout()
+
+
 class OperationDashboardView(GuildAdminView):
     def __init__(
         self,
@@ -1903,6 +2066,35 @@ class OperationDashboardView(GuildAdminView):
                 ephemeral=True,
                 allowed_mentions=NO_MENTIONS,
             )
+            return
+        view.message = await interaction.followup.send(
+            embed=view.build_embed(),
+            view=view,
+            ephemeral=True,
+            wait=True,
+            allowed_mentions=NO_MENTIONS,
+        )
+
+    @discord.ui.button(
+        label="Doctor",
+        emoji="🩺",
+        style=discord.ButtonStyle.secondary,
+        row=0,
+    )
+    async def doctor(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ) -> None:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        view = DoctorView(
+            cog=self.cog,
+            guild_id=self.guild_id,
+            author_id=interaction.user.id,
+            channel=interaction.channel,
+        )
+        await view.load_checks()
+        if not await view.interaction_check(interaction):
             return
         view.message = await interaction.followup.send(
             embed=view.build_embed(),
@@ -2436,13 +2628,13 @@ class OperationDashboardCog(commands.Cog):
             inline=False,
         )
         embed.set_footer(
-            text="Bảng hoạt động 3 phút · Audit/CSV/dọn log được trả riêng tư"
+            text="Bảng hoạt động 3 phút · Doctor/Audit/CSV/dọn log được trả riêng tư"
         )
         return embed
 
     @commands.command(
         name="bot_status",
-        help="Mở dashboard trạng thái bot và audit command.",
+        help="Mở dashboard trạng thái bot, Doctor và audit command.",
     )
     @commands.guild_only()
     @commands.has_guild_permissions(administrator=True)

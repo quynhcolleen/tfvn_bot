@@ -43,14 +43,27 @@ Examples below use that default. Replace with your configured prefix if differen
 | `ping` | Everyone | Heartbeat / liveness reply |
 | `beta_preview` | Beta | Confirms the member has a configured Beta role |
 | `server_stats` | Administrator | In-memory uptime, command, and error counts since process start; 10s per-guild cooldown |
-| `bot_status` | Administrator | Opens the bot/server health dashboard with refresh, guild command audit, CSV export, and guarded log-pruning controls; the joined-server manager and lifecycle history are private Bot owner controls |
+| `bot_status` | Administrator | Opens the bot/server health dashboard with refresh, private Doctor diagnostics, guild command audit, CSV export, and guarded log-pruning controls; the joined-server manager and lifecycle history are private Bot owner controls |
 | `leave` | Administrator | Makes the bot leave the current guild |
 | `setup` / `diagnose` | Manage Guild (subcommands) | Setup diagnostics group |
-| `setup check` | Manage Guild | Checks database, permissions, IDs, and cog health |
+| `setup check` | Manage Guild | Uses shared Doctor diagnostics to check environment/configuration, database, permissions, IDs, and enabled-feature health |
 
 **Module:** `cogs.general`, `cogs.onboarding.role_exam`, `cogs.operation.*`
 
 `bot_status` shows readiness, environment, uptime, Discord latency, guild/member/channel totals, MongoDB health, retained log count, and recent command outcomes. Audit browsing and CSV/prune responses are private to the administrator. Audit and export ranges are 7, 30, or 90 days, or all retained records; exports above 100,000 rows must use a narrower range. Pruning can remove records older than 30, 90, or 180 days, or clear the guild's retained history after an additional confirmation. Recognized guild prefix commands and dashboard export/prune actions are stored in the guild-scoped `operation_logs` collection; direct messages and unknown commands are not logged.
+
+The **🩺 Doctor** button opens a private, read-only Vietnamese report for the
+clicking administrator, with error/warning totals, scan time, suggested fixes,
+and five findings per page. Previous, Next, and Refresh controls remain available
+for 180 seconds and recheck the opening user, server, and current Administrator
+permission. Healthy scans say explicitly that no problems were found. Doctor
+checks enabled features in the current server, including selected extensions
+that failed to load, while skipping disabled features and known other-server
+targets. It checks required environment and feature settings, channel permission
+overrides, guild permissions, hierarchy for roles the bot manages, runtime intents, cached
+settings needing reload, and MongoDB availability. Reports contain no secret
+values or raw exceptions, suppress mentions, and are not saved. The same collector
+backs `setup check`; Doctor does not require that command's cog to be loaded.
 
 When the Administrator is also the Bot owner, the dashboard adds two private controls. The joined-server manager lists every guild currently connected to the bot and can leave a selected guild only after confirmation; it cannot leave the guild where `bot_status` was invoked. The standalone `!tf leave` command remains unchanged and still leaves its current guild immediately. The lifecycle panel shows the 10 newest `initial_ready`, `reidentified`, or `resumed` events for the current environment. These append-only global events are retained indefinitely in `bot_lifecycle_events`; they are separate from `operation_logs` and are never included in guild audit browsing, CSV exports, or pruning.
 

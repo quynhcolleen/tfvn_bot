@@ -182,6 +182,9 @@ def get_cogs_from_profile(profile_path: str) -> list[str]:
 
 
 async def load_cogs() -> None:
+    bot.selected_extensions = set()
+    if not hasattr(bot, "extension_load_failures"):
+        bot.extension_load_failures = {}
     profile_path = COG_PROFILE_FILES.get(environment)
     if profile_path:
         if os.path.exists(profile_path):
@@ -200,6 +203,7 @@ async def load_cogs() -> None:
     cogs_to_load = [
         module for module in cogs_to_load if not cog_disabled(module)
     ]
+    bot.selected_extensions = set(cogs_to_load)
     for module in disabled:
         print(f"⏭️ Disabled cog: {module}")
 
@@ -213,9 +217,13 @@ async def load_cogs() -> None:
     for module in cogs_to_load:
         try:
             await bot.load_extension(module)
+            bot.extension_load_failures.pop(module, None)
             print(f"✅ Loaded cog: {module}")
         except Exception as exc:
-            print(f"❌ Failed to load cog {module}: {exc}")
+            original = exc.original if isinstance(exc, commands.ExtensionFailed) else exc
+            error_type = type(original).__name__
+            bot.extension_load_failures[module] = error_type
+            print(f"❌ Failed to load cog {module}: {error_type}")
 
 
 async def main() -> None:

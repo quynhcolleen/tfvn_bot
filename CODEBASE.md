@@ -6,7 +6,7 @@ This document maps the maintained repository files and explains where each behav
 
 1. `main.py` loads `.env`, creates the prefix-based `commands.Bot`, enables member and message-content intents, attaches the MongoDB database from `db.py`, and owns graceful SIGINT/SIGTERM command draining.
 2. `DataLoader` loads shared lists from `data/` onto the bot instance.
-3. In production, every public Python module below `cogs/` is discovered recursively. Development uses the ignored `dev_cogs.txt`. Both use the database selected by `DB_NAME`.
+3. In production, every public Python module below `cogs/` is discovered recursively. Development uses the ignored `dev_cogs.txt`. Both use the database selected by `DB_NAME`. Selected extensions and safe startup failure types are retained in memory for diagnostics; disabled modules are excluded and current loaded extensions take precedence over stale failure records.
 4. `cogs.settings.variable_setting` is loaded first when selected, populating `bot.global_vars` from MongoDB.
 5. Each extension registers commands, listeners, views, or scheduled tasks through `async def setup(bot)`.
 
@@ -71,6 +71,8 @@ tfvn_bot/
 │   ├── test_card_game_economy.py   Atomic card-game wager and refund helpers
 │   ├── test_crocodile_dentist.py   Crocodile rules, persistence, commands, and UI behavior
 │   ├── test_community_features.py  Pure validation/time/helper regression tests
+│   ├── test_doctor.py              Environment, feature, permission, and runtime diagnostics
+│   ├── test_extension_loading.py   Selected extensions and safe startup-failure diagnostics
 │   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
 │   ├── test_highlight.py           Highlight listener, spacing, media download, and posting tests
@@ -80,6 +82,7 @@ tfvn_bot/
 │   ├── test_highlight_text.py      Embed Markdown parsing, styled wrapping, and text drawing tests
 │   ├── test_hash_verification.py    Signed proof, forgery, tamper, producer, and privacy tests
 │   ├── test_meter_number_bars.py   unittest coverage for signed meter formatting
+│   ├── test_operation_dashboard.py Health/audit, Doctor access/pagination, and owner UI tests
 │   ├── test_role_exam.py           Role-exam invitation, UI, safety, and role-grant tests
 │   ├── test_role_exam_helpers.py   Role-exam JSON validation, shuffling, and scoring tests
 │   └── word_stardardlize.py        Manual normalization utility; not auto-discovered as a test
@@ -199,14 +202,15 @@ tfvn_bot/
     │   └── role_exam.py                Staff invitation, private exam UI, and safe role grant
     ├── operation/
     │   ├── bot_status.py                Random Discord activity and timing rotation
+    │   ├── _doctor.py                   Shared read-only configuration, permission, and runtime diagnostics
     │   ├── _graceful_shutdown.py        Command admission, drain tracking, and signal helpers
     │   ├── _lifecycle.py                Append-only process/gateway lifecycle event recorder
     │   ├── _operation_helpers.py        Audit ranges, sanitization, and safe CSV generation
     │   ├── _setup_helpers.py           Pure setup-check result and ID helpers
     │   ├── heartbeat.py                 Latency/health command
-    │   ├── operation_dashboard.py       Health/audit UI plus private Bot owner guild/lifecycle panels
+    │   ├── operation_dashboard.py       Health/audit UI, private Doctor, and Bot owner guild/lifecycle panels
     │   ├── server_stats.py              In-memory uptime and command/error counts
-    │   ├── setup_check.py               Database, permission, ID, and cog diagnostics
+    │   ├── setup_check.py               Manage Guild diagnostic summary using the shared Doctor collector
     │   └── leave.py                     Administrator-controlled guild departure
     ├── settings/variable_setting.py     Mongo-backed runtime variable commands
     └── utils/
