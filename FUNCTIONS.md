@@ -531,37 +531,44 @@ Duration range: 10 seconds–30 days; max 20 winners.
 
 ## Moderation
 
+Complete legacy arguments execute immediately through the same permission,
+hierarchy, validation, and audit checks as the UI. For example, `!tf purge 5`
+deletes the five latest messages before the command; `!tf purge` opens the form.
+Argument-free replies keep the guided member workflow. Commands requiring a
+value (such as timeout minutes, a nickname, or a role) open the UI when it is
+omitted. Reply workflows do not accept extra arguments.
+
 ### Member actions
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `kick [@user] [reason]` | Kick Members | Mention a member, or reply with argument-free `kick`; choose a preset/custom reason and confirm Yes/No; records case |
-| `ban [@user] [reason]` | Ban Members | Mention a member, or reply with `ban` and no arguments, then use the UI to choose 0–168 hours of recent messages to delete, select a preset or custom reason, and confirm Yes/No; records case |
-| `unban <user_id\|@user> [reason]` | Ban Members | Enter a banned user ID/mention, or reply to their old message with argument-free `unban`; choose an optional unique one-use 7-day reinvite, a preset/custom reason, and confirm Yes/No. The bot uses a public rules/welcome/system/command channel, then DMs the invite or returns it privately to the moderator; reinviting requires moderator and bot Create Invite in that channel. Records case |
-| `softban [@user] [reason]` | Ban Members | Mention/reply target; choose a reason and confirm replacing eligible roles with Tù ngay; stores the previous roles and records case |
-| `unsoftban [@user] [reason]` | Ban Members | Mention/reply target; choose a release reason and confirm restoring the saved roles; records case |
-| `mute [@user] [reason]` | Manage Roles | Mention/reply target; choose a reason and confirm assigning Muted; records case |
-| `unmute [@user] [reason]` | Manage Roles | Mention/reply target; choose a release reason and confirm removing Muted; records case |
-| `timeout [@user] [minutes] [reason]` | Moderate Members | Mention a member with optional prefilled minutes, or reply with argument-free `timeout`; enter 1–40,320 minutes, choose a reason, and confirm; records case |
-| `untimeout [@user] [reason]` | Moderate Members | Mention/reply target; choose a release reason and confirm clearing timeout; records case |
-| `warn [@user] [reason]` | Manage Messages | Mention/reply target; choose a reason and confirm storing the warning and case |
+| `kick [@user] [reason]` | Kick Members | Explicit member kicks immediately; argument-free reply opens reason and confirmation UI; records case |
+| `ban [@user] [reason]` | Ban Members | Explicit member bans immediately with the legacy 24-hour message deletion default; argument-free reply opens the 0–168-hour deletion, reason, and confirmation UI; records case |
+| `unban <user_id\|@user> [reason]` | Ban Members | Explicit ID/mention unbans immediately without a reinvite. Argument-free reply opens the optional unique one-use 7-day reinvite, reason, and confirmation UI. Reinviting requires moderator and bot Create Invite in a public rules/welcome/system/command channel; the invite is DMed or returned privately. Records case |
+| `softban [@user] [reason]` | Ban Members | Explicit member immediately replaces eligible roles with Tù ngay; argument-free reply opens UI; stores previous roles and records case |
+| `unsoftban [@user] [reason]` | Ban Members | Explicit member immediately restores saved roles; argument-free reply opens UI; records case |
+| `mute [@user] [reason]` | Manage Roles | Explicit member immediately assigns Muted; argument-free reply opens UI; records case |
+| `unmute [@user] [reason]` | Manage Roles | Explicit member immediately removes Muted; argument-free reply opens UI; records case |
+| `timeout [@user] [minutes] [reason]` | Moderate Members | Member plus 1–40,320 minutes applies immediately; omitted minutes or argument-free reply opens UI; records case |
+| `untimeout [@user] [reason]` | Moderate Members | Explicit member immediately clears timeout; argument-free reply opens UI; records case |
+| `warn [@user] [reason]` | Manage Messages | Explicit member immediately stores the warning and case; argument-free reply opens UI |
 | `check_warn [@user]` | Everyone (guild) | Recent warnings (default: self) |
-| `nickchange [@user] [new_nick]` | Manage Nicknames | Mention/reply target; enter a nickname and audit reason, then confirm Yes/No |
-| `roleroll [@user] [reason]` | Manage Roles | Mention/reply target; select a role and reason, review, then confirm assignment |
-| `roleunroll [@user] [reason]` | Manage Roles | Mention/reply target; select a role and reason, review, then confirm removal |
-| `rolecopy [@source] [@target] [reason]` | Manage Roles | Directly provide both members, or reply to the destination with argument-free `rolecopy` and select the source; confirmation shows source, destination, reason, and the frozen eligible-role table, while the completed reply lists the roles actually copied |
+| `nickchange [@user] [new_nick]` | Manage Nicknames | Member plus nickname applies immediately; omitted nickname or argument-free reply opens nickname, reason, and confirmation UI |
+| `roleroll [@user] [role_name]` | Manage Roles | Member plus role name assigns immediately; omitted role or argument-free reply opens role, reason, and confirmation UI |
+| `roleunroll [@user] [role_name]` | Manage Roles | Member plus role name removes immediately; omitted role or argument-free reply opens role, reason, and confirmation UI |
+| `rolecopy [@source] [@target] [reason]` | Manage Roles | Both members copies eligible roles immediately. Argument-free reply to the destination opens source selection and confirmation of the frozen role table. Completed replies list roles actually copied |
 
 ### Messages & channel controls
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `purge [n]` | Manage Messages | Enter 1–1,000 messages in the form and confirm; deletion is anchored before the invocation message |
-| `purge_user [@user] [n]` | Manage Messages | Mention/reply target, enter 1–1,000, and confirm deleting the member's newest matching messages before the invocation |
-| `clean_before [days]` | Manage Messages | Enter 1–3,650 days and confirm deleting older messages before the invocation |
+| `purge [n]` | Manage Messages | Supplied count immediately deletes 1–1,000 latest messages before the invocation; omitted count opens the form and confirmation |
+| `purge_user [@user] [n]` | Manage Messages | Member plus count immediately deletes 1–1,000 newest matching messages before the invocation, scanning at most 5,000 messages; omitted count or argument-free reply opens UI |
+| `clean_before [days]` | Manage Messages | Supplied 1–3,650 days immediately deletes older messages before the invocation; omitted days opens the form and confirmation |
 | `slowmode` | Everyone (guild) | Slowmode guide group |
 | `slowmode check_bypass [@member]` | Everyone | Check channel permission overwrites |
-| `slowmode immune [@member] [reason]` | Manage Roles | Mention/reply target; choose a reason and confirm adding bypass while preserving unrelated overwrites |
-| `slowmode prominent [@member] [reason]` | Manage Roles | Mention/reply target; choose a reason and confirm removing only the bypass overwrite |
+| `slowmode immune [@member] [reason]` | Manage Roles | Explicit member immediately adds bypass, preserving unrelated overwrites; argument-free reply opens UI |
+| `slowmode prominent [@member] [reason]` | Manage Roles | Explicit member immediately removes only the bypass overwrite; argument-free reply opens UI |
 
 ### Cases
 
@@ -570,9 +577,9 @@ Duration range: 10 seconds–30 days; max 20 winners.
 | `case` | Manage Messages | Usage guide |
 | `case view <number>` | Manage Messages | View case by number |
 | `case history @user [limit]` | Manage Messages | Last 1–10 cases for a member |
-| `case edit <number> [reason]` | Manage Messages | Enter/review a new reason and confirm; refuses to overwrite a case changed after the form opened |
-| `case status <number> [open\|resolved\|appealed\|void]` | Manage Messages | Select/review a status and confirm; refuses stale updates |
-| `case log_channel [#channel]` | Manage Guild | Select a text channel, verify bot send/embed access, and confirm changing the mod-log destination |
+| `case edit <number> [reason]` | Manage Messages | Supplied reason updates immediately; omitted reason opens confirmation UI; refuses stale updates |
+| `case status <number> [open\|resolved\|appealed\|void]` | Manage Messages | Supplied status updates immediately; omitted status opens confirmation UI; refuses stale updates |
+| `case log_channel [#channel]` | Manage Guild | Explicit channel changes the mod-log destination immediately after checking bot send/embed access; omitted channel opens selection and confirmation UI |
 
 ### Area 51 guard
 

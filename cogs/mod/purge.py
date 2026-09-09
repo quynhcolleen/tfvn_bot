@@ -8,10 +8,11 @@ from cogs.mod._cleanup_state import ACTIVE_CLEANUP_CHANNEL_IDS
 from cogs.mod._interaction_ui import (
     ActionResult,
     ConfigurableModerationView,
-    FormAnswer,
     IntegerField,
+    PrefixModerationContext,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 from cogs.mod._reply_target import ReplyTargetError, resolve_same_channel_reply_member
 
@@ -91,7 +92,7 @@ class PruneCommandCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    async def _open_purge_view(
+    async def _handle_purge(
         self,
         ctx: commands.Context,
         *,
@@ -124,9 +125,14 @@ class PruneCommandCog(commands.Cog):
             )
 
         async def submit_purge(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: PurgeRequest,
         ) -> ActionResult:
+            if not 1 <= request.count <= PURGE_MAX_MESSAGES:
+                return ActionResult(
+                    False,
+                    f"Số tin nhắn phải từ 1 đến {PURGE_MAX_MESSAGES:,}.",
+                )
             guild = interaction.guild
             if guild is None:
                 return ActionResult(False, "Lệnh purge chỉ dùng được trong server.")
@@ -173,7 +179,7 @@ class PruneCommandCog(commands.Cog):
                     True,
                     (
                         "Discord báo thiếu quyền sau khi purge đã bắt đầu; "
-                        "một số tin nhắn có thể đã được xóa. Bảng đã đóng để tránh "
+                        "một số tin nhắn có thể đã được xóa. Thao tác đã dừng để tránh "
                         "xóa lặp. Hãy kiểm tra kênh trước khi mở yêu cầu mới."
                     ),
                 )
@@ -188,7 +194,7 @@ class PruneCommandCog(commands.Cog):
                     True,
                     (
                         "Discord báo lỗi sau khi purge đã bắt đầu; một số tin nhắn "
-                        "có thể đã được xóa. Bảng đã đóng để tránh xóa lặp. "
+                        "có thể đã được xóa. Thao tác đã dừng để tránh xóa lặp. "
                         "Hãy kiểm tra kênh trước khi mở yêu cầu mới."
                     ),
                 )
@@ -209,6 +215,14 @@ class PruneCommandCog(commands.Cog):
                 )
             return ActionResult(True, message)
 
+        if initial_count is not None:
+            await run_prefix_action(
+                ctx,
+                submit_purge,
+                PurgeRequest(channel.id, initial_count, target_id),
+            )
+            return
+
         view = ConfigurableModerationView(
             spec=PURGE_USER_SPEC if target is not None else PURGE_SPEC,
             author_id=ctx.author.id,
@@ -221,11 +235,6 @@ class PruneCommandCog(commands.Cog):
             submitter=submit_purge,
             request_builder=build_request,
             live_permission_check=live_permission_check,
-            initial_answers=(
-                {"count": FormAnswer(initial_count, f"{initial_count:,}")}
-                if initial_count is not None
-                else None
-            ),
         )
         view.message = await ctx.reply(
             embed=view.build_embed(),
@@ -236,7 +245,7 @@ class PruneCommandCog(commands.Cog):
 
     @commands.command(
         name="purge",
-        help="Mở biểu mẫu và xác nhận xóa tin nhắn gần nhất.",
+        help="Xóa ngay khi có số lượng; bỏ trống để mở bảng xác nhận.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -251,7 +260,7 @@ class PruneCommandCog(commands.Cog):
         ctx: commands.Context,
         number: int | None = None,
     ) -> None:
-        await self._open_purge_view(
+        await self._handle_purge(
             ctx,
             target=None,
             initial_count=number,
@@ -259,7 +268,7 @@ class PruneCommandCog(commands.Cog):
 
     @commands.command(
         name="purge_user",
-        help="Mở bảng xóa tin của member được mention hoặc reply.",
+        help="Xóa ngay khi có member và số lượng; thiếu số lượng để mở bảng.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -305,7 +314,7 @@ class PruneCommandCog(commands.Cog):
             )
             return
 
-        await self._open_purge_view(
+        await self._handle_purge(
             ctx,
             target=user,
             initial_count=number,
@@ -338,7 +347,7 @@ class PruneCommandCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng purge lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử purge lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return

@@ -436,6 +436,62 @@ class TestRoleChangeWorkflow(unittest.IsolatedAsyncioTestCase):
 
 
 class TestRoleCommands(unittest.IsolatedAsyncioTestCase):
+    async def test_explicit_role_name_assigns_without_a_view(self) -> None:
+        guild, moderator, _, target, eligible, _, _ = make_fixture()
+        eligible.name = "Community Member"
+        cog = RollCog(SimpleNamespace())
+        ctx = make_context(guild, moderator)
+
+        await cog.give_role.callback(
+            cog, ctx, target, role_name="community member",
+        )
+
+        target.add_roles.assert_awaited_once()
+        self.assertIs(target.add_roles.await_args.args[0], eligible)
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+        assert_mentions_disabled(self, ctx.reply.await_args.kwargs["allowed_mentions"])
+
+    async def test_explicit_role_mention_removes_without_a_view(self) -> None:
+        guild, moderator, _, target, eligible, _, _ = make_fixture()
+        target.roles.append(eligible)
+        cog = RollCog(SimpleNamespace())
+        ctx = make_context(guild, moderator)
+
+        await cog.remove_role.callback(
+            cog, ctx, target, role_name=eligible.mention,
+        )
+
+        target.remove_roles.assert_awaited_once()
+        self.assertIs(target.remove_roles.await_args.args[0], eligible)
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+
+    async def test_unknown_or_unmanageable_direct_role_does_not_mutate(self) -> None:
+        for role_name in ("missing role", "@everyone"):
+            with self.subTest(role_name=role_name):
+                guild, moderator, _, target, _, _, _ = make_fixture()
+                cog = RollCog(SimpleNamespace())
+                ctx = make_context(guild, moderator)
+
+                await cog.give_role.callback(cog, ctx, target, role_name=role_name)
+
+                target.add_roles.assert_not_awaited()
+                self.assertNotIn("view", ctx.reply.await_args.kwargs)
+
+    async def test_explicit_role_id_or_mention_takes_precedence_over_role_names(self) -> None:
+        for use_mention in (False, True):
+            with self.subTest(use_mention=use_mention):
+                guild, moderator, _, target, eligible, _, _ = make_fixture()
+                value = eligible.mention if use_mention else str(eligible.id)
+                decoy = FakeRole(guild, 204, 5, name=value)
+                guild.roles.insert(0, decoy)
+                cog = RollCog(SimpleNamespace())
+                ctx = make_context(guild, moderator)
+
+                await cog.give_role.callback(cog, ctx, target, role_name=value)
+
+                target.add_roles.assert_awaited_once()
+                self.assertIs(target.add_roles.await_args.args[0], eligible)
+
     async def test_direct_and_reply_commands_open_views_without_mutation(self) -> None:
         guild, moderator, _, target, _, _, _ = make_fixture()
         cog = RollCog(SimpleNamespace())
@@ -482,16 +538,34 @@ class TestRoleCommands(unittest.IsolatedAsyncioTestCase):
 
 
 class TestRoleCopyWorkflow(unittest.IsolatedAsyncioTestCase):
-    async def test_direct_confirmation_attributes_source_and_lists_frozen_roles(self) -> None:
+    async def test_complete_direct_command_copies_without_a_view(self) -> None:
         guild, moderator, source, target, eligible, second, _ = make_fixture()
         cog = RollCog(SimpleNamespace())
         ctx = make_context(guild, moderator)
 
         await cog.copy_roles.callback(cog, ctx, source, target)
 
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+        self.assertEqual(
+            [call.args[0].id for call in target.add_roles.await_args_list],
+            [eligible.id, second.id, source.top_role.id],
+        )
+        self.assertIn("Role đã sao chép", ctx.reply.await_args.args[0])
+
+    async def test_reply_confirmation_attributes_source_and_lists_frozen_roles(self) -> None:
+        guild, moderator, source, target, eligible, second, _ = make_fixture()
+        cog = RollCog(SimpleNamespace())
+        ctx = make_context(guild, moderator)
+
+        ctx.message.reference = make_reply_reference(ctx, target)
+        await cog.copy_roles.callback(cog, ctx)
+
         reply_kwargs = ctx.reply.await_args.kwargs
         view = reply_kwargs["view"]
         interaction = make_interaction(guild, moderator)
+        await view.accept_answer(
+            interaction, "source_id", FormAnswer(source.id, str(source)),
+        )
         await view.accept_reason(interaction, "Approved copy")
         self.assertEqual(view.step, "confirm")
         confirmation_kwargs = interaction.response.edit_message.await_args.kwargs
@@ -510,14 +584,19 @@ class TestRoleCopyWorkflow(unittest.IsolatedAsyncioTestCase):
             confirmation_kwargs["allowed_mentions"],
         )
 
-    async def test_direct_command_freezes_preview_and_waits_for_yes(self) -> None:
+    async def test_reply_command_freezes_preview_and_waits_for_yes(self) -> None:
         guild, moderator, source, target, eligible, second, _ = make_fixture()
         cog = RollCog(SimpleNamespace())
         ctx = make_context(guild, moderator)
 
-        await cog.copy_roles.callback(cog, ctx, source, target)
+        ctx.message.reference = make_reply_reference(ctx, target)
+        await cog.copy_roles.callback(cog, ctx)
 
         view = ctx.reply.await_args.kwargs["view"]
+        interaction = make_interaction(guild, moderator)
+        await view.accept_answer(
+            interaction, "source_id", FormAnswer(source.id, str(source)),
+        )
         self.assertIsInstance(view, RoleCopyWorkflowView)
         self.assertEqual(view.step, "reason")
         self.assertEqual(
@@ -587,8 +666,13 @@ class TestRoleCopyWorkflow(unittest.IsolatedAsyncioTestCase):
         guild, moderator, source, target, eligible, second, _ = make_fixture()
         cog = RollCog(SimpleNamespace())
         ctx = make_context(guild, moderator)
-        await cog.copy_roles.callback(cog, ctx, source, target)
+        ctx.message.reference = make_reply_reference(ctx, target)
+        await cog.copy_roles.callback(cog, ctx)
         view = ctx.reply.await_args.kwargs["view"]
+        interaction = make_interaction(guild, moderator)
+        await view.accept_answer(
+            interaction, "source_id", FormAnswer(source.id, str(source)),
+        )
 
         source.roles.remove(eligible)
         second.position = guild.me.top_role.position

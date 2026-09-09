@@ -11,10 +11,12 @@ from cogs.mod._interaction_ui import (
     FormAnswer,
     ModalField,
     ModalInput,
+    PrefixModerationContext,
     ReasonConfig,
     ReasonPreset,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
     safe_ui_text,
 )
 from cogs.mod._reply_target import (
@@ -162,7 +164,7 @@ class NicknameCog(commands.Cog):
 
     async def _submit_nickname(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: NicknameRequest,
     ) -> ActionResult:
         guild = interaction.guild
@@ -230,7 +232,7 @@ class NicknameCog(commands.Cog):
 
     @commands.command(
         name="nickchange",
-        help="Mở bảng đổi biệt danh cho member được mention hoặc reply.",
+        help="Đổi biệt danh khi nhập đủ member và tên; thiếu tên để mở bảng.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -300,6 +302,17 @@ class NicknameCog(commands.Cog):
                 )
                 return
 
+            await run_prefix_action(
+                ctx,
+                self._submit_nickname,
+                NicknameRequest(
+                    member.id,
+                    str(initial_answers["nickname"].value),
+                    clean_case_reason(None),
+                ),
+            )
+            return
+
         def request_builder(values, reason: str | None) -> NicknameRequest:
             answer = values["nickname"]
             return NicknameRequest(
@@ -366,7 +379,7 @@ class NicknameCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng đổi biệt danh lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử đổi biệt danh lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return

@@ -101,11 +101,11 @@ class TestHelpTopicData(unittest.TestCase):
             rendered_topics["moderation"],
         )
         self.assertIn(
-            "`!tf roleroll [@user] [lý do] · reply + roleroll`",
+            "`!tf roleroll [@user] [tên role] · reply + roleroll`",
             rendered_topics["moderation"],
         )
         self.assertIn(
-            "`!tf roleunroll [@user] [lý do] · reply + roleunroll`",
+            "`!tf roleunroll [@user] [tên role] · reply + roleunroll`",
             rendered_topics["moderation"],
         )
         self.assertIn(

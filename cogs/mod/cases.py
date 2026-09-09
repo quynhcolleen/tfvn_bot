@@ -16,8 +16,10 @@ from cogs.mod._interaction_ui import (
     FormAnswer,
     ModalField,
     ModalInput,
+    PrefixModerationContext,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 
 
@@ -342,6 +344,9 @@ class ModerationCasesCog(commands.Cog):
         *,
         reason: str | None = None,
     ) -> None:
+        if case_number < 1:
+            await ctx.send("Số case phải lớn hơn 0.")
+            return
         existing = self.cases.find_one(
             {"guild_id": ctx.guild.id, "case_number": case_number}
         )
@@ -361,7 +366,7 @@ class ModerationCasesCog(commands.Cog):
             )
 
         async def submit_edit(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: CaseEditRequest,
         ) -> ActionResult:
             denial = _case_permission_denial(interaction.user)
@@ -430,6 +435,15 @@ class ModerationCasesCog(commands.Cog):
                 f"Đã cập nhật lý do cho case #{request.case_number}.",
             )
 
+        if reason is not None:
+            answer = _parse_case_reason(reason)
+            await run_prefix_action(
+                ctx,
+                submit_edit,
+                build_request({"new_reason": answer}, None),
+            )
+            return
+
         view = ConfigurableModerationView(
             spec=CASE_EDIT_SPEC,
             author_id=ctx.author.id,
@@ -439,16 +453,6 @@ class ModerationCasesCog(commands.Cog):
             request_builder=build_request,
             live_permission_check=lambda _guild, moderator: _case_permission_denial(
                 moderator
-            ),
-            initial_answers=(
-                {
-                    "new_reason": FormAnswer(
-                        clean_case_reason(reason),
-                        clean_case_reason(reason),
-                    )
-                }
-                if reason is not None
-                else None
             ),
         )
         view.message = await ctx.reply(
@@ -472,6 +476,9 @@ class ModerationCasesCog(commands.Cog):
         case_number: int,
         status: str | None = None,
     ) -> None:
+        if case_number < 1:
+            await ctx.send("Số case phải lớn hơn 0.")
+            return
         existing = self.cases.find_one(
             {"guild_id": ctx.guild.id, "case_number": case_number}
         )
@@ -498,7 +505,7 @@ class ModerationCasesCog(commands.Cog):
             )
 
         async def submit_status(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: CaseStatusRequest,
         ) -> ActionResult:
             denial = _case_permission_denial(interaction.user)
@@ -570,6 +577,17 @@ class ModerationCasesCog(commands.Cog):
                 ),
             )
 
+        if initial_status is not None:
+            await run_prefix_action(
+                ctx,
+                submit_status,
+                build_request(
+                    {"status": FormAnswer(initial_status, initial_status.title())},
+                    None,
+                ),
+            )
+            return
+
         view = ConfigurableModerationView(
             spec=CASE_STATUS_SPEC,
             author_id=ctx.author.id,
@@ -579,11 +597,6 @@ class ModerationCasesCog(commands.Cog):
             request_builder=build_request,
             live_permission_check=lambda _guild, moderator: _case_permission_denial(
                 moderator
-            ),
-            initial_answers=(
-                {"status": FormAnswer(initial_status, initial_status.title())}
-                if initial_status is not None
-                else None
             ),
         )
         view.message = await ctx.reply(
@@ -614,7 +627,7 @@ class ModerationCasesCog(commands.Cog):
             return CaseLogChannelRequest(channel_id=int(answers["channel_id"].value))
 
         async def submit_log_channel(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: CaseLogChannelRequest,
         ) -> ActionResult:
             denial = _case_permission_denial(interaction.user, manage_guild=True)
@@ -654,6 +667,14 @@ class ModerationCasesCog(commands.Cog):
                 True,
                 f"Moderation cases sẽ được ghi vào #{target.name} (`{target.id}`).",
             )
+
+        if channel is not None:
+            await run_prefix_action(
+                ctx,
+                submit_log_channel,
+                CaseLogChannelRequest(channel_id=channel.id),
+            )
+            return
 
         view = ConfigurableModerationView(
             spec=CASE_LOG_CHANNEL_SPEC,

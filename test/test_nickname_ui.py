@@ -160,7 +160,7 @@ class TestNicknameValidation(unittest.TestCase):
 
 
 class TestNicknameWorkflow(unittest.IsolatedAsyncioTestCase):
-    async def test_direct_syntax_prefills_but_does_not_edit(self) -> None:
+    async def test_complete_direct_syntax_edits_without_a_view(self) -> None:
         guild, moderator, target = make_fixture()
         cog = NicknameCog(SimpleNamespace())
         ctx = make_context(guild, moderator)
@@ -172,12 +172,23 @@ class TestNicknameWorkflow(unittest.IsolatedAsyncioTestCase):
             new_nickname="  New Name  ",
         )
 
-        view = ctx.reply.await_args.kwargs["view"]
-        self.assertIsInstance(view, ConfigurableModerationView)
-        self.assertEqual(view.values["nickname"].value, "New Name")
-        self.assertEqual(view.step, "field:nickname")
-        target.edit.assert_not_awaited()
-        view.stop()
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+        target.edit.assert_awaited_once()
+        self.assertEqual(target.edit.await_args.kwargs["nick"], "New Name")
+
+    async def test_invalid_direct_nickname_does_not_edit(self) -> None:
+        for nickname in ("   ", "x" * (MAX_NICKNAME_LENGTH + 1)):
+            with self.subTest(nickname=nickname):
+                guild, moderator, target = make_fixture()
+                cog = NicknameCog(SimpleNamespace())
+                ctx = make_context(guild, moderator)
+
+                await cog.change_nickname.callback(
+                    cog, ctx, target, new_nickname=nickname,
+                )
+
+                self.assertNotIn("view", ctx.reply.await_args.kwargs)
+                target.edit.assert_not_awaited()
 
     async def test_reply_without_arguments_targets_replied_member(self) -> None:
         guild, moderator, target = make_fixture()

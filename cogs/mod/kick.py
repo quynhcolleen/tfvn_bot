@@ -15,8 +15,10 @@ from cogs.mod._interaction_ui import (
     COMMON_REASON_CONFIG,
     ActionResult,
     ConfigurableModerationView,
+    PrefixModerationContext,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 from cogs.mod._reply_target import (
     ReplyTargetError,
@@ -85,7 +87,7 @@ class KickCog(commands.Cog):
 
     async def _submit_kick(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: KickRequest,
     ) -> ActionResult:
         guild = interaction.guild
@@ -141,7 +143,7 @@ class KickCog(commands.Cog):
 
     @commands.command(
         name="kick",
-        help="Mở bảng kick cho member được mention hoặc tác giả tin nhắn reply.",
+        help="Kick member trực tiếp; reply không kèm đối số để mở bảng kick.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -175,6 +177,14 @@ class KickCog(commands.Cog):
             await ctx.reply(
                 f"Hãy mention member hoặc reply tin nhắn bằng `{ctx.clean_prefix}kick`.",
                 mention_author=False,
+            )
+            return
+
+        if ctx.message.reference is None:
+            await run_prefix_action(
+                ctx,
+                self._submit_kick,
+                KickRequest(member.id, clean_case_reason(reason)),
             )
             return
 
@@ -223,7 +233,7 @@ class KickCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng kick lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử kick lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return

@@ -16,6 +16,7 @@ from cogs.mod._case_helpers import (
     format_audit_reason,
     record_case,
 )
+from cogs.mod._interaction_ui import PrefixModerationContext, run_prefix_action
 
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ class BanCog(commands.Cog):
 
     async def _submit_ban(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: BanRequest,
         *,
         fallback_target: discord.abc.User | None = None,
@@ -205,7 +206,7 @@ class BanCog(commands.Cog):
 
     @commands.command(
         name="ban",
-        help="Mở bảng ban cho thành viên được mention hoặc tác giả tin nhắn reply.",
+        help="Ban member được mention; reply không đối số để mở bảng tùy chọn.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -265,7 +266,7 @@ class BanCog(commands.Cog):
             return
 
         async def submit_ban(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: BanRequest,
         ) -> BanActionResult:
             return await self._submit_ban(
@@ -273,6 +274,14 @@ class BanCog(commands.Cog):
                 request,
                 fallback_target=member,
             )
+
+        if reference is None:
+            await run_prefix_action(
+                ctx,
+                submit_ban,
+                BanRequest(member.id, 24, clean_case_reason(reason)),
+            )
+            return
 
         view = BanWorkflowView(
             author_id=ctx.author.id,

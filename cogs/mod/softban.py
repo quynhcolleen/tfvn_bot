@@ -15,10 +15,12 @@ from cogs.mod._interaction_ui import (
     COMMON_REASON_CONFIG,
     ActionResult,
     ConfigurableModerationView,
+    PrefixModerationContext,
     ReasonConfig,
     ReasonPreset,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 from cogs.mod._member_state import ACTIVE_ROLE_MUTATION_TARGETS
 from cogs.mod._reply_target import ReplyTargetError, resolve_same_channel_reply_member
@@ -324,7 +326,7 @@ class SoftbanCog(commands.Cog):
 
     async def _submit_softban(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: SoftbanRequest,
     ) -> ActionResult:
         guild = interaction.guild
@@ -416,7 +418,11 @@ class SoftbanCog(commands.Cog):
             allowed_mentions=discord.AllowedMentions.none(),
         )
 
-    @commands.command(name="softban", help="Mở bảng nhốt member.", cooldown_after_parsing=True)
+    @commands.command(
+        name="softban",
+        help="Nhốt member trực tiếp; reply không kèm đối số để mở bảng.",
+        cooldown_after_parsing=True,
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     @commands.cooldown(1, SOFTBAN_COMMAND_COOLDOWN_SECONDS, commands.BucketType.member)
@@ -429,9 +435,20 @@ class SoftbanCog(commands.Cog):
     ) -> None:
         member = await self._resolve_target(ctx, member, reason, command_name="softban")
         if member is not None:
+            if ctx.message.reference is None:
+                await run_prefix_action(
+                    ctx,
+                    self._submit_softban,
+                    SoftbanRequest(member.id, False, clean_case_reason(reason)),
+                )
+                return
             await self._open_workflow(ctx, member, reason, remove=False)
 
-    @commands.command(name="unsoftban", help="Mở bảng khôi phục role.", cooldown_after_parsing=True)
+    @commands.command(
+        name="unsoftban",
+        help="Khôi phục role trực tiếp; reply không kèm đối số để mở bảng.",
+        cooldown_after_parsing=True,
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     @commands.cooldown(1, SOFTBAN_COMMAND_COOLDOWN_SECONDS, commands.BucketType.member)
@@ -444,6 +461,19 @@ class SoftbanCog(commands.Cog):
     ) -> None:
         member = await self._resolve_target(ctx, member, reason, command_name="unsoftban")
         if member is not None:
+            if ctx.message.reference is None:
+                await run_prefix_action(
+                    ctx,
+                    self._submit_softban,
+                    SoftbanRequest(
+                        member.id,
+                        True,
+                        clean_case_reason(
+                            "Moderator removed softban" if reason is None else reason
+                        ),
+                    ),
+                )
+                return
             await self._open_workflow(ctx, member, reason, remove=True)
 
     @softban_member.error
@@ -457,7 +487,7 @@ class SoftbanCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử lệnh lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return

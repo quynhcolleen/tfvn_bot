@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Iterable, Mapping
 
 import discord
+from discord.ext import commands
 
 from cogs.mod._case_helpers import clean_case_reason
 
@@ -25,6 +26,28 @@ class ActionResult:
     completed: bool
     message: str
     private_message: str | None = None
+
+
+@dataclass(frozen=True)
+class PrefixModerationContext:
+    """Actor information shared with moderation handlers by prefix commands."""
+
+    guild: discord.Guild
+    user: discord.Member
+
+
+async def run_prefix_action(
+    ctx: commands.Context,
+    submitter: Callable[..., Awaitable[Any]],
+    request: Any,
+) -> None:
+    """Run a complete legacy request through the same guarded action as the UI."""
+    result = await submitter(PrefixModerationContext(ctx.guild, ctx.author), request)
+    await ctx.reply(
+        result.message,
+        mention_author=False,
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
 
 
 @dataclass(frozen=True)

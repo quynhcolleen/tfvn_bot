@@ -992,33 +992,32 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "kick",
-                        "Mention/reply; chọn lý do rồi xác nhận — cần Kick Members.",
+                        "Mention kick ngay; reply mở bảng — Kick Members.",
                         "kick [@user] [lý do] · reply + kick",
                     ),
                     _entry(
                         "ban",
                         (
-                            "Mention/reply tin; chọn giờ xóa, lý do "
-                            "và xác nhận — cần Ban Members."
+                            "Mention ban ngay, xóa tin 24 giờ; reply mở tùy chọn — Ban Members."
                         ),
                         "ban @user [lý do] · reply + ban",
                     ),
                     _entry(
                         "unban",
                         (
-                            "ID/reply tin cũ; chọn mời lại, lý do, xác nhận — cần "
-                            "Ban Members; mời lại cần Create Invite."
+                            "ID unban ngay; reply mở tùy chọn — Ban Members; "
+                            "mời lại cần Create Invite."
                         ),
                         "unban <user_id|@user> [lý do] · reply + unban",
                     ),
                     _entry(
                         "softban",
-                        "Mention/reply; chọn lý do, xác nhận Tù ngay — Ban Members.",
+                        "Mention gán Tù ngay; reply mở bảng — Ban Members.",
                         "softban [@user] [lý do] · reply + softban",
                     ),
                     _entry(
                         "unsoftban",
-                        "Mention/reply; xác nhận khôi phục role — Ban Members.",
+                        "Mention khôi phục role ngay; reply mở bảng — Ban Members.",
                         "unsoftban [@user] [lý do] · reply + unsoftban",
                     ),
                 ),
@@ -1028,27 +1027,27 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "mute",
-                        "Mention/reply; chọn lý do và xác nhận Muted — Manage Roles.",
+                        "Mention mute ngay; reply mở bảng — Manage Roles.",
                         "mute [@user] [lý do] · reply + mute",
                     ),
                     _entry(
                         "unmute",
-                        "Mention/reply; chọn lý do và xác nhận gỡ Muted — Manage Roles.",
+                        "Mention unmute ngay; reply mở bảng — Manage Roles.",
                         "unmute [@user] [lý do] · reply + unmute",
                     ),
                     _entry(
                         "timeout",
-                        "Mention/reply; nhập 1–40.320 phút, lý do, xác nhận — Moderate Members.",
+                        "Member + 1–40.320 phút timeout ngay; thiếu phút mở bảng — Moderate Members.",
                         "timeout [@user] [phút] [lý do] · reply + timeout",
                     ),
                     _entry(
                         "untimeout",
-                        "Mention/reply; chọn lý do và xác nhận gỡ — Moderate Members.",
+                        "Mention gỡ timeout ngay; reply mở bảng — Moderate Members.",
                         "untimeout [@user] [lý do] · reply + untimeout",
                     ),
                     _entry(
                         "warn",
-                        "Mention/reply; chọn lý do, xác nhận lưu warning/case — Manage Messages.",
+                        "Mention lưu warning ngay; reply mở bảng — Manage Messages.",
                         "warn [@user] [lý do] · reply + warn",
                     ),
                     _entry(
@@ -1058,8 +1057,8 @@ HELP_TOPICS = (
                     ),
                 ),
                 note=(
-                    "Reply mode không nhận đối số; form luôn hỏi lại quyền, hierarchy "
-                    "và Yes/No ngay trước thao tác."
+                    "Đủ đối số chạy ngay; reply không đối số mở bảng xác nhận. "
+                    "Luôn kiểm tra quyền và thứ bậc role."
                 ),
             ),
             HelpSection(
@@ -1067,24 +1066,24 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "nickchange",
-                        "Mention/reply; nhập nickname, lý do và xác nhận — Manage Nicknames.",
+                        "Member + tên đổi ngay; thiếu tên mở bảng — Manage Nicknames.",
                         "nickchange [@user] [nickname] · reply + nickchange",
                     ),
                     _entry(
                         "roleroll",
-                        "Mention/reply; chọn role, lý do rồi xác nhận gán — Manage Roles.",
-                        "roleroll [@user] [lý do] · reply + roleroll",
+                        "Member + role gán ngay; thiếu role mở bảng — Manage Roles.",
+                        "roleroll [@user] [tên role] · reply + roleroll",
                     ),
                     _entry(
                         "roleunroll",
-                        "Mention/reply; chọn role, lý do rồi xác nhận gỡ — Manage Roles.",
-                        "roleunroll [@user] [lý do] · reply + roleunroll",
+                        "Member + role gỡ ngay; thiếu role mở bảng — Manage Roles.",
+                        "roleunroll [@user] [tên role] · reply + roleunroll",
                     ),
                     _entry(
                         "rolecopy",
                         (
-                            "Hai mention, hoặc reply đích rồi chọn nguồn; preview và "
-                            "xác nhận bảng role; kết quả liệt kê role đã copy — Manage Roles."
+                            "Hai member copy ngay; reply đích mở bảng; "
+                            "kết quả liệt kê role đã copy — Manage Roles."
                         ),
                         "rolecopy [@source] [@target] [lý do] · reply + rolecopy",
                     ),
@@ -1105,17 +1104,17 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "purge",
-                        "Form 1–1.000 tin rồi xác nhận — cần Manage Messages.",
+                        "Có số lượng xóa 1–1.000 tin ngay; bỏ trống mở bảng — Manage Messages.",
                         "purge [số lượng]",
                     ),
                     _entry(
                         "purge_user",
-                        "Mention/reply, nhập số tin rồi xác nhận — Manage Messages.",
+                        "Member + số tin xóa ngay; thiếu số tin mở bảng — Manage Messages.",
                         "purge_user [@user] [số lượng] · reply + purge_user",
                     ),
                     _entry(
                         "clean_before",
-                        "Form 1–3.650 ngày rồi xác nhận dọn — Manage Messages.",
+                        "Có số ngày dọn ngay (1–3.650); bỏ trống mở bảng — Manage Messages.",
                         "clean_before [số ngày]",
                     ),
                     _entry(
@@ -1129,12 +1128,12 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "slowmode immune",
-                        "Mention/reply; lý do + xác nhận cấp bypass — Manage Roles.",
+                        "Mention để cấp bypass ngay; reply mở bảng — Manage Roles.",
                         "slowmode immune [@user] [lý do]",
                     ),
                     _entry(
                         "slowmode prominent",
-                        "Mention/reply; lý do + xác nhận gỡ bypass — Manage Roles.",
+                        "Mention để gỡ bypass ngay; reply mở bảng — Manage Roles.",
                         "slowmode prominent [@user] [lý do]",
                     ),
                 ),
@@ -1155,17 +1154,17 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "case edit",
-                        "Form + xác nhận sửa lý do; chặn ghi đè stale — Manage Messages.",
+                        "Có lý do sửa ngay; bỏ trống mở bảng; chặn ghi đè cũ — Manage Messages.",
                         "case edit <số> [lý do]",
                     ),
                     _entry(
                         "case status",
-                        "Chọn trạng thái và xác nhận; chặn ghi đè stale — Manage Messages.",
+                        "Có trạng thái đổi ngay; bỏ trống mở bảng — Manage Messages.",
                         "case status <số> [open|resolved|appealed|void]",
                     ),
                     _entry(
                         "case log_channel",
-                        "Chọn text channel và xác nhận đổi log — cần Manage Server.",
+                        "Có text channel đổi log ngay; bỏ trống mở bảng — Manage Server.",
                         "case log_channel [#channel]",
                     ),
                 ),

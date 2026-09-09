@@ -385,26 +385,39 @@ class TestUnbanCommandDispatch(unittest.IsolatedAsyncioTestCase):
 
         self.assertIs(selected, rules_channel)
 
-    async def test_explicit_id_opens_ui_for_ban_entry_user(self) -> None:
+    async def test_explicit_id_unbans_without_ui_or_reinvite(self) -> None:
         guild, moderator, target, channel = make_fixture()
         ctx = make_context(guild, moderator, channel)
         cog = UnbanCog(SimpleNamespace())
 
-        await cog.unban_user.callback(
-            cog,
-            ctx,
-            str(target.id),
-            reason="  appeal   accepted  ",
-        )
+        with patch("cogs.mod.unban.record_case", new=AsyncMock(return_value=8)):
+            await cog.unban_user.callback(
+                cog,
+                ctx,
+                str(target.id),
+                reason="  appeal   accepted  ",
+            )
 
         lookup = guild.fetch_ban.await_args.args[0]
         self.assertEqual(lookup.id, target.id)
-        view = ctx.reply.await_args.kwargs["view"]
-        self.assertIsInstance(view, UnbanWorkflowView)
-        self.assertEqual(view.target_id, target.id)
-        self.assertEqual(view.initial_reason, "appeal accepted")
-        self.assertIs(view.message, ctx.reply.return_value)
-        view.stop()
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+        guild.unban.assert_awaited_once_with(
+            target, reason="appeal accepted (Requested by moderator)",
+        )
+        channel.create_invite.assert_not_awaited()
+        target.send.assert_not_awaited()
+        self.assertIn("Case #8", ctx.reply.await_args.args[0])
+
+    async def test_invalid_direct_id_does_not_fetch_or_unban(self) -> None:
+        guild, moderator, _, channel = make_fixture()
+        ctx = make_context(guild, moderator, channel)
+        cog = UnbanCog(SimpleNamespace())
+
+        await cog.unban_user.callback(cog, ctx, "invalid")
+
+        guild.fetch_ban.assert_not_awaited()
+        guild.unban.assert_not_awaited()
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
 
     async def test_reply_author_opens_ui(self) -> None:
         guild, moderator, target, channel = make_fixture()

@@ -75,6 +75,7 @@ tfvn_bot/
 │   ├── test_extension_loading.py   Selected extensions and safe startup-failure diagnostics
 │   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
+│   ├── test_legacy_case_slowmode.py Direct case updates and slowmode override regression tests
 │   ├── test_highlight.py           Highlight listener, spacing, media download, and posting tests
 │   ├── test_highlight_card.py      Discord-chat highlight PNG, embed, and gallery tests
 │   ├── test_highlight_font.py      Highlight meter symbols and composite emoji rendering tests
@@ -175,7 +176,7 @@ tfvn_bot/
     │                                     Persistent letter-scramble game
     ├── mod/
     │   ├── _case_helpers.py         Safe shared case recording and validation
-    │   ├── _interaction_ui.py       Shared forms, reason choices, and confirmation guard
+    │   ├── _interaction_ui.py       Shared forms, confirmation guard, and legacy action dispatch
     │   ├── _reply_target.py         Strict same-channel reply-member resolution
     │   ├── _cleanup_state.py        Cross-cog channel-cleanup execution lock
     │   ├── _member_state.py         Cross-cog member-role mutation guard
@@ -186,8 +187,8 @@ tfvn_bot/
     │   ├── kick.py                  Reply-aware guarded member removal
     │   ├── mute.py, timeout.py      Guarded temporary restriction controls
     │   ├── softban.py               Guarded soft-ban and role restoration data
-    │   ├── purge.py, janitor.py     Confirmed, invocation-anchored message cleanup
-    │   ├── nickname.py, role.py     Confirmed nickname and role workflows
+    │   ├── purge.py, janitor.py     Direct/form-based, invocation-anchored message cleanup
+    │   ├── nickname.py, role.py     Direct argument and confirmed nickname/role workflows
     │   ├── slowmode.py              Slow-mode inspection and guarded overrides
     │   ├── unban.py                     Reply/user-ID unban and reinvite orchestration
     │   ├── warn.py                      Warning commands

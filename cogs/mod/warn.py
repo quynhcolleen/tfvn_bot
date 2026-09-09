@@ -10,8 +10,10 @@ from cogs.mod._interaction_ui import (
     COMMON_REASON_CONFIG,
     ActionResult,
     ConfigurableModerationView,
+    PrefixModerationContext,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 from cogs.mod._reply_target import ReplyTargetError, resolve_same_channel_reply_member
 
@@ -74,7 +76,7 @@ class WarnCommandCog(commands.Cog):
 
     async def _submit_warn(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: WarnRequest,
     ) -> ActionResult:
         guild = interaction.guild
@@ -128,7 +130,7 @@ class WarnCommandCog(commands.Cog):
 
     @commands.command(
         name="warn",
-        help="Mở bảng cảnh cáo member được mention hoặc tác giả tin nhắn reply.",
+        help="Cảnh cáo member trực tiếp; reply không kèm đối số để mở bảng.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -157,6 +159,14 @@ class WarnCommandCog(commands.Cog):
             await ctx.reply(
                 f"Hãy mention member hoặc reply tin nhắn bằng `{ctx.clean_prefix}warn`.",
                 mention_author=False,
+            )
+            return
+
+        if ctx.message.reference is None:
+            await run_prefix_action(
+                ctx,
+                self._submit_warn,
+                WarnRequest(user.id, clean_case_reason(reason)),
             )
             return
 
@@ -198,7 +208,7 @@ class WarnCommandCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng warn lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử warn lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return

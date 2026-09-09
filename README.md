@@ -273,6 +273,13 @@ This table is only an overview. The in-Discord dropdown and [FUNCTIONS.md](FUNCT
 provide the complete user-facing catalog; each module under `cogs/` remains the
 implementation source of truth.
 
+Moderation commands retain their direct argument forms alongside the UI:
+`!tf purge 5` immediately deletes the five latest messages before the command,
+while `!tf purge` opens the count form and confirmation. Other complete commands,
+such as `!tf timeout @member 10` and `!tf nickchange @member New Name`, also run
+directly. Omitting a required value or using an argument-free member reply keeps
+the guided workflow. Both modes apply the same permission and validation checks.
+
 ## Community systems
 
 ### Bedtime reminders

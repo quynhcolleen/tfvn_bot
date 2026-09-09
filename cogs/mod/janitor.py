@@ -9,10 +9,11 @@ from cogs.mod._cleanup_state import ACTIVE_CLEANUP_CHANNEL_IDS
 from cogs.mod._interaction_ui import (
     ActionResult,
     ConfigurableModerationView,
-    FormAnswer,
     IntegerField,
+    PrefixModerationContext,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 
 
@@ -72,7 +73,7 @@ class JanitorCog(commands.Cog):
 
     @commands.command(
         name="clean_before",
-        help="Mở biểu mẫu và xác nhận xóa tin cũ hơn số ngày đã chọn.",
+        help="Dọn ngay khi có số ngày; bỏ trống để mở bảng xác nhận.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -116,9 +117,14 @@ class JanitorCog(commands.Cog):
             )
 
         async def submit_cleanup(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: CleanBeforeRequest,
         ) -> ActionResult:
+            if not 1 <= request.days <= MAX_CLEAN_BEFORE_DAYS:
+                return ActionResult(
+                    False,
+                    f"Số ngày phải từ 1 đến {MAX_CLEAN_BEFORE_DAYS:,}.",
+                )
             guild = interaction.guild
             if guild is None:
                 return ActionResult(
@@ -176,6 +182,14 @@ class JanitorCog(commands.Cog):
                 ),
             )
 
+        if days is not None:
+            await run_prefix_action(
+                ctx,
+                submit_cleanup,
+                CleanBeforeRequest(channel.id, days),
+            )
+            return
+
         view = ConfigurableModerationView(
             spec=CLEAN_BEFORE_SPEC,
             author_id=ctx.author.id,
@@ -184,11 +198,6 @@ class JanitorCog(commands.Cog):
             submitter=submit_cleanup,
             request_builder=build_request,
             live_permission_check=live_permission_check,
-            initial_answers=(
-                {"days": FormAnswer(days, f"{days:,}")}
-                if days is not None
-                else None
-            ),
         )
         view.message = await ctx.reply(
             embed=view.build_embed(),
@@ -217,7 +226,7 @@ class JanitorCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng dọn tin lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử dọn tin lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return
