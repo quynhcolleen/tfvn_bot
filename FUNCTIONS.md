@@ -570,6 +570,10 @@ omitted. Reply workflows do not accept extra arguments.
 | `slowmode immune [@member] [reason]` | Manage Roles | Explicit member immediately adds bypass, preserving unrelated overwrites; argument-free reply opens UI |
 | `slowmode prominent [@member] [reason]` | Manage Roles | Explicit member immediately removes only the bypass overwrite; argument-free reply opens UI |
 
+Successful `purge` and `purge_user` actions also delete the command message;
+it does not count toward the requested number. Result notices disappear after
+five seconds in both direct commands and UI confirmations.
+
 ### Cases
 
 | Command | Access | Description |

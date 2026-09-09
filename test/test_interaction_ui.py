@@ -111,6 +111,7 @@ class TestConfigurableModerationView(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(view.completed)
         self.assertTrue(view.is_finished())
         self.assertTrue(all(item.disabled for item in view.children))
+        confirm.edit_original_response.return_value.delete.assert_not_awaited()
 
     async def test_invalid_integer_stays_on_form(self) -> None:
         guild = FakeGuild()

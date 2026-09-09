@@ -26,6 +26,7 @@ class ActionResult:
     completed: bool
     message: str
     private_message: str | None = None
+    delete_after: float | None = None
 
 
 @dataclass(frozen=True)
@@ -40,14 +41,20 @@ async def run_prefix_action(
     ctx: commands.Context,
     submitter: Callable[..., Awaitable[Any]],
     request: Any,
+    *,
+    reply_to_command: bool = True,
 ) -> None:
     """Run a complete legacy request through the same guarded action as the UI."""
     result = await submitter(PrefixModerationContext(ctx.guild, ctx.author), request)
-    await ctx.reply(
+    send = ctx.reply if reply_to_command else ctx.send
+    message = await send(
         result.message,
         mention_author=False,
         allowed_mentions=discord.AllowedMentions.none(),
     )
+    delete_after = getattr(result, "delete_after", None)
+    if delete_after is not None:
+        await message.delete(delay=delete_after)
 
 
 @dataclass(frozen=True)
@@ -1248,8 +1255,9 @@ class ConfigurableModerationView(discord.ui.View):
         self.disable_all()
         try:
             updated = False
+            result_message = None
             try:
-                await interaction.edit_original_response(
+                result_message = await interaction.edit_original_response(
                     content=result.message,
                     embed=None,
                     view=self,
@@ -1263,7 +1271,7 @@ class ConfigurableModerationView(discord.ui.View):
                 )
             if not updated and self.message is not None:
                 try:
-                    await self.message.edit(
+                    result_message = await self.message.edit(
                         content=result.message,
                         embed=None,
                         view=self,
@@ -1274,13 +1282,16 @@ class ConfigurableModerationView(discord.ui.View):
                     logger.exception("Could not update stored moderation UI message")
             if not updated:
                 try:
-                    await interaction.followup.send(
+                    result_message = await interaction.followup.send(
                         result.message,
                         ephemeral=True,
+                        wait=True,
                         allowed_mentions=discord.AllowedMentions.none(),
                     )
                 except discord.HTTPException:
                     logger.exception("Could not deliver moderation UI result")
+            if result_message is not None and result.delete_after is not None:
+                await result_message.delete(delay=result.delete_after)
             if result.private_message is not None:
                 try:
                     await interaction.followup.send(

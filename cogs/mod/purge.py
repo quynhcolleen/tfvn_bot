@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 PURGE_MAX_MESSAGES = 1_000
 PURGE_USER_SCAN_LIMIT = 5_000
 PURGE_COMMAND_COOLDOWN_SECONDS = 5
+PURGE_NOTICE_DELETE_AFTER_SECONDS = 5
 
 
 @dataclass(frozen=True)
@@ -201,6 +202,18 @@ class PruneCommandCog(commands.Cog):
             finally:
                 ACTIVE_CLEANUP_CHANNEL_IDS.discard(current_channel.id)
 
+            try:
+                await anchor.delete()
+            except discord.NotFound:
+                pass
+            except discord.HTTPException:
+                logger.warning(
+                    "Could not delete purge invocation channel=%s message=%s",
+                    current_channel.id,
+                    anchor.id,
+                    exc_info=True,
+                )
+
             if request.target_id is None:
                 message = f"Đã xóa {len(deleted):,} tin nhắn trong kênh."
             else:
@@ -213,13 +226,18 @@ class PruneCommandCog(commands.Cog):
                     f"Đã xóa {len(deleted):,}/{request.count:,} tin nhắn gần nhất "
                     f"của {target_name} (`{request.target_id}`)."
                 )
-            return ActionResult(True, message)
+            return ActionResult(
+                True,
+                message,
+                delete_after=PURGE_NOTICE_DELETE_AFTER_SECONDS,
+            )
 
         if initial_count is not None:
             await run_prefix_action(
                 ctx,
                 submit_purge,
                 PurgeRequest(channel.id, initial_count, target_id),
+                reply_to_command=False,
             )
             return
 

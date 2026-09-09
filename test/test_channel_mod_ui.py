@@ -9,7 +9,12 @@ from discord.ext import commands
 from cogs.mod._interaction_ui import FormAnswer
 from cogs.mod._cleanup_state import ACTIVE_CLEANUP_CHANNEL_IDS
 from cogs.mod.janitor import MAX_CLEAN_BEFORE_DAYS, JanitorCog
-from cogs.mod.purge import PURGE_MAX_MESSAGES, PURGE_USER_SCAN_LIMIT, PruneCommandCog
+from cogs.mod.purge import (
+    PURGE_MAX_MESSAGES,
+    PURGE_NOTICE_DELETE_AFTER_SECONDS,
+    PURGE_USER_SCAN_LIMIT,
+    PruneCommandCog,
+)
 from cogs.mod.slowmode import SlowmodeCog
 
 
@@ -113,14 +118,15 @@ def make_fixture():
         guild._members[member.id] = member
     channel = FakeChannel(guild)
     guild._channels[channel.id] = channel
-    anchor = SimpleNamespace(id=123, reference=None)
+    anchor = SimpleNamespace(id=123, reference=None, delete=AsyncMock())
     ctx = SimpleNamespace(
         guild=guild,
         author=moderator,
         channel=channel,
         message=anchor,
         clean_prefix="!tf ",
-        reply=AsyncMock(return_value=SimpleNamespace(edit=AsyncMock())),
+        reply=AsyncMock(return_value=SimpleNamespace(edit=AsyncMock(), delete=AsyncMock())),
+        send=AsyncMock(return_value=SimpleNamespace(delete=AsyncMock())),
     )
     return guild, moderator, target, channel, anchor, ctx
 
@@ -175,15 +181,19 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
                     anchor.edited_at = None
                     ctx = await bot.get_context(anchor)
                     ctx.reply = fixture_ctx.reply
+                    ctx.send = fixture_ctx.send
                     ctx.command.reset_cooldown(ctx)
 
                     await ctx.command.invoke(ctx)
 
                     if command_text.endswith(" 5"):
                         channel.purge.assert_awaited_once_with(limit=5, before=anchor)
-                        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+                        anchor.delete.assert_awaited_once_with()
+                        ctx.reply.assert_not_awaited()
+                        self.assertNotIn("view", ctx.send.await_args.kwargs)
                     else:
                         channel.purge.assert_not_awaited()
+                        anchor.delete.assert_not_awaited()
                         view = ctx.reply.await_args.kwargs["view"]
                         view.stop()
 
@@ -195,13 +205,20 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
         await cog.prune_messages.callback(cog, ctx)
 
         channel.purge.assert_not_awaited()
+        anchor.delete.assert_not_awaited()
         view = ctx.reply.await_args.kwargs["view"]
+        view.message.delete.assert_not_awaited()
         view.values["count"] = FormAnswer(3, "3")
         view._show_confirm_step()
-        await view.confirm(make_interaction(guild, moderator))
+        interaction = make_interaction(guild, moderator)
+        await view.confirm(interaction)
 
         channel.purge.assert_awaited_once_with(limit=3, before=anchor)
+        anchor.delete.assert_awaited_once_with()
         self.assertTrue(view.completed)
+        interaction.edit_original_response.return_value.delete.assert_awaited_once_with(
+            delay=PURGE_NOTICE_DELETE_AFTER_SECONDS
+        )
 
     async def test_purge_user_caps_deletions_but_scans_history(self) -> None:
         guild, moderator, target, channel, anchor, ctx = make_fixture()
@@ -224,12 +241,44 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
         view.values["count"] = FormAnswer(2, "2")
         view._show_confirm_step()
 
-        await view.confirm(make_interaction(guild, moderator))
+        interaction = make_interaction(guild, moderator)
+        await view.confirm(interaction)
 
         kwargs = channel.purge.await_args.kwargs
         self.assertEqual(kwargs["limit"], PURGE_USER_SCAN_LIMIT)
         self.assertIs(kwargs["before"], anchor)
+        anchor.delete.assert_awaited_once_with()
         self.assertTrue(view.completed)
+        interaction.edit_original_response.return_value.delete.assert_awaited_once_with(
+            delay=PURGE_NOTICE_DELETE_AFTER_SECONDS
+        )
+
+    async def test_success_notice_expires_when_ui_result_uses_fallback(self) -> None:
+        for fallback in ("stored_message", "followup"):
+            with self.subTest(fallback=fallback):
+                guild, moderator, _, _, _, ctx = make_fixture()
+                cog = PruneCommandCog(SimpleNamespace())
+                await cog.prune_messages.callback(cog, ctx)
+                view = ctx.reply.await_args.kwargs["view"]
+                view.values["count"] = FormAnswer(5, "5")
+                view._show_confirm_step()
+                interaction = make_interaction(guild, moderator)
+                interaction.edit_original_response.side_effect = make_http_exception(
+                    forbidden=False
+                )
+                result_message = view.message.edit.return_value
+                if fallback == "followup":
+                    view.message.edit.side_effect = make_http_exception(forbidden=False)
+                    result_message = interaction.followup.send.return_value
+
+                await view.confirm(interaction)
+
+                result_message.delete.assert_awaited_once_with(
+                    delay=PURGE_NOTICE_DELETE_AFTER_SECONDS
+                )
+                self.assertTrue(view.completed)
+                if fallback == "followup":
+                    self.assertTrue(interaction.followup.send.await_args.kwargs["wait"])
 
     async def test_purge_user_uses_stored_id_after_target_leaves(self) -> None:
         guild, moderator, target, channel, anchor, ctx = make_fixture()
@@ -279,6 +328,8 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
 
                 self.assertTrue(view.completed)
                 self.assertTrue(view.is_finished())
+                ctx.message.delete.assert_not_awaited()
+                interaction.edit_original_response.return_value.delete.assert_not_awaited()
                 self.assertIn(
                     "có thể đã được xóa",
                     interaction.edit_original_response.await_args.kwargs[
@@ -296,9 +347,15 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
         await cog.prune_messages.callback(cog, ctx, 5)
 
         channel.purge.assert_awaited_once_with(limit=5, before=anchor)
-        self.assertNotIn("view", ctx.reply.await_args.kwargs)
-        self.assertIn("5 tin nhắn", ctx.reply.await_args.args[0])
-        self.assertFalse(ctx.reply.await_args.kwargs["allowed_mentions"].everyone)
+        anchor.delete.assert_awaited_once_with()
+        ctx.reply.assert_not_awaited()
+        self.assertNotIn("reference", ctx.send.await_args.kwargs)
+        self.assertNotIn("view", ctx.send.await_args.kwargs)
+        self.assertIn("5 tin nhắn", ctx.send.await_args.args[0])
+        self.assertFalse(ctx.send.await_args.kwargs["allowed_mentions"].everyone)
+        ctx.send.return_value.delete.assert_awaited_once_with(
+            delay=PURGE_NOTICE_DELETE_AFTER_SECONDS
+        )
 
     async def test_legacy_purge_user_deletes_only_requested_matching_messages(self) -> None:
         _, moderator, target, channel, anchor, ctx = make_fixture()
@@ -316,8 +373,13 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(channel.purge.await_args.kwargs["limit"], PURGE_USER_SCAN_LIMIT)
         self.assertIs(channel.purge.await_args.kwargs["before"], anchor)
-        self.assertNotIn("view", ctx.reply.await_args.kwargs)
-        self.assertIn("2/2", ctx.reply.await_args.args[0])
+        anchor.delete.assert_awaited_once_with()
+        ctx.reply.assert_not_awaited()
+        self.assertNotIn("view", ctx.send.await_args.kwargs)
+        self.assertIn("2/2", ctx.send.await_args.args[0])
+        ctx.send.return_value.delete.assert_awaited_once_with(
+            delay=PURGE_NOTICE_DELETE_AFTER_SECONDS
+        )
 
     async def test_legacy_purge_rejects_out_of_range_counts(self) -> None:
         for count in (0, -1, PURGE_MAX_MESSAGES + 1):
@@ -332,8 +394,10 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
                         await cog.prune_messages.callback(cog, ctx, count)
 
                     channel.purge.assert_not_awaited()
-                    self.assertNotIn("view", ctx.reply.await_args.kwargs)
-                    self.assertIn("phải từ 1", ctx.reply.await_args.args[0])
+                    ctx.message.delete.assert_not_awaited()
+                    self.assertNotIn("view", ctx.send.await_args.kwargs)
+                    self.assertIn("phải từ 1", ctx.send.await_args.args[0])
+                    ctx.send.return_value.delete.assert_not_awaited()
 
     async def test_legacy_purge_respects_permissions_and_cleanup_lock(self) -> None:
         for blocked_by in ("moderator", "bot", "lock"):
@@ -350,6 +414,7 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
                 try:
                     await cog.prune_messages.callback(cog, ctx, 5)
                     channel.purge.assert_not_awaited()
+                    ctx.message.delete.assert_not_awaited()
                 finally:
                     ACTIVE_CLEANUP_CHANNEL_IDS.discard(channel.id)
 
@@ -363,8 +428,35 @@ class TestPurgeWorkflow(unittest.IsolatedAsyncioTestCase):
                 await cog.prune_messages.callback(cog, ctx, 5)
 
                 channel.purge.assert_awaited_once()
+                ctx.message.delete.assert_not_awaited()
                 self.assertNotIn(channel.id, ACTIVE_CLEANUP_CHANNEL_IDS)
-                self.assertIn("có thể đã được xóa", ctx.reply.await_args.args[0])
+                self.assertIn("có thể đã được xóa", ctx.send.await_args.args[0])
+                ctx.send.return_value.delete.assert_not_awaited()
+
+    async def test_command_delete_failure_does_not_retry_successful_purge(self) -> None:
+        not_found = discord.NotFound(
+            SimpleNamespace(status=404, reason="Not Found"),
+            {"code": 10008, "message": "Unknown Message"},
+        )
+        for error in (
+            not_found,
+            make_http_exception(forbidden=True),
+            make_http_exception(forbidden=False),
+        ):
+            with self.subTest(error=type(error).__name__):
+                _, _, _, channel, anchor, ctx = make_fixture()
+                channel.purge.return_value = [object() for _ in range(5)]
+                anchor.delete.side_effect = error
+                cog = PruneCommandCog(SimpleNamespace())
+
+                await cog.prune_messages.callback(cog, ctx, 5)
+
+                channel.purge.assert_awaited_once_with(limit=5, before=anchor)
+                anchor.delete.assert_awaited_once_with()
+                self.assertIn("5 tin nhắn", ctx.send.await_args.args[0])
+                ctx.send.return_value.delete.assert_awaited_once_with(
+                    delay=PURGE_NOTICE_DELETE_AFTER_SECONDS
+                )
 
 
 class TestJanitorWorkflow(unittest.IsolatedAsyncioTestCase):
