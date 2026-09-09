@@ -201,7 +201,8 @@ tfvn_bot/
     │   ├── _role_exam_helpers.py       Pure role-exam configuration, validation, and scoring
     │   └── role_exam.py                Staff invitation, private exam UI, and safe role grant
     ├── operation/
-    │   ├── bot_status.py                Random Discord activity and timing rotation
+    │   ├── bot_status.py                Random activity rotation and temporary Administrator overrides
+    │   ├── _bot_status_ui.py            Administrator status panel, activity select, and text/duration modal
     │   ├── _doctor.py                   Shared read-only configuration, permission, and runtime diagnostics
     │   ├── _graceful_shutdown.py        Command admission, drain tracking, and signal helpers
     │   ├── _lifecycle.py                Append-only process/gateway lifecycle event recorder
@@ -297,6 +298,15 @@ and tooth custom IDs after restart, while revision and canonical-message guards
 prevent duplicate responses, concurrent tooth presses, and stale replacement
 panels from changing state. A background sweep and command/interaction reads settle
 five-minute invitation deadlines and seven-day active-game inactivity expiry.
+
+Bot status uses one interruptible rotation task and an in-memory override timer.
+`!tf bot_status` opens an Administrator's panel with an activity-type dropdown,
+text/duration modal, random reset, refresh, and close controls. The helper
+`cogs/operation/_bot_status_ui.py` owns the UI and rechecks the opening user's
+guild and current Administrator permission on every interaction. UI submissions
+and prefix shortcuts share the cog's serialized presence updates and global
+cooldown. Closing the panel or its three-minute timeout disables controls without
+changing the override deadline; bot restart or cog reload ends the override.
 
 Bedtime reminders use fixed Vietnam time (UTC+7). The cog validates MongoDB
 records into a `(guild_id, user_id)` memory cache, sends one configured-channel

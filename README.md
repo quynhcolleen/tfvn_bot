@@ -262,7 +262,7 @@ menu focused on their respective topics.
 | Economy and games | `daily`, `user_balance`, `user_transactions`, `shop`, `blackjack`, `poker`, `crocodile challenge`, `slot`, `flip_coin`, `sicbo_start`, `noitu`, `vtv` |
 | Tiên Lộ | `tutien`, `tutien thucong`, `tutien dotpha`, `tutien bicanh`, `tutien thiluyen`, `tutien doido` |
 | Moderation | `kick`, `ban`, `unban`, `softban`, `mute`, `timeout`, `warn`, `case`, `purge`, `slowmode`, `verified` |
-| Operations | `ping`, `server_stats`, `operation_dashboard`, `setup check` |
+| Operations | `ping`, `server_stats`, `operation_dashboard`, `bot_status`, `setup check` |
 | Utilities | `quote`, `hash_verify`, `big_speaker`, `random_member` |
 | Booster tools | `custom_role`, `update_custom_role`, `custom_room` |
 | Social and fun | `kiss`, `hug`, `pat`, `avatar`, `quote`, `rank`, `ship`, `aura`, `redflag`, configurable `triggerreply`, and other meter commands |
@@ -436,6 +436,36 @@ shows the latest 10 `initial_ready`, `reidentified`, and `resumed` events for th
 current environment. Lifecycle events are append-only, retained indefinitely in
 the global `bot_lifecycle_events` collection, and excluded from guild audit
 browsing, CSV export, and pruning.
+
+Administrators can open the bot-status setup panel with `!tf bot_status`. Choose
+an activity type from the dropdown, then enter its text and duration in the form
+(the duration starts at `1h`). The panel shows the current activity, rotation mode,
+and temporary-status expiration. **Đổi ngẫu nhiên** ends the override immediately;
+**Làm mới** updates the display; **Đóng** closes the controls.
+
+Only the Administrator who opened a panel can use it, and every action rechecks
+their current Administrator permission in that server. Controls expire after
+three minutes; run the command again for a fresh panel. Closing or expiring the
+panel does not cancel a temporary status. Prefix shortcuts remain available:
+
+```text
+!tf bot_status
+!tf bot_status set PLAYING 2h Fortnite
+!tf bot_status show
+!tf bot_status reset
+```
+
+`bot_status show` sends a text summary and usage. Supported types are `PLAYING`,
+`WATCHING`, `LISTENING`, `STREAMING`, `COMPETING`, and `CUSTOM`; `STREAMING` uses
+the existing fixed stream URL. Durations are positive integers followed by `m`,
+`h`, or `d`, from one minute through 24 hours (`30m`, `2h`, `1d`). Text must be
+one nonempty line of up to 128 characters. The activity applies to the entire bot;
+an Administrator in any joined server can replace or reset it. Setting and
+resetting through the panel or prefix commands share a 10-second cooldown across
+the bot. Random rotation pauses until
+the timer ends or an Administrator resets it, then changes immediately and resumes
+its usual 5–15 minute intervals. Overrides live only in memory and end on restart
+or reload of `cogs.operation.bot_status`; no database configuration is needed.
 
 ## Docker
 

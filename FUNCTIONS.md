@@ -44,11 +44,36 @@ Examples below use that default. Replace with your configured prefix if differen
 | `beta_preview` | Beta | Confirms the member has a configured Beta role |
 | `server_stats` | Administrator | In-memory uptime, command, and error counts since process start; 10s per-guild cooldown |
 | `operation_dashboard` | Administrator | Opens the bot/server health dashboard with refresh, private Doctor diagnostics, guild command audit, CSV export, and guarded log-pruning controls; the joined-server manager and lifecycle history are private Bot owner controls |
+| `bot_status` | Administrator (guild) | Opens the activity setup panel with a type dropdown, text/duration form, random reset, refresh, and close controls |
+| `bot_status set <type> <duration> <text>` | Administrator (guild) | Replaces the bot-wide activity temporarily, pausing random rotation |
+| `bot_status show` | Administrator (guild) | Shows the current activity and override expiration |
+| `bot_status reset` | Administrator (guild) | Ends the temporary override and immediately resumes random activity rotation |
 | `leave` | Administrator | Makes the bot leave the current guild |
 | `setup` / `diagnose` | Manage Guild (subcommands) | Setup diagnostics group |
 | `setup check` | Manage Guild | Uses shared Doctor diagnostics to check environment/configuration, database, permissions, IDs, and enabled-feature health |
 
 **Module:** `cogs.general`, `cogs.onboarding.role_exam`, `cogs.operation.*`
+
+`bot_status` shows the current activity, rotation mode, and override expiration.
+Select an activity type to open a form for its text and duration (default `1h`).
+**Đổi ngẫu nhiên** immediately ends the override and selects a random activity;
+**Làm mới** refreshes the display; **Đóng** disables the panel. Only its opening
+Administrator can use a panel, with current guild and Administrator permission
+checked on every action and form submission. Controls expire after three minutes;
+open a fresh panel by running `bot_status` again. Panel close or timeout does not
+cancel the bot's temporary status.
+
+The prefix shortcut `bot_status set PLAYING 2h Fortnite` displays a temporary
+activity for two hours; `bot_status show` sends a text summary and usage.
+Supported types are `PLAYING`, `WATCHING`, `LISTENING`, `STREAMING`, `COMPETING`,
+and `CUSTOM`; streaming retains the existing fixed stream URL. Duration is a
+positive integer followed by `m`, `h`, or `d`, from `1m` through `24h` (`1d`).
+Text must be a single nonempty line of 1–128 characters. Any joined server's
+Administrator can replace or reset the same global override; panel submissions,
+random-reset buttons, `set`, and `reset` share a 10-second bot-wide cooldown.
+Expiration or reset immediately selects a
+random activity and resumes the usual random 5–15 minute rotation. Overrides
+are held only in memory and also end on bot restart or status-cog reload.
 
 `operation_dashboard` shows readiness, environment, uptime, Discord latency, guild/member/channel totals, MongoDB health, retained log count, and recent command outcomes. Audit browsing and CSV/prune responses are private to the administrator. Audit and export ranges are 7, 30, or 90 days, or all retained records; exports above 100,000 rows must use a narrower range. Pruning can remove records older than 30, 90, or 180 days, or clear the guild's retained history after an additional confirmation. Recognized guild prefix commands and dashboard export/prune actions are stored in the guild-scoped `operation_logs` collection; direct messages and unknown commands are not logged.
 
@@ -614,6 +639,7 @@ These modules support features but are not discovered as extensions (leading `_`
 ```
 help, mod, nsfw
 hello, invite, verify, role_exam, self_unverified, ping, beta_preview, server_stats, operation_dashboard, leave
+bot_status, bot_status set, bot_status show, bot_status reset
 setup, setup check
 triggerreply, triggerreply add, triggerreply update, triggerreply list, triggerreply remove
 afk, afk dynamic, afk time, afk clear, afk check
@@ -652,7 +678,7 @@ area51_fire
 setting, setting set_variable, setting get_variable
 ```
 
-**Automatic features:** random bot activity rotation at random 5–15 minute intervals; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
+**Automatic features:** random bot activity rotation at random 5–15 minute intervals, paused while an Administrator's temporary `bot_status` override is active; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
 
 Use `highlight` with the configured bot prefix (for example, `!tfd highlight`)
 to view the current requirements and destination channel, or a notice when no
@@ -681,6 +707,8 @@ render. No post is sent if nothing renderable remains. Threshold and spacing kno
 live in `cogs/utils/_highlight_helpers.py`.
 
 Bot status data uses `type` + `think` for `CUSTOM` entries. All other activity types use `type` + `text` so their action-card text remains prominent.
+Temporary Administrator overrides use the same activity rendering without modifying
+the status data file or creating MongoDB records.
 
 ---
 

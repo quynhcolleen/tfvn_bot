@@ -898,11 +898,11 @@ HELP_TOPICS = (
         key="automation",
         label="Tính năng tự động",
         emoji="⚙️",
-        option_description="Listener, lịch chạy và hệ thống nền không có lệnh",
+        option_description="Listener, lịch chạy, hệ thống nền và trạng thái bot",
         title="Tính năng tự động & chạy nền",
         description=(
-            "Các hệ thống không có command riêng. Chúng chỉ hoạt động khi cog tương ứng "
-            "được bật và cấu hình đầy đủ."
+            "Các hệ thống chạy nền và lệnh quản lý trạng thái bot. Chúng chỉ hoạt động "
+            "khi cog tương ứng được bật và cấu hình đầy đủ."
         ),
         color=0x95A5A6,
         sections=(
@@ -910,8 +910,30 @@ HELP_TOPICS = (
                 name="Thông báo & trạng thái",
                 note=(
                     "• Gửi welcome; phân biệt tự rời, bị kick và bị ban trong cùng kênh BYE_CHANNEL.\n"
-                    "• Đổi Discord activity ngẫu nhiên mỗi 5–15 phút.\n"
+                    "• Đổi Discord activity ngẫu nhiên mỗi 5–15 phút khi không có trạng thái tạm thời.\n"
                     "• Thông báo sinh nhật một lần trong ngày tại BIRTHDAY_CHANNEL."
+                ),
+            ),
+            HelpSection(
+                name="Trạng thái bot — Administrator",
+                entries=(
+                    _entry("bot_status", "Mở bảng chọn activity và form nội dung/thời hạn."),
+                    _entry(
+                        "bot_status set",
+                        "Đặt activity tạm thời cho toàn bot; thay thế trạng thái đã đặt.",
+                        "bot_status set <type> <duration> <text>",
+                    ),
+                    _entry("bot_status show", "Xem trạng thái và thời điểm hết hạn."),
+                    _entry("bot_status reset", "Kết thúc trạng thái tạm và đổi ngẫu nhiên ngay."),
+                ),
+                note=(
+                    "Type: PLAYING, WATCHING, LISTENING, STREAMING, COMPETING, CUSTOM. "
+                    "Duration: số nguyên + m/h/d, từ 1m đến 24h; text: 1–128 ký tự, một dòng. "
+                    "Bảng có Đổi ngẫu nhiên / Làm mới / Đóng; chỉ người mở còn quyền Admin dùng được. "
+                    "Bảng hết hạn sau 3 phút; đóng/hết hạn bảng không hủy trạng thái. "
+                    "Admin ở bất kỳ server nào đều có thể đặt lại; "
+                    "UI và set/reset chung cooldown 10 giây toàn bot. "
+                    "Hết hạn trạng thái, reset, restart hoặc reload cog sẽ xoay ngẫu nhiên."
                 ),
             ),
             HelpSection(
