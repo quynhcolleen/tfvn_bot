@@ -43,16 +43,54 @@ Examples below use that default. Replace with your configured prefix if differen
 | `ping` | Everyone | Heartbeat / liveness reply |
 | `beta_preview` | Beta | Confirms the member has a configured Beta role |
 | `server_stats` | Administrator | In-memory uptime, command, and error counts since process start; 10s per-guild cooldown |
-| `bot_status` | Administrator | Opens the bot/server health dashboard with refresh, guild command audit, CSV export, and guarded log-pruning controls; the joined-server manager and lifecycle history are private Bot owner controls |
+| `operation_dashboard` | Administrator | Opens the bot/server health dashboard with refresh, private Doctor diagnostics, guild command audit, CSV export, and guarded log-pruning controls; the joined-server manager and lifecycle history are private Bot owner controls |
+| `bot_status` | Administrator (guild) | Opens the activity setup panel with a type dropdown, text/duration form, random reset, refresh, and close controls |
+| `bot_status set <type> <duration> <text>` | Administrator (guild) | Replaces the bot-wide activity temporarily, pausing random rotation |
+| `bot_status show` | Administrator (guild) | Shows the current activity and override expiration |
+| `bot_status reset` | Administrator (guild) | Ends the temporary override and immediately resumes random activity rotation |
 | `leave` | Administrator | Makes the bot leave the current guild |
 | `setup` / `diagnose` | Manage Guild (subcommands) | Setup diagnostics group |
-| `setup check` | Manage Guild | Checks database, permissions, IDs, and cog health |
+| `setup check` | Manage Guild | Uses shared Doctor diagnostics to check environment/configuration, database, permissions, IDs, and enabled-feature health |
 
 **Module:** `cogs.general`, `cogs.onboarding.role_exam`, `cogs.operation.*`
 
-`bot_status` shows readiness, environment, uptime, Discord latency, guild/member/channel totals, MongoDB health, retained log count, and recent command outcomes. Audit browsing and CSV/prune responses are private to the administrator. Audit and export ranges are 7, 30, or 90 days, or all retained records; exports above 100,000 rows must use a narrower range. Pruning can remove records older than 30, 90, or 180 days, or clear the guild's retained history after an additional confirmation. Recognized guild prefix commands and dashboard export/prune actions are stored in the guild-scoped `operation_logs` collection; direct messages and unknown commands are not logged.
+`bot_status` shows the current activity, rotation mode, and override expiration.
+Select an activity type to open a form for its text and duration (default `1h`).
+**Đổi ngẫu nhiên** immediately ends the override and selects a random activity;
+**Làm mới** refreshes the display; **Đóng** disables the panel. Only its opening
+Administrator can use a panel, with current guild and Administrator permission
+checked on every action and form submission. Controls expire after three minutes;
+open a fresh panel by running `bot_status` again. Panel close or timeout does not
+cancel the bot's temporary status.
 
-When the Administrator is also the Bot owner, the dashboard adds two private controls. The joined-server manager lists every guild currently connected to the bot and can leave a selected guild only after confirmation; it cannot leave the guild where `bot_status` was invoked. The standalone `!tf leave` command remains unchanged and still leaves its current guild immediately. The lifecycle panel shows the 10 newest `initial_ready`, `reidentified`, or `resumed` events for the current environment. These append-only global events are retained indefinitely in `bot_lifecycle_events`; they are separate from `operation_logs` and are never included in guild audit browsing, CSV exports, or pruning.
+The prefix shortcut `bot_status set PLAYING 2h Fortnite` displays a temporary
+activity for two hours; `bot_status show` sends a text summary and usage.
+Supported types are `PLAYING`, `WATCHING`, `LISTENING`, `STREAMING`, `COMPETING`,
+and `CUSTOM`; streaming retains the existing fixed stream URL. Duration is a
+positive integer followed by `m`, `h`, or `d`, from `1m` through `24h` (`1d`).
+Text must be a single nonempty line of 1–128 characters. Any joined server's
+Administrator can replace or reset the same global override; panel submissions,
+random-reset buttons, `set`, and `reset` share a 10-second bot-wide cooldown.
+Expiration or reset immediately selects a
+random activity and resumes the usual random 5–15 minute rotation. Overrides
+are held only in memory and also end on bot restart or status-cog reload.
+
+`operation_dashboard` shows readiness, environment, uptime, Discord latency, guild/member/channel totals, MongoDB health, retained log count, and recent command outcomes. Audit browsing and CSV/prune responses are private to the administrator. Audit and export ranges are 7, 30, or 90 days, or all retained records; exports above 100,000 rows must use a narrower range. Pruning can remove records older than 30, 90, or 180 days, or clear the guild's retained history after an additional confirmation. Recognized guild prefix commands and dashboard export/prune actions are stored in the guild-scoped `operation_logs` collection; direct messages and unknown commands are not logged.
+
+The **🩺 Doctor** button opens a private, read-only Vietnamese report for the
+clicking administrator, with error/warning totals, scan time, suggested fixes,
+and five findings per page. Previous, Next, and Refresh controls remain available
+for 180 seconds and recheck the opening user, server, and current Administrator
+permission. Healthy scans say explicitly that no problems were found. Doctor
+checks enabled features in the current server, including selected extensions
+that failed to load, while skipping disabled features and known other-server
+targets. It checks required environment and feature settings, channel permission
+overrides, guild permissions, hierarchy for roles the bot manages, runtime intents, cached
+settings needing reload, and MongoDB availability. Reports contain no secret
+values or raw exceptions, suppress mentions, and are not saved. The same collector
+backs `setup check`; Doctor does not require that command's cog to be loaded.
+
+When the Administrator is also the Bot owner, the dashboard adds two private controls. The joined-server manager lists every guild currently connected to the bot and can leave a selected guild only after confirmation; it cannot leave the guild where `operation_dashboard` was invoked. The standalone `!tf leave` command remains unchanged and still leaves its current guild immediately. The lifecycle panel shows the 10 newest `initial_ready`, `reidentified`, or `resumed` events for the current environment. These append-only global events are retained indefinitely in `bot_lifecycle_events`; they are separate from `operation_logs` and are never included in guild audit browsing, CSV exports, or pruning.
 
 On SIGINT or SIGTERM, the process enters graceful drain mode. Commands admitted before the signal finish normally; later prefix commands receive a shutdown notice and do not execute. Discord closes after the active command set is empty. A second signal forces immediate closure.
 
@@ -493,37 +531,48 @@ Duration range: 10 seconds–30 days; max 20 winners.
 
 ## Moderation
 
+Complete legacy arguments execute immediately through the same permission,
+hierarchy, validation, and audit checks as the UI. For example, `!tf purge 5`
+deletes the five latest messages before the command; `!tf purge` opens the form.
+Argument-free replies keep the guided member workflow. Commands requiring a
+value (such as timeout minutes, a nickname, or a role) open the UI when it is
+omitted. Reply workflows do not accept extra arguments.
+
 ### Member actions
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `kick [@user] [reason]` | Kick Members | Mention a member, or reply with argument-free `kick`; choose a preset/custom reason and confirm Yes/No; records case |
-| `ban [@user] [reason]` | Ban Members | Mention a member, or reply with `ban` and no arguments, then use the UI to choose 0–168 hours of recent messages to delete, select a preset or custom reason, and confirm Yes/No; records case |
-| `unban <user_id\|@user> [reason]` | Ban Members | Enter a banned user ID/mention, or reply to their old message with argument-free `unban`; choose an optional unique one-use 7-day reinvite, a preset/custom reason, and confirm Yes/No. The bot uses a public rules/welcome/system/command channel, then DMs the invite or returns it privately to the moderator; reinviting requires moderator and bot Create Invite in that channel. Records case |
-| `softban [@user] [reason]` | Ban Members | Mention/reply target; choose a reason and confirm replacing eligible roles with Tù ngay; stores the previous roles and records case |
-| `unsoftban [@user] [reason]` | Ban Members | Mention/reply target; choose a release reason and confirm restoring the saved roles; records case |
-| `mute [@user] [reason]` | Manage Roles | Mention/reply target; choose a reason and confirm assigning Muted; records case |
-| `unmute [@user] [reason]` | Manage Roles | Mention/reply target; choose a release reason and confirm removing Muted; records case |
-| `timeout [@user] [minutes] [reason]` | Moderate Members | Mention a member with optional prefilled minutes, or reply with argument-free `timeout`; enter 1–40,320 minutes, choose a reason, and confirm; records case |
-| `untimeout [@user] [reason]` | Moderate Members | Mention/reply target; choose a release reason and confirm clearing timeout; records case |
-| `warn [@user] [reason]` | Manage Messages | Mention/reply target; choose a reason and confirm storing the warning and case |
+| `kick [@user] [reason]` | Kick Members | Explicit member kicks immediately; argument-free reply opens reason and confirmation UI; records case |
+| `ban [@user] [reason]` | Ban Members | Explicit member bans immediately with the legacy 24-hour message deletion default; argument-free reply opens the 0–168-hour deletion, reason, and confirmation UI; records case |
+| `unban <user_id\|@user> [reason]` | Ban Members | Explicit ID/mention unbans immediately without a reinvite. Argument-free reply opens the optional unique one-use 7-day reinvite, reason, and confirmation UI. Reinviting requires moderator and bot Create Invite in a public rules/welcome/system/command channel; the invite is DMed or returned privately. Records case |
+| `softban [@user] [reason]` | Ban Members | Explicit member immediately replaces eligible roles with Tù ngay; argument-free reply opens UI; stores previous roles and records case |
+| `unsoftban [@user] [reason]` | Ban Members | Explicit member immediately restores saved roles; argument-free reply opens UI; records case |
+| `mute [@user] [reason]` | Manage Roles | Explicit member immediately assigns Muted; argument-free reply opens UI; records case |
+| `unmute [@user] [reason]` | Manage Roles | Explicit member immediately removes Muted; argument-free reply opens UI; records case |
+| `timeout [@user] [minutes] [reason]` | Moderate Members | Member plus 1–40,320 minutes applies immediately; omitted minutes or argument-free reply opens UI; records case |
+| `untimeout [@user] [reason]` | Moderate Members | Explicit member immediately clears timeout; argument-free reply opens UI; records case |
+| `warn [@user] [reason]` | Manage Messages | Explicit member immediately stores the warning and case; argument-free reply opens UI |
 | `check_warn [@user]` | Everyone (guild) | Recent warnings (default: self) |
-| `nickchange [@user] [new_nick]` | Manage Nicknames | Mention/reply target; enter a nickname and audit reason, then confirm Yes/No |
-| `roleroll [@user] [reason]` | Manage Roles | Mention/reply target; select a role and reason, review, then confirm assignment |
-| `roleunroll [@user] [reason]` | Manage Roles | Mention/reply target; select a role and reason, review, then confirm removal |
-| `rolecopy [@source] [@target] [reason]` | Manage Roles | Directly provide both members, or reply to the destination with argument-free `rolecopy` and select the source; confirmation shows source, destination, reason, and the frozen eligible-role table, while the completed reply lists the roles actually copied |
+| `nickchange [@user] [new_nick]` | Manage Nicknames | Member plus nickname applies immediately; omitted nickname or argument-free reply opens nickname, reason, and confirmation UI |
+| `roleroll [@user] [role_name]` | Manage Roles | Member plus role name assigns immediately; omitted role or argument-free reply opens role, reason, and confirmation UI |
+| `roleunroll [@user] [role_name]` | Manage Roles | Member plus role name removes immediately; omitted role or argument-free reply opens role, reason, and confirmation UI |
+| `rolecopy [@source] [@target] [reason]` | Manage Roles | Both members copies eligible roles immediately. Argument-free reply to the destination opens source selection and confirmation of the frozen role table. Completed replies list roles actually copied |
 
 ### Messages & channel controls
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `purge [n]` | Manage Messages | Enter 1–1,000 messages in the form and confirm; deletion is anchored before the invocation message |
-| `purge_user [@user] [n]` | Manage Messages | Mention/reply target, enter 1–1,000, and confirm deleting the member's newest matching messages before the invocation |
-| `clean_before [days]` | Manage Messages | Enter 1–3,650 days and confirm deleting older messages before the invocation |
+| `purge [n]` | Manage Messages | Supplied count immediately deletes 1–1,000 latest messages before the invocation; omitted count opens the form and confirmation |
+| `purge_user [@user] [n]` | Manage Messages | Member plus count immediately deletes 1–1,000 newest matching messages before the invocation, scanning at most 5,000 messages; omitted count or argument-free reply opens UI |
+| `clean_before [days]` | Manage Messages | Supplied 1–3,650 days immediately deletes older messages before the invocation; omitted days opens the form and confirmation |
 | `slowmode` | Everyone (guild) | Slowmode guide group |
 | `slowmode check_bypass [@member]` | Everyone | Check channel permission overwrites |
-| `slowmode immune [@member] [reason]` | Manage Roles | Mention/reply target; choose a reason and confirm adding bypass while preserving unrelated overwrites |
-| `slowmode prominent [@member] [reason]` | Manage Roles | Mention/reply target; choose a reason and confirm removing only the bypass overwrite |
+| `slowmode immune [@member] [reason]` | Manage Roles | Explicit member immediately adds bypass, preserving unrelated overwrites; argument-free reply opens UI |
+| `slowmode prominent [@member] [reason]` | Manage Roles | Explicit member immediately removes only the bypass overwrite; argument-free reply opens UI |
+
+Successful `purge` and `purge_user` actions also delete the command message;
+it does not count toward the requested number. Result notices disappear after
+five seconds in both direct commands and UI confirmations.
 
 ### Cases
 
@@ -532,9 +581,9 @@ Duration range: 10 seconds–30 days; max 20 winners.
 | `case` | Manage Messages | Usage guide |
 | `case view <number>` | Manage Messages | View case by number |
 | `case history @user [limit]` | Manage Messages | Last 1–10 cases for a member |
-| `case edit <number> [reason]` | Manage Messages | Enter/review a new reason and confirm; refuses to overwrite a case changed after the form opened |
-| `case status <number> [open\|resolved\|appealed\|void]` | Manage Messages | Select/review a status and confirm; refuses stale updates |
-| `case log_channel [#channel]` | Manage Guild | Select a text channel, verify bot send/embed access, and confirm changing the mod-log destination |
+| `case edit <number> [reason]` | Manage Messages | Supplied reason updates immediately; omitted reason opens confirmation UI; refuses stale updates |
+| `case status <number> [open\|resolved\|appealed\|void]` | Manage Messages | Supplied status updates immediately; omitted status opens confirmation UI; refuses stale updates |
+| `case log_channel [#channel]` | Manage Guild | Explicit channel changes the mod-log destination immediately after checking bot send/embed access; omitted channel opens selection and confirmation UI |
 
 ### Area 51 guard
 
@@ -600,7 +649,8 @@ These modules support features but are not discovered as extensions (leading `_`
 
 ```
 help, mod, nsfw
-hello, invite, verify, role_exam, self_unverified, ping, beta_preview, server_stats, bot_status, leave
+hello, invite, verify, role_exam, self_unverified, ping, beta_preview, server_stats, operation_dashboard, leave
+bot_status, bot_status set, bot_status show, bot_status reset
 setup, setup check
 triggerreply, triggerreply add, triggerreply update, triggerreply list, triggerreply remove
 afk, afk dynamic, afk time, afk clear, afk check
@@ -639,7 +689,7 @@ area51_fire
 setting, setting set_variable, setting get_variable
 ```
 
-**Automatic features:** random bot activity rotation at random 5–15 minute intervals; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
+**Automatic features:** random bot activity rotation at random 5–15 minute intervals, paused while an Administrator's temporary `bot_status` override is active; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
 
 Use `highlight` with the configured bot prefix (for example, `!tfd highlight`)
 to view the current requirements and destination channel, or a notice when no
@@ -668,6 +718,8 @@ render. No post is sent if nothing renderable remains. Threshold and spacing kno
 live in `cogs/utils/_highlight_helpers.py`.
 
 Bot status data uses `type` + `think` for `CUSTOM` entries. All other activity types use `type` + `text` so their action-card text remains prominent.
+Temporary Administrator overrides use the same activity rendering without modifying
+the status data file or creating MongoDB records.
 
 ---
 

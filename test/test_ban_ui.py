@@ -329,29 +329,55 @@ class TestBanWorkflow(unittest.IsolatedAsyncioTestCase):
 
 
 class TestBanCommandDispatch(unittest.IsolatedAsyncioTestCase):
-    async def test_explicit_member_opens_ui_without_reply_lookup(self) -> None:
+    async def test_explicit_member_bans_without_ui_and_keeps_legacy_deletion(self) -> None:
         guild, moderator, target = make_fixture()
         cog = BanCog(SimpleNamespace())
         cog._resolve_reply_target = AsyncMock()
         ctx = make_context(guild, moderator)
 
-        await cog.ban_member.callback(
-            cog,
-            ctx,
-            target,
-            reason="  supplied   reason  ",
-        )
+        with patch("cogs.mod.ban.record_case", new=AsyncMock(return_value=7)):
+            await cog.ban_member.callback(
+                cog,
+                ctx,
+                target,
+                reason="  supplied   reason  ",
+            )
 
         cog._resolve_reply_target.assert_not_awaited()
         ctx.reply.assert_awaited_once()
         kwargs = ctx.reply.await_args.kwargs
-        view = kwargs["view"]
-        self.assertIsInstance(view, BanWorkflowView)
-        self.assertEqual(view.target_id, target.id)
-        self.assertEqual(view.initial_reason, "supplied reason")
-        self.assertIs(view.message, ctx.reply.return_value)
+        self.assertNotIn("view", kwargs)
+        target.ban.assert_awaited_once_with(
+            reason="supplied reason (Requested by moderator)",
+            delete_message_seconds=86400,
+        )
+        self.assertIn("Case #7", ctx.reply.await_args.args[0])
         self.assertFalse(kwargs["mention_author"])
-        view.stop()
+
+    async def test_direct_ban_still_rejects_higher_role(self) -> None:
+        guild, moderator, target = make_fixture()
+        target.top_role.position = moderator.top_role.position
+        cog = BanCog(SimpleNamespace())
+        ctx = make_context(guild, moderator)
+
+        await cog.ban_member.callback(cog, ctx, target)
+
+        target.ban.assert_not_awaited()
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+
+    async def test_explicit_member_without_reason_uses_legacy_default(self) -> None:
+        guild, moderator, target = make_fixture()
+        cog = BanCog(SimpleNamespace())
+        ctx = make_context(guild, moderator)
+
+        with patch("cogs.mod.ban.record_case", new=AsyncMock(return_value=None)):
+            await cog.ban_member.callback(cog, ctx, target)
+
+        target.ban.assert_awaited_once_with(
+            reason="Không có lý do cụ thể (Requested by moderator)",
+            delete_message_seconds=86400,
+        )
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
 
     async def test_reply_author_is_used_when_member_is_omitted(self) -> None:
         guild, moderator, target = make_fixture()

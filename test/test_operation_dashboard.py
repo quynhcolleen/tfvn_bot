@@ -13,6 +13,7 @@ from pymongo.errors import PyMongoError
 
 from cogs._beta_function import BetaFunctionError
 from cogs.operation._graceful_shutdown import ShutdownInProgress
+from cogs.operation._setup_helpers import SetupCheck
 from cogs.operation import operation_dashboard as dashboard_module
 from cogs.operation._operation_helpers import (
     CSV_COLUMNS,
@@ -32,6 +33,7 @@ from cogs.operation.operation_dashboard import (
     AuditLogView,
     BotOwnerGuildAdminView,
     DASHBOARD_TIMEOUT_SECONDS,
+    DoctorView,
     ExportLogView,
     GuildAdminView,
     JOINED_SERVER_PAGE_SIZE,
@@ -1289,7 +1291,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(view.confirm.disabled)
         interaction.followup.send.assert_awaited_once()
 
-    async def test_bot_status_command_opens_dashboard_without_replacing_server_stats(
+    async def test_operation_dashboard_command_opens_dashboard_without_replacing_server_stats(
         self,
     ) -> None:
         cog = object.__new__(OperationDashboardCog)
@@ -1304,7 +1306,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
             reply=AsyncMock(return_value=sent_message),
         )
 
-        await OperationDashboardCog.show_bot_status.callback(cog, ctx)
+        await OperationDashboardCog.show_operation_dashboard.callback(cog, ctx)
 
         ctx.reply.assert_awaited_once()
         kwargs = ctx.reply.await_args.kwargs
@@ -1313,9 +1315,11 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
         self.assertIs(kwargs["view"].message, sent_message)
         self.assertEqual(
             [child.label for child in kwargs["view"].children],
-            ["Làm mới", "Audit logs", "Tải CSV", "Dọn log"],
+            ["Làm mới", "Audit logs", "Tải CSV", "Dọn log", "Doctor"],
         )
-        self.assertEqual(OperationDashboardCog.show_bot_status.name, "bot_status")
+        self.assertEqual(
+            OperationDashboardCog.show_operation_dashboard.name, "operation_dashboard"
+        )
         self.assertEqual(ServerStatsCog.server_stats.name, "server_stats")
 
     async def test_owner_opened_dashboard_adds_only_the_two_global_controls(
@@ -1332,7 +1336,7 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
             reply=AsyncMock(return_value=SimpleNamespace(id=123)),
         )
 
-        await OperationDashboardCog.show_bot_status.callback(cog, ctx)
+        await OperationDashboardCog.show_operation_dashboard.callback(cog, ctx)
 
         view = ctx.reply.await_args.kwargs["view"]
         self.assertEqual(view.owner_id, 77)
@@ -1343,12 +1347,13 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
                 "Audit logs",
                 "Tải CSV",
                 "Dọn log",
+                "Doctor",
                 "Server đã tham gia",
                 "Lịch sử kết nối",
             ],
         )
-        self.assertEqual([child.row for child in view.children[:4]], [0] * 4)
-        self.assertEqual([child.row for child in view.children[4:]], [1, 1])
+        self.assertEqual([child.row for child in view.children[:5]], [0] * 5)
+        self.assertEqual([child.row for child in view.children[5:]], [1, 1])
 
     async def test_owner_lookup_failure_still_opens_admin_dashboard(self) -> None:
         cog = object.__new__(OperationDashboardCog)
@@ -1365,13 +1370,13 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
         )
 
         with patch.object(dashboard_module.logger, "exception") as log_failure:
-            await OperationDashboardCog.show_bot_status.callback(cog, ctx)
+            await OperationDashboardCog.show_operation_dashboard.callback(cog, ctx)
 
         view = ctx.reply.await_args.kwargs["view"]
         self.assertIsNone(view.owner_id)
         self.assertEqual(
             [child.label for child in view.children],
-            ["Làm mới", "Audit logs", "Tải CSV", "Dọn log"],
+            ["Làm mới", "Audit logs", "Tải CSV", "Dọn log", "Doctor"],
         )
         log_failure.assert_called_once()
 
@@ -1386,6 +1391,297 @@ class TestOperationViews(unittest.IsolatedAsyncioTestCase):
         bot.is_owner.assert_awaited_once_with(interaction.user)
         interaction.response.send_message.assert_awaited_once()
         interaction.response.defer.assert_not_awaited()
+
+
+class TestDoctorView(unittest.IsolatedAsyncioTestCase):
+    def make_view(self) -> DoctorView:
+        member = SimpleNamespace(
+            id=77, guild_permissions=SimpleNamespace(administrator=True)
+        )
+        guild = SimpleNamespace(id=41, get_member=MagicMock(return_value=member))
+        channel = SimpleNamespace(id=501, guild=guild)
+        bot = SimpleNamespace(get_guild=MagicMock(return_value=guild))
+        return DoctorView(
+            cog=SimpleNamespace(bot=bot),
+            guild_id=41,
+            author_id=77,
+            channel=channel,
+        )
+
+    async def test_doctor_button_opens_private_panel_for_clicking_admin(self) -> None:
+        interaction = make_interaction(user_id=88)
+        interaction.guild.get_member = MagicMock(return_value=interaction.user)
+        interaction.channel = SimpleNamespace(id=501, guild=interaction.guild)
+        bot = SimpleNamespace(get_guild=MagicMock(return_value=interaction.guild))
+        dashboard = OperationDashboardView(cog=SimpleNamespace(bot=bot), guild_id=41)
+        button = dashboard.children[4]
+        self.assertEqual(button.label, "Doctor")
+        self.assertEqual(str(button.emoji), "🩺")
+        self.assertEqual(button.row, 0)
+        sent_message = SimpleNamespace(edit=AsyncMock())
+        interaction.followup.send.return_value = sent_message
+
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            return_value=[SetupCheck("warning", "Cấu hình", "Chưa có kênh", "Đặt kênh.")],
+        ) as collect:
+            await button.callback(interaction)
+
+        interaction.response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)
+        kwargs = interaction.followup.send.await_args.kwargs
+        self.assertTrue(kwargs["ephemeral"])
+        self.assertTrue(kwargs["wait"])
+        self.assertEqual(kwargs["allowed_mentions"].to_dict(), {"parse": []})
+        panel = kwargs["view"]
+        self.assertIsInstance(panel, DoctorView)
+        self.assertEqual(panel.author_id, 88)
+        self.assertEqual(panel.guild_id, 41)
+        self.assertIs(panel.message, sent_message)
+        self.assertEqual(panel.timeout, 180)
+        collect.assert_awaited_once_with(bot, interaction.guild, interaction.channel)
+
+    async def test_panel_rechecks_guild_opener_and_current_admin_permission(self) -> None:
+        view = self.make_view()
+        denied = (
+            make_interaction(guild_id=None),
+            make_interaction(guild_id=99),
+            make_interaction(user_id=88),
+            make_interaction(administrator=False),
+        )
+        for interaction in denied:
+            self.assertFalse(await view.interaction_check(interaction))
+            kwargs = interaction.response.send_message.await_args.kwargs
+            self.assertTrue(kwargs["ephemeral"])
+            self.assertEqual(kwargs["allowed_mentions"].to_dict(), {"parse": []})
+        self.assertTrue(await view.interaction_check(make_interaction()))
+
+    async def test_load_sorts_errors_first_filters_success_and_records_scan_time(self) -> None:
+        view = self.make_view()
+        checks = [
+            SetupCheck("warning", "Zulu", "Cảnh báo cuối", "Sửa Z."),
+            SetupCheck("ok", "Healthy", "Đã đúng"),
+            SetupCheck("error", "Beta", "Lỗi B", "Sửa B."),
+            SetupCheck("warning", "Alpha", "Cảnh báo đầu", "Sửa A."),
+            SetupCheck("error", "Alpha", "Lỗi A", "Sửa A."),
+        ]
+        scanned_at = datetime(2026, 9, 8, 10, 20, tzinfo=UTC)
+        view.page = 9
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            return_value=checks,
+        ), patch.object(dashboard_module.discord.utils, "utcnow", return_value=scanned_at):
+            await view.load_checks()
+
+        self.assertEqual(view.findings, [checks[4], checks[2], checks[3], checks[0]])
+        self.assertEqual(view.page, 0)
+        self.assertEqual(view.generated_at, scanned_at)
+        embed = view.build_embed()
+        self.assertEqual(embed.timestamp, scanned_at)
+        self.assertIn("2", embed.description)
+        self.assertIn("lỗi", embed.description.lower())
+        self.assertIn("cảnh báo", embed.description.lower())
+        self.assertTrue(any("Sửa A." in field.value for field in embed.fields))
+
+    async def test_missing_guild_cache_has_error_without_running_collector(self) -> None:
+        view = self.make_view()
+        view.cog.bot.get_guild.return_value = None
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+        ) as collect:
+            await view.load_checks()
+
+        collect.assert_not_awaited()
+        self.assertEqual(len(view.findings), 1)
+        self.assertEqual(view.findings[0].level, "error")
+        self.assertIn("server", view.findings[0].detail.lower())
+        self.assertTrue(view.findings[0].fix)
+
+    async def test_pages_show_five_findings_and_navigation_stays_in_bounds(self) -> None:
+        view = self.make_view()
+        checks = [
+            SetupCheck("warning", f"Feature {index:02}", f"Problem {index}", "Fix.")
+            for index in range(11)
+        ]
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            return_value=checks,
+        ) as collect:
+            await view.load_checks()
+            self.assertEqual(len(view.build_embed().fields), 5)
+            self.assertTrue(view.previous_page.disabled)
+            self.assertFalse(view.next_page.disabled)
+            await view.next_page.callback(make_interaction())
+            self.assertEqual(view.page, 1)
+            self.assertEqual(len(view.build_embed().fields), 5)
+            self.assertIn("Feature 05", view.build_embed().fields[0].name)
+            await view.next_page.callback(make_interaction())
+            self.assertEqual(view.page, 2)
+            self.assertEqual(len(view.build_embed().fields), 1)
+            self.assertTrue(view.next_page.disabled)
+            await view.next_page.callback(make_interaction())
+            self.assertEqual(view.page, 2)
+            await view.previous_page.callback(make_interaction())
+            await view.previous_page.callback(make_interaction())
+            await view.previous_page.callback(make_interaction())
+            self.assertEqual(view.page, 0)
+            self.assertTrue(view.previous_page.disabled)
+            collect.assert_awaited_once()
+
+    async def test_refresh_reruns_scan_resets_page_and_suppresses_mentions(self) -> None:
+        view = self.make_view()
+        initial = [SetupCheck("error", str(index), "Old", "Fix") for index in range(9)]
+        replacement = [SetupCheck("warning", "@everyone", "<@123> problem", "Fix")]
+        interaction = make_interaction()
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            side_effect=[initial, replacement],
+        ) as collect:
+            await view.load_checks()
+            await view.next_page.callback(make_interaction())
+            await view.refresh.callback(interaction)
+
+        self.assertEqual(collect.await_count, 2)
+        self.assertEqual(view.findings, replacement)
+        self.assertEqual(view.page, 0)
+        self.assertTrue(view.previous_page.disabled)
+        self.assertTrue(view.next_page.disabled)
+        self.assertTrue(interaction.response.defer.await_args.kwargs["ephemeral"])
+        kwargs = interaction.edit_original_response.await_args.kwargs
+        self.assertIs(kwargs["view"], view)
+        self.assertEqual(kwargs["allowed_mentions"].to_dict(), {"parse": []})
+
+    async def test_healthy_scan_is_explicit_and_disables_navigation(self) -> None:
+        view = self.make_view()
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            return_value=[SetupCheck("ok", "Database", "OK")],
+        ):
+            await view.load_checks()
+
+        self.assertEqual(view.findings, [])
+        self.assertEqual(view.page, 0)
+        self.assertTrue(view.previous_page.disabled)
+        self.assertTrue(view.next_page.disabled)
+        embed = view.build_embed()
+        displayed = " ".join(
+            [embed.description or ""]
+            + [f"{field.name} {field.value}" for field in embed.fields]
+        ).lower()
+        self.assertIn("không", displayed)
+        self.assertIn("cảnh báo", displayed)
+
+    async def test_long_findings_fit_discord_embed_limits(self) -> None:
+        view = self.make_view()
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            return_value=[
+                SetupCheck("error", "Name " * 1_000, "Detail " * 2_000, "Fix " * 2_000)
+                for _ in range(6)
+            ],
+        ):
+            await view.load_checks()
+
+        embed = view.build_embed()
+        self.assertEqual(len(embed.fields), 5)
+        self.assertLessEqual(len(embed), 6_000)
+        self.assertLessEqual(len(embed.title), 256)
+        self.assertLessEqual(len(embed.description), 4_096)
+        for field in embed.fields:
+            self.assertLessEqual(len(field.name), 256)
+            self.assertLessEqual(len(field.value), 1_024)
+            self.assertIn("Fix", field.value)
+
+    async def test_timeout_disables_all_controls_and_edits_private_message(self) -> None:
+        view = self.make_view()
+        view.message = SimpleNamespace(edit=AsyncMock())
+
+        await view.on_timeout()
+
+        self.assertTrue(all(child.disabled for child in view.children))
+        view.message.edit.assert_awaited_once_with(view=view)
+
+    async def test_refresh_serializes_scans_and_navigation(self) -> None:
+        view = self.make_view()
+        initial = [SetupCheck("error", str(index), "Old", "Fix") for index in range(9)]
+        entered = asyncio.Event()
+        release = asyncio.Event()
+        active_scans = 0
+        maximum_scans = 0
+
+        async def slow_scan(*args):
+            nonlocal active_scans, maximum_scans
+            active_scans += 1
+            maximum_scans = max(maximum_scans, active_scans)
+            entered.set()
+            try:
+                await release.wait()
+                return [SetupCheck("warning", "Current", "New", "Fix")]
+            finally:
+                active_scans -= 1
+
+        with patch.object(
+            dashboard_module, "collect_doctor_checks", new_callable=AsyncMock,
+            return_value=initial,
+        ):
+            await view.load_checks()
+        await view.next_page.callback(make_interaction())
+        self.assertEqual(view.page, 1)
+
+        with patch.object(dashboard_module, "collect_doctor_checks", side_effect=slow_scan):
+            first = asyncio.create_task(view.refresh.callback(make_interaction()))
+            await asyncio.wait_for(entered.wait(), timeout=1)
+            second = asyncio.create_task(view.refresh.callback(make_interaction()))
+            navigate = asyncio.create_task(view.previous_page.callback(make_interaction()))
+            try:
+                await asyncio.sleep(0)
+                self.assertEqual(view.page, 1)
+                self.assertEqual(maximum_scans, 1)
+            finally:
+                release.set()
+                await asyncio.wait_for(asyncio.gather(first, second, navigate), timeout=1)
+
+        self.assertEqual(maximum_scans, 1)
+        self.assertEqual(view.page, 0)
+        self.assertEqual(len(view.findings), 1)
+        self.assertTrue(view.previous_page.disabled)
+        self.assertTrue(view.next_page.disabled)
+
+    async def test_revoked_permission_during_scan_prevents_report_update(self) -> None:
+        view = self.make_view()
+        interaction = make_interaction()
+        entered = asyncio.Event()
+        release = asyncio.Event()
+
+        async def slow_scan(*args):
+            entered.set()
+            await release.wait()
+            return [SetupCheck("error", "Environment", "Missing setting", "Set it")]
+
+        with patch.object(dashboard_module, "collect_doctor_checks", side_effect=slow_scan):
+            refreshing = asyncio.create_task(view.refresh.callback(interaction))
+            try:
+                await asyncio.wait_for(entered.wait(), timeout=1)
+                cached_member = view.cog.bot.get_guild(41).get_member(77)
+                cached_member.guild_permissions.administrator = False
+                self.assertTrue(interaction.user.guild_permissions.administrator)
+                interaction.response.is_done.return_value = True
+            finally:
+                release.set()
+                await asyncio.wait_for(refreshing, timeout=1)
+
+        interaction.edit_original_response.assert_not_awaited()
+        interaction.followup.send.assert_awaited_once()
+        self.assertTrue(interaction.followup.send.await_args.kwargs["ephemeral"])
+
+    async def test_unavailable_current_member_fails_private_access_closed(self) -> None:
+        view = self.make_view()
+        view.cog.bot.get_guild(41).get_member.return_value = None
+        interaction = make_interaction()
+
+        self.assertFalse(await view.interaction_check(interaction))
+
+        interaction.response.send_message.assert_awaited_once()
+        self.assertTrue(interaction.response.send_message.await_args.kwargs["ephemeral"])
 
 
 class TestServerStatsRegression(unittest.IsolatedAsyncioTestCase):

@@ -16,7 +16,7 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
 - **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
 - **Social and fun commands:** member interactions, rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
-- **Operations:** an Administrator dashboard for bot/server health, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
+- **Operations:** an Administrator dashboard for bot/server health, private Doctor diagnostics, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
 - **Optional age-restricted features:** NSFW interactions and Rule34/Gelbooru searches, guarded by Discord's NSFW channel setting.
 - **Persistent state:** MongoDB-backed balances, cultivation profiles, interactions, Crocodile Dentist games, game context, reminders, settings, giveaways, booster resources, moderation data, signed content proofs, guild command audit logs, and append-only bot lifecycle events.
 
@@ -262,7 +262,7 @@ menu focused on their respective topics.
 | Economy and games | `daily`, `user_balance`, `user_transactions`, `shop`, `blackjack`, `poker`, `crocodile challenge`, `slot`, `flip_coin`, `sicbo_start`, `noitu`, `vtv` |
 | Tiên Lộ | `tutien`, `tutien thucong`, `tutien dotpha`, `tutien bicanh`, `tutien thiluyen`, `tutien doido` |
 | Moderation | `kick`, `ban`, `unban`, `softban`, `mute`, `timeout`, `warn`, `case`, `purge`, `slowmode`, `verified` |
-| Operations | `ping`, `server_stats`, `bot_status`, `setup check` |
+| Operations | `ping`, `server_stats`, `operation_dashboard`, `bot_status`, `setup check` |
 | Utilities | `quote`, `hash_verify`, `big_speaker`, `random_member` |
 | Booster tools | `custom_role`, `update_custom_role`, `custom_room` |
 | Social and fun | `kiss`, `hug`, `pat`, `avatar`, `quote`, `rank`, `ship`, `aura`, `redflag`, configurable `triggerreply`, and other meter commands |
@@ -272,6 +272,13 @@ menu focused on their respective topics.
 This table is only an overview. The in-Discord dropdown and [FUNCTIONS.md](FUNCTIONS.md)
 provide the complete user-facing catalog; each module under `cogs/` remains the
 implementation source of truth.
+
+Moderation commands retain their direct argument forms alongside the UI:
+`!tf purge 5` immediately deletes the five latest messages before the command,
+while `!tf purge` opens the count form and confirmation. Other complete commands,
+such as `!tf timeout @member 10` and `!tf nickchange @member New Name`, also run
+directly. Omitting a required value or using an argument-free member reply keeps
+the guided workflow. Both modes apply the same permission and validation checks.
 
 ## Community systems
 
@@ -401,16 +408,33 @@ The bot tries to DM it to the unbanned user and otherwise shows it privately to
 the moderator for manual delivery. Reinviting is best-effort after the unban and
 case are complete, so an invite-service failure never repeats the moderation action.
 
-Run `!tf setup check` after configuration to inspect MongoDB connectivity,
-loaded cogs, channel/role IDs, bot permissions, and role hierarchy.
+Run `!tf setup check` after configuration to inspect required environment settings,
+enabled features, MongoDB connectivity, channel/role IDs, bot permissions, and role
+hierarchy. It uses the same read-only diagnostics as the dashboard's Doctor panel.
 
-Administrators can run `!tf bot_status` for an interactive health dashboard without
+Administrators can run `!tf operation_dashboard` for an interactive health dashboard without
 changing the existing `!tf server_stats` report. The dashboard can browse recognized
 guild command outcomes, export retained records as CSV, and prune old records after
 confirmation. These records are guild-scoped in MongoDB's `operation_logs` collection;
 direct messages and unknown commands are not retained.
 
-If the invoking Administrator is also the Bot owner, `bot_status` adds private
+Click **🩺 Doctor** for a private Vietnamese report of current configuration and
+permission problems, with suggested fixes. The report shows error/warning totals,
+scan time, and five findings per page; Previous/Next and Refresh controls let the
+opening administrator inspect and rerun the scan. Access is checked on every click
+and the panel expires after 180 seconds. Doctor works without loading `setup_check`.
+Checks apply to enabled features in the current server, including selected
+extensions that failed to load; disabled features and known other-server targets
+are skipped. Channel permission overrides are checked separately from server
+permissions, and role hierarchy is checked only for roles the bot manages.
+Missing optional settings do not produce warnings. The scan uses current process
+environment and runtime configuration, flags settings that need a cog reload,
+and does not reload `.env`, change settings, or store reports. Secrets and raw
+exception messages are never included in diagnostics. MongoDB checks run in a
+worker thread with a five-second deadline, so a database failure still leaves
+other findings available.
+
+If the invoking Administrator is also the Bot owner, `operation_dashboard` adds private
 panels for the bot's joined servers and lifecycle history. The server manager can
 inspect every connected guild and confirm leaving a selected guild, but it cannot
 leave the guild where the dashboard was opened. This restriction applies only to
@@ -419,6 +443,36 @@ shows the latest 10 `initial_ready`, `reidentified`, and `resumed` events for th
 current environment. Lifecycle events are append-only, retained indefinitely in
 the global `bot_lifecycle_events` collection, and excluded from guild audit
 browsing, CSV export, and pruning.
+
+Administrators can open the bot-status setup panel with `!tf bot_status`. Choose
+an activity type from the dropdown, then enter its text and duration in the form
+(the duration starts at `1h`). The panel shows the current activity, rotation mode,
+and temporary-status expiration. **Đổi ngẫu nhiên** ends the override immediately;
+**Làm mới** updates the display; **Đóng** closes the controls.
+
+Only the Administrator who opened a panel can use it, and every action rechecks
+their current Administrator permission in that server. Controls expire after
+three minutes; run the command again for a fresh panel. Closing or expiring the
+panel does not cancel a temporary status. Prefix shortcuts remain available:
+
+```text
+!tf bot_status
+!tf bot_status set PLAYING 2h Fortnite
+!tf bot_status show
+!tf bot_status reset
+```
+
+`bot_status show` sends a text summary and usage. Supported types are `PLAYING`,
+`WATCHING`, `LISTENING`, `STREAMING`, `COMPETING`, and `CUSTOM`; `STREAMING` uses
+the existing fixed stream URL. Durations are positive integers followed by `m`,
+`h`, or `d`, from one minute through 24 hours (`30m`, `2h`, `1d`). Text must be
+one nonempty line of up to 128 characters. The activity applies to the entire bot;
+an Administrator in any joined server can replace or reset it. Setting and
+resetting through the panel or prefix commands share a 10-second cooldown across
+the bot. Random rotation pauses until
+the timer ends or an Administrator resets it, then changes immediately and resumes
+its usual 5–15 minute intervals. Overrides live only in memory and end on restart
+or reload of `cogs.operation.bot_status`; no database configuration is needed.
 
 ## Docker
 

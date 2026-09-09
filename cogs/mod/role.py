@@ -10,12 +10,14 @@ from cogs.mod._interaction_ui import (
     ActionResult,
     ConfigurableModerationView,
     FormAnswer,
+    PrefixModerationContext,
     ReasonConfig,
     ReasonPreset,
     RoleField,
     UserField,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
     safe_ui_text,
 )
 from cogs.mod._member_state import ACTIVE_ROLE_MUTATION_TARGETS
@@ -438,7 +440,7 @@ def format_frozen_role_preview(
 
 
 async def submit_role_change(
-    interaction: discord.Interaction,
+    interaction: discord.Interaction | PrefixModerationContext,
     request: RoleChangeRequest,
 ) -> ActionResult:
     guild = interaction.guild
@@ -870,14 +872,14 @@ class RollCog(commands.Cog):
 
     async def _submit_role_change(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: RoleChangeRequest,
     ) -> ActionResult:
         return await submit_role_change(interaction, request)
 
     async def _submit_role_copy(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: RoleCopyRequest,
     ) -> ActionResult:
         guild = interaction.guild
@@ -1108,6 +1110,39 @@ class RollCog(commands.Cog):
             allowed_mentions=discord.AllowedMentions.none(),
         )
 
+    async def _run_role_change(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+        role_name: str,
+        *,
+        remove: bool,
+    ) -> None:
+        value = role_name.strip()
+        identifier = (
+            value[3:-1]
+            if value.startswith("<@&") and value.endswith(">")
+            else value
+        )
+        role = ctx.guild.get_role(int(identifier)) if identifier.isdecimal() else None
+        if role is None:
+            role = next(
+                (role for role in ctx.guild.roles if role.name.lower() == value.lower()),
+                None,
+            )
+        if role is None:
+            await ctx.reply(
+                f"Không tìm thấy role `{safe_ui_text(value)}`.",
+                mention_author=False,
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+            return
+        await run_prefix_action(
+            ctx,
+            self._submit_role_change,
+            RoleChangeRequest(member.id, role.id, remove, clean_case_reason(None)),
+        )
+
     async def _handle_role_command_error(
         self,
         ctx: commands.Context,
@@ -1153,7 +1188,7 @@ class RollCog(commands.Cog):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
                 (
-                    f"Hãy thử mở bảng {command_name} lại sau "
+                    f"Hãy thử {command_name} lại sau "
                     f"{error.retry_after:.1f} giây."
                 ),
                 mention_author=False,
@@ -1163,7 +1198,7 @@ class RollCog(commands.Cog):
 
     @commands.command(
         name="roleroll",
-        help="Mở bảng chọn role, lý do và xác nhận gán cho thành viên.",
+        help="Gán role theo tên/ID/mention; thiếu role để mở bảng chọn.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -1178,21 +1213,24 @@ class RollCog(commands.Cog):
         ctx: commands.Context,
         member: discord.Member | None = None,
         *,
-        reason: str | None = None,
+        role_name: str | None = None,
     ) -> None:
         resolved = await self._resolve_optional_member(
             ctx,
             member,
-            reason is not None,
+            role_name is not None,
             command_name="roleroll",
         )
         if resolved is None:
+            return
+        if role_name is not None:
+            await self._run_role_change(ctx, resolved, role_name, remove=False)
             return
         await self._open_role_change(
             ctx,
             resolved,
             remove=False,
-            reason=reason,
+            reason=None,
         )
 
     @give_role.error
@@ -1210,7 +1248,7 @@ class RollCog(commands.Cog):
 
     @commands.command(
         name="roleunroll",
-        help="Mở bảng chọn role, lý do và xác nhận gỡ khỏi thành viên.",
+        help="Gỡ role theo tên/ID/mention; thiếu role để mở bảng chọn.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -1225,21 +1263,24 @@ class RollCog(commands.Cog):
         ctx: commands.Context,
         member: discord.Member | None = None,
         *,
-        reason: str | None = None,
+        role_name: str | None = None,
     ) -> None:
         resolved = await self._resolve_optional_member(
             ctx,
             member,
-            reason is not None,
+            role_name is not None,
             command_name="roleunroll",
         )
         if resolved is None:
+            return
+        if role_name is not None:
+            await self._run_role_change(ctx, resolved, role_name, remove=True)
             return
         await self._open_role_change(
             ctx,
             resolved,
             remove=True,
-            reason=reason,
+            reason=None,
         )
 
     @remove_role.error
@@ -1258,8 +1299,8 @@ class RollCog(commands.Cog):
     @commands.command(
         name="rolecopy",
         help=(
-            "Mở bảng xem nguồn, đích và role sẽ sao chép; "
-            "kết quả liệt kê các role đã sao chép."
+            "Sao chép role khi nhập đủ nguồn và đích; "
+            "reply không đối số để mở bảng chọn nguồn."
         ),
         cooldown_after_parsing=True,
     )
@@ -1367,19 +1408,15 @@ class RollCog(commands.Cog):
             )
             return
 
-        view = RoleCopyWorkflowView(
-            author_id=ctx.author.id,
-            target=target,
-            source=source,
-            plan=plan,
-            submitter=self._submit_role_copy,
-            initial_reason=reason,
-        )
-        view.message = await ctx.reply(
-            embed=view.build_embed(),
-            view=view,
-            mention_author=False,
-            allowed_mentions=discord.AllowedMentions.none(),
+        await run_prefix_action(
+            ctx,
+            self._submit_role_copy,
+            RoleCopyRequest(
+                source.id,
+                target.id,
+                tuple(role.id for role in plan.eligible),
+                clean_case_reason(reason),
+            ),
         )
 
     @copy_roles.error

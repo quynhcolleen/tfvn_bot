@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,7 +10,7 @@ from cogs.mod._interaction_ui import ConfigurableModerationView
 from cogs.mod.kick import KickCog, KickRequest
 from cogs.mod.mute import MuteCog, MuteRequest
 from cogs.mod.softban import SoftbanCog, SoftbanRequest
-from cogs.mod.timeout import TimeoutCog, TimeoutRequest
+from cogs.mod.timeout import MAX_TIMEOUT_MINUTES, TimeoutCog, TimeoutRequest
 from cogs.mod.warn import WarnCommandCog, WarnRequest
 
 
@@ -242,40 +242,52 @@ class TestMemberModerationCommands(unittest.IsolatedAsyncioTestCase):
 
     async def test_reply_with_arguments_is_rejected(self) -> None:
         guild, moderator, target, channel, _, _ = make_fixture()
+        bot = SimpleNamespace(db=FakeDatabase())
+        cases = (
+            (KickCog(bot), KickCog.kick_member),
+            (MuteCog(bot), MuteCog.mute_member),
+            (MuteCog(bot), MuteCog.unmute_member),
+            (TimeoutCog(bot), TimeoutCog.timeout),
+            (TimeoutCog(bot), TimeoutCog.untimeout),
+            (WarnCommandCog(bot), WarnCommandCog.warn_user),
+            (SoftbanCog(bot), SoftbanCog.softban_member),
+            (SoftbanCog(bot), SoftbanCog.unsoftban_member),
+        )
+        for cog, command in cases:
+            with self.subTest(command=command.name):
+                ctx = make_context(
+                    guild,
+                    moderator,
+                    channel,
+                    reference=make_reply_reference(guild, channel, target),
+                )
+                await command.callback(cog, ctx, target, reason="spam")
+
+                self.assertNotIn("view", ctx.reply.await_args.kwargs)
+                self.assertIn("không kèm đối số", ctx.reply.await_args.args[0])
+        guild.fetch_member.assert_not_awaited()
+
+    async def test_reply_kick_waits_for_confirmation(self) -> None:
+        guild, moderator, target, channel, _, _ = make_fixture()
+        bot = SimpleNamespace()
+        cog = KickCog(bot)
         ctx = make_context(
             guild,
             moderator,
             channel,
             reference=make_reply_reference(guild, channel, target),
         )
-        cog = KickCog(SimpleNamespace())
 
-        await cog.kick_member.callback(cog, ctx, target, reason="spam")
-
-        self.assertNotIn("view", ctx.reply.await_args.kwargs)
-        self.assertIn("không kèm đối số", ctx.reply.await_args.args[0])
-
-    async def test_direct_reason_is_prefilled_but_kick_waits_for_confirmation(self) -> None:
-        guild, moderator, target, channel, _, _ = make_fixture()
-        bot = SimpleNamespace()
-        cog = KickCog(bot)
-        ctx = make_context(guild, moderator, channel)
-
-        await cog.kick_member.callback(
-            cog,
-            ctx,
-            target,
-            reason="  repeated   spam  ",
-        )
+        await cog.kick_member.callback(cog, ctx)
         view = ctx.reply.await_args.kwargs["view"]
-        self.assertEqual(view.initial_reason, "repeated spam")
         self.assertEqual(view.step, "reason")
         target.kick.assert_not_awaited()
 
         reason_select = next(
             item for item in view.children if isinstance(item, discord.ui.Select)
         )
-        reason_select._values = ["provided"]
+        preset = view.spec.reason.presets[0]
+        reason_select._values = [preset.key]
         await reason_select.callback(make_interaction(guild, moderator))
         self.assertEqual(view.step, "confirm")
         target.kick.assert_not_awaited()
@@ -289,29 +301,148 @@ class TestMemberModerationCommands(unittest.IsolatedAsyncioTestCase):
 
         guild.fetch_member.assert_awaited_once_with(target.id)
         target.kick.assert_awaited_once_with(
-            reason="repeated spam (Requested by moderator)"
+            reason=f"{preset.reason} (Requested by moderator)"
         )
         self.assertTrue(view.completed)
 
-    async def test_timeout_direct_duration_is_prefilled(self) -> None:
+    async def test_timeout_with_duration_runs_directly(self) -> None:
+        guild, moderator, target, channel, _, _ = make_fixture()
+        cog = TimeoutCog(SimpleNamespace())
+        ctx = make_context(guild, moderator, channel)
+        now = datetime(2026, 8, 14, tzinfo=timezone.utc)
+
+        with (
+            patch("cogs.mod.timeout.discord.utils.utcnow", return_value=now),
+            patch("cogs.mod.timeout.record_case", new_callable=AsyncMock) as record_case,
+        ):
+            await cog.timeout.callback(cog, ctx, target, 90, reason="  repeated  spam  ")
+
+        self.assertNotIn("view", ctx.reply.await_args.kwargs)
+        target.timeout.assert_awaited_once_with(
+            now + timedelta(minutes=90),
+            reason="repeated spam (Requested by moderator)",
+        )
+        self.assertEqual(record_case.await_args.kwargs["duration_seconds"], 5400)
+
+    async def test_timeout_without_duration_opens_workflow(self) -> None:
         guild, moderator, target, channel, _, _ = make_fixture()
         cog = TimeoutCog(SimpleNamespace())
         ctx = make_context(guild, moderator, channel)
 
-        await cog.timeout.callback(cog, ctx, target, 90, reason="spam")
+        await cog.timeout.callback(cog, ctx, target, reason="spam")
 
         view = ctx.reply.await_args.kwargs["view"]
         self.assertEqual(view.step, "field:duration_minutes")
-        self.assertEqual(view.values["duration_minutes"].value, 90)
+        self.assertNotIn("duration_minutes", view.values)
         self.assertEqual(view.initial_reason, "spam")
         target.timeout.assert_not_awaited()
         view.stop()
 
+    async def test_direct_timeout_rejects_out_of_range_duration(self) -> None:
+        for duration in (0, -1, MAX_TIMEOUT_MINUTES + 1):
+            with self.subTest(duration=duration):
+                guild, moderator, target, channel, _, _ = make_fixture()
+                cog = TimeoutCog(SimpleNamespace())
+                ctx = make_context(guild, moderator, channel)
+
+                with patch(
+                    "cogs.mod.timeout.record_case", new_callable=AsyncMock
+                ) as record_case:
+                    await cog.timeout.callback(cog, ctx, target, duration)
+
+                self.assertNotIn("view", ctx.reply.await_args.kwargs)
+                self.assertIn("1 đến 40,320", ctx.reply.await_args.args[0])
+                target.timeout.assert_not_awaited()
+                record_case.assert_not_awaited()
+
+    async def test_explicit_member_runs_legacy_action_and_preserves_reason(self) -> None:
+        cases = (
+            (KickCog, KickCog.kick_member, "kick", "Không có lý do cụ thể"),
+            (MuteCog, MuteCog.mute_member, "add_roles", "Không có lý do cụ thể"),
+            (MuteCog, MuteCog.unmute_member, "remove_roles", "Moderator removed mute"),
+            (TimeoutCog, TimeoutCog.untimeout, "timeout", "Moderator removed timeout"),
+            (WarnCommandCog, WarnCommandCog.warn_user, None, "Không có lý do cụ thể"),
+            (SoftbanCog, SoftbanCog.softban_member, "edit", "Không có lý do cụ thể"),
+            (SoftbanCog, SoftbanCog.unsoftban_member, "add_roles", "Moderator removed softban"),
+        )
+        for cog_type, command, method_name, default_reason in cases:
+            for provided_reason in (None, "  repeated   spam  "):
+                with self.subTest(command=command.name, reason=provided_reason):
+                    guild, moderator, target, channel, muted, handcuffed = make_fixture()
+                    database = FakeDatabase()
+                    database["old_roles"].find_one.return_value = (
+                        {"old_roles": [2]} if command.name == "unsoftban" else None
+                    )
+                    if command.name == "unmute":
+                        target.roles.append(muted)
+                    if command.name == "unsoftban":
+                        target.roles.append(handcuffed)
+                    cog = cog_type(SimpleNamespace(db=database))
+                    ctx = make_context(guild, moderator, channel)
+
+                    with patch(
+                        f"{cog_type.__module__}.record_case",
+                        new_callable=AsyncMock,
+                        return_value=12,
+                    ) as record_case:
+                        await command.callback(cog, ctx, target, reason=provided_reason)
+
+                    expected_reason = (
+                        default_reason if provided_reason is None else "repeated spam"
+                    )
+                    guild.fetch_member.assert_awaited_once_with(target.id)
+                    self.assertNotIn("view", ctx.reply.await_args.kwargs)
+                    self.assertFalse(ctx.reply.await_args.kwargs["mention_author"])
+                    self.assertEqual(
+                        ctx.reply.await_args.kwargs["allowed_mentions"].to_dict(),
+                        discord.AllowedMentions.none().to_dict(),
+                    )
+                    record_case.assert_awaited_once()
+                    self.assertEqual(record_case.await_args.kwargs["action"], command.name)
+                    self.assertEqual(record_case.await_args.kwargs["reason"], expected_reason)
+                    if method_name is None:
+                        document = database["warnings"].insert_one.call_args.args[0]
+                        self.assertEqual(document["reason"], expected_reason)
+                    else:
+                        method = getattr(target, method_name)
+                        method.assert_awaited_once()
+                        self.assertEqual(
+                            method.await_args.kwargs["reason"],
+                            f"{expected_reason} (Requested by moderator)",
+                        )
+
+    async def test_direct_kick_rechecks_permissions_and_target_hierarchy(self) -> None:
+        for blocked_by in ("permission", "hierarchy", "lock"):
+            with self.subTest(blocked_by=blocked_by):
+                guild, moderator, target, channel, _, _ = make_fixture()
+                cog = KickCog(SimpleNamespace())
+                ctx = make_context(guild, moderator, channel)
+                if blocked_by == "permission":
+                    moderator.guild_permissions.kick_members = False
+                elif blocked_by == "hierarchy":
+                    refreshed = FakeMember(guild, target.id, 101, name="promoted-target")
+                    guild.fetch_member.return_value = refreshed
+                else:
+                    cog._active_targets.add((guild.id, target.id))
+
+                with patch("cogs.mod.kick.record_case", new_callable=AsyncMock) as record_case:
+                    await cog.kick_member.callback(cog, ctx, target)
+
+                self.assertNotIn("view", ctx.reply.await_args.kwargs)
+                target.kick.assert_not_awaited()
+                guild.fetch_member.return_value.kick.assert_not_awaited()
+                record_case.assert_not_awaited()
+
     async def test_live_permission_loss_blocks_workflow(self) -> None:
         guild, moderator, target, channel, _, _ = make_fixture()
         cog = KickCog(SimpleNamespace())
-        ctx = make_context(guild, moderator, channel)
-        await cog.kick_member.callback(cog, ctx, target)
+        ctx = make_context(
+            guild,
+            moderator,
+            channel,
+            reference=make_reply_reference(guild, channel, target),
+        )
+        await cog.kick_member.callback(cog, ctx)
         view = ctx.reply.await_args.kwargs["view"]
         moderator.guild_permissions.kick_members = False
         interaction = make_interaction(guild, moderator)

@@ -18,10 +18,12 @@ from cogs.mod._interaction_ui import (
     ConfigurableModerationView,
     FormAnswer,
     IntegerField,
+    PrefixModerationContext,
     ReasonConfig,
     ReasonPreset,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 from cogs.mod._reply_target import ReplyTargetError, resolve_same_channel_reply_member
 
@@ -119,7 +121,7 @@ class TimeoutCog(commands.Cog):
 
     async def _submit_timeout(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: TimeoutRequest,
     ) -> ActionResult:
         guild = interaction.guild
@@ -147,7 +149,10 @@ class TimeoutCog(commands.Cog):
             if request.duration_minutes is not None and not (
                 1 <= request.duration_minutes <= MAX_TIMEOUT_MINUTES
             ):
-                return ActionResult(False, "Thời gian timeout không hợp lệ.")
+                return ActionResult(
+                    False,
+                    f"Thời gian timeout phải từ 1 đến {MAX_TIMEOUT_MINUTES:,} phút.",
+                )
             reason = clean_case_reason(request.reason)
             until = (
                 discord.utils.utcnow() + timedelta(minutes=request.duration_minutes)
@@ -276,7 +281,11 @@ class TimeoutCog(commands.Cog):
             allowed_mentions=discord.AllowedMentions.none(),
         )
 
-    @commands.command(name="timeout", help="Mở bảng timeout thành viên.", cooldown_after_parsing=True)
+    @commands.command(
+        name="timeout",
+        help="Timeout trực tiếp khi có member và số phút; thiếu số phút để mở bảng.",
+        cooldown_after_parsing=True,
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
     @commands.cooldown(1, TIMEOUT_COMMAND_COOLDOWN_SECONDS, commands.BucketType.member)
@@ -296,6 +305,13 @@ class TimeoutCog(commands.Cog):
             command_name="timeout",
         )
         if member is not None:
+            if ctx.message.reference is None and duration_minutes is not None:
+                await run_prefix_action(
+                    ctx,
+                    self._submit_timeout,
+                    TimeoutRequest(member.id, duration_minutes, clean_case_reason(reason)),
+                )
+                return
             await self._open_workflow(
                 ctx,
                 member,
@@ -304,7 +320,11 @@ class TimeoutCog(commands.Cog):
                 remove=False,
             )
 
-    @commands.command(name="untimeout", help="Mở bảng gỡ timeout.", cooldown_after_parsing=True)
+    @commands.command(
+        name="untimeout",
+        help="Gỡ timeout trực tiếp; reply không kèm đối số để mở bảng.",
+        cooldown_after_parsing=True,
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
     @commands.cooldown(1, TIMEOUT_COMMAND_COOLDOWN_SECONDS, commands.BucketType.member)
@@ -323,6 +343,19 @@ class TimeoutCog(commands.Cog):
             command_name="untimeout",
         )
         if member is not None:
+            if ctx.message.reference is None:
+                await run_prefix_action(
+                    ctx,
+                    self._submit_timeout,
+                    TimeoutRequest(
+                        member.id,
+                        None,
+                        clean_case_reason(
+                            "Moderator removed timeout" if reason is None else reason
+                        ),
+                    ),
+                )
+                return
             await self._open_workflow(
                 ctx,
                 member,
@@ -342,7 +375,7 @@ class TimeoutCog(commands.Cog):
             return
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                f"Hãy thử mở bảng timeout lại sau {error.retry_after:.1f} giây.",
+                f"Hãy thử timeout lại sau {error.retry_after:.1f} giây.",
                 mention_author=False,
             )
             return

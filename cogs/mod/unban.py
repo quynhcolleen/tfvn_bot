@@ -10,6 +10,7 @@ from cogs.mod._case_helpers import (
     format_audit_reason,
     record_case,
 )
+from cogs.mod._interaction_ui import PrefixModerationContext, run_prefix_action
 from cogs.mod._unban_ui import (
     REINVITE_MAX_AGE_SECONDS,
     UnbanActionResult,
@@ -278,7 +279,7 @@ class UnbanCog(commands.Cog):
 
     async def _submit_unban(
         self,
-        interaction: discord.Interaction,
+        interaction: discord.Interaction | PrefixModerationContext,
         request: UnbanRequest,
         *,
         invite_channel: InviteChannel | None,
@@ -297,7 +298,7 @@ class UnbanCog(commands.Cog):
         except discord.NotFound:
             return UnbanActionResult(
                 True,
-                "Người dùng này đã được gỡ ban trước khi bạn xác nhận.",
+                "Người dùng này không còn trong danh sách ban.",
             )
         except discord.Forbidden:
             return UnbanActionResult(
@@ -434,7 +435,7 @@ class UnbanCog(commands.Cog):
 
     @commands.command(
         name="unban",
-        help="Mở bảng unban bằng user ID hoặc tác giả tin nhắn được reply.",
+        help="Unban bằng user ID; reply không đối số để mở bảng tùy chọn reinvite.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -501,6 +502,20 @@ class UnbanCog(commands.Cog):
                     mention_author=False,
                 )
                 return
+
+        if reference is None:
+            async def submit_prefix_unban(
+                actor: PrefixModerationContext,
+                request: UnbanRequest,
+            ) -> UnbanActionResult:
+                return await self._submit_unban(actor, request, invite_channel=None)
+
+            await run_prefix_action(
+                ctx,
+                submit_prefix_unban,
+                UnbanRequest(user_id, False, clean_case_reason(reason)),
+            )
+            return
 
         try:
             entry = await ctx.guild.fetch_ban(discord.Object(id=user_id))

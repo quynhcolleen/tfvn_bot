@@ -70,7 +70,7 @@ class TestCaseMutationGuards(unittest.IsolatedAsyncioTestCase):
             "reason": "new reason",
         }
 
-        await cog.case_edit.callback(cog, ctx, 7, reason="new reason")
+        await cog.case_edit.callback(cog, ctx, 7)
 
         cog.cases.find_one_and_update.assert_not_called()
         view = ctx.reply.await_args.kwargs["view"]
@@ -96,7 +96,7 @@ class TestCaseMutationGuards(unittest.IsolatedAsyncioTestCase):
             "updated_at": object(),
         }
 
-        await cog.case_status.callback(cog, ctx, 8, "resolved")
+        await cog.case_status.callback(cog, ctx, 8)
         view = ctx.reply.await_args.kwargs["view"]
         await view.cancel(make_interaction(guild, moderator))
 
@@ -120,8 +120,9 @@ class TestCaseMutationGuards(unittest.IsolatedAsyncioTestCase):
             None,
         ]
 
-        await cog.case_edit.callback(cog, ctx, 9, reason="same reason")
+        await cog.case_edit.callback(cog, ctx, 9)
         view = ctx.reply.await_args.kwargs["view"]
+        view.values["new_reason"] = FormAnswer("same reason", "same reason")
         view._show_confirm_step()
         interaction = make_interaction(guild, moderator)
         await view.confirm(interaction)
@@ -147,8 +148,9 @@ class TestCaseMutationGuards(unittest.IsolatedAsyncioTestCase):
             None,
         ]
 
-        await cog.case_status.callback(cog, ctx, 10, "open")
+        await cog.case_status.callback(cog, ctx, 10)
         view = ctx.reply.await_args.kwargs["view"]
+        view.values["status"] = FormAnswer("open", "Open")
         view._show_confirm_step()
         interaction = make_interaction(guild, moderator)
         await view.confirm(interaction)

@@ -9,8 +9,10 @@ from cogs.mod._interaction_ui import (
     ActionResult,
     COMMON_REASON_CONFIG,
     ConfigurableModerationView,
+    PrefixModerationContext,
     WorkflowSpec,
     WorkflowTarget,
+    run_prefix_action,
 )
 from cogs.mod._reply_target import ReplyTargetError, resolve_same_channel_reply_member
 
@@ -177,6 +179,7 @@ class SlowmodeCog(commands.Cog):
         member: discord.Member,
         immune: bool,
         initial_reason: str | None,
+        direct: bool = False,
     ) -> None:
         channel = _normalize_slowmode_override_channel(ctx.channel)
         if channel is None:
@@ -227,7 +230,7 @@ class SlowmodeCog(commands.Cog):
             )
 
         async def submit_override(
-            interaction: discord.Interaction,
+            interaction: discord.Interaction | PrefixModerationContext,
             request: SlowmodeOverrideRequest,
         ) -> ActionResult:
             guild = interaction.guild
@@ -311,6 +314,14 @@ class SlowmodeCog(commands.Cog):
                 ),
             )
 
+        if direct:
+            await run_prefix_action(
+                ctx,
+                submit_override,
+                build_request({}, initial_reason),
+            )
+            return
+
         view = ConfigurableModerationView(
             spec=SLOWMODE_IMMUNE_SPEC if immune else SLOWMODE_PROMINENT_SPEC,
             author_id=ctx.author.id,
@@ -365,7 +376,7 @@ class SlowmodeCog(commands.Cog):
 
     @slowmode.command(
         name="immune",
-        help="Mở bảng cấp miễn slowmode cho member mention/reply.",
+        help="Cấp miễn slowmode cho member; reply không tham số để mở bảng.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -394,11 +405,12 @@ class SlowmodeCog(commands.Cog):
                 member=target,
                 immune=True,
                 initial_reason=reason,
+                direct=member is not None,
             )
 
     @slowmode.command(
         name="prominent",
-        help="Mở bảng gỡ miễn slowmode cho member mention/reply.",
+        help="Gỡ miễn slowmode cho member; reply không tham số để mở bảng.",
         cooldown_after_parsing=True,
     )
     @commands.guild_only()
@@ -427,6 +439,7 @@ class SlowmodeCog(commands.Cog):
                 member=target,
                 immune=False,
                 initial_reason=reason,
+                direct=member is not None,
             )
 
     @slowmode_immune.error
