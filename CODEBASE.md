@@ -171,9 +171,9 @@ tfvn_bot/
     │   │   ├── _crocodile_helpers.py  Pure challenge parsing and game-state transitions
     │   │   └── crocodile.py           Persistent invitations, tooth UI, expiry, and commands
     │   ├── word_connect/word_connect.py
-    │   │                                 Persistent Vietnamese word-chain game
+    │   │                                 Persistent Vietnamese word-chain game with TC win rewards
     │   └── vietnamese_king/vietnamese_king.py
-    │                                     Persistent letter-scramble game
+    │                                     Persistent letter-scramble game with TC win rewards
     ├── mod/
     │   ├── _case_helpers.py         Safe shared case recording and validation
     │   ├── _interaction_ui.py       Shared forms, confirmation guard, and legacy action dispatch
@@ -276,7 +276,8 @@ MongoDB collections are created lazily. Major groups are:
   from `operation_logs` and is excluded from guild audit browsing, CSV export,
   and pruning
 - Shared sequence counters: `feature_counters`
-- Games and boosters: card-game wagers use `user_accounts` plus `transaction_logs`;
+- Games and boosters: card-game wagers and word-game win rewards use
+  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`;
   Crocodile Dentist uses `crocodile_games` plus guild-scoped IDs from
   `feature_counters` keys named `crocodile_game:<guild_id>`; other state uses
   `context`, `sicbo_active_games`, `booster_custom_roles`, and `booster_custom_rooms`

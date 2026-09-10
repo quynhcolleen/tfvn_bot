@@ -28,7 +28,7 @@ from cogs.onboarding._role_exam_helpers import (
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-SHIPPED_CONFIG_PATH = REPOSITORY_ROOT / "data" / "role_exam.json"
+REPOSITORY_CONFIG_PATH = REPOSITORY_ROOT / "data" / "role_exam.json"
 
 
 def valid_payload() -> dict:
@@ -66,8 +66,19 @@ def load_payload(payload: object) -> RoleExamConfig:
 
 
 class TestRoleExamConfigLoader(unittest.TestCase):
-    def test_loads_shipped_twenty_question_placeholder_config(self) -> None:
-        config = load_role_exam_config(SHIPPED_CONFIG_PATH)
+    def test_loads_repository_exam_config(self) -> None:
+        # Administrators may customize the role, threshold, and question text.
+        config = load_role_exam_config(REPOSITORY_CONFIG_PATH)
+
+        self.assertIsInstance(config, RoleExamConfig)
+        self.assertEqual(config.schema_version, 1)
+        self.assertEqual(len(config.questions), 20)
+
+    def test_loads_twenty_question_placeholder_config(self) -> None:
+        payload = valid_payload()
+        for question in payload["questions"]:
+            question["prompt"] = f"[TODO] {question['prompt']}"
+        config = load_payload(payload)
 
         self.assertEqual(config.schema_version, 1)
         self.assertIsNone(config.role_id)

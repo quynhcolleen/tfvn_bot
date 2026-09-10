@@ -602,7 +602,11 @@ HELP_TOPICS = (
                         "Phân tích ván sau khi đã có ít nhất một nước đi của người chơi.",
                     ),
                 ),
-                note="Tin nhắn thường trong kênh cấu hình cũng được tính là lượt chơi.",
+                note=(
+                    "Gửi tin nhắn thường trong kênh game để nối từ. Nước đi hợp lệ "
+                    "khiến không còn từ chưa dùng để nối tiếp sẽ thắng **50 TC**, "
+                    "kể cả sau gợi ý. Đặt lại ván không nhận thưởng."
+                ),
             ),
             HelpSection(
                 name="Vua Tiếng Việt",
@@ -618,7 +622,11 @@ HELP_TOPICS = (
                         "Mở một chữ; gần hết chữ sẽ kết thúc và tạo vòng mới.",
                     ),
                 ),
-                note="Tin nhắn thường trong kênh cấu hình cũng được kiểm tra đáp án.",
+                note=(
+                    "Gửi đáp án bằng tin nhắn thường trong kênh game. Người trả lời "
+                    "đúng đầu tiên nhận **10 TC**, kể cả sau gợi ý. Bỏ qua câu đố "
+                    "hoặc hết gợi ý không nhận thưởng."
+                ),
             ),
         ),
     ),

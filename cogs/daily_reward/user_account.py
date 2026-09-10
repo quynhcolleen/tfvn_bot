@@ -23,6 +23,8 @@ TRANSACTION_LABELS = {
     "poker_win": "Thắng Poker",
     "poker_push": "Hòa Poker",
     "poker_refund": "Hoàn cược Poker",
+    "vietnamese_king_win": "Thắng Vua Tiếng Việt",
+    "word_connect_win": "Thắng Nối Từ",
     "big_speaker": "Big speaker / Loa",
     "big_speaker_refund": "Hoàn big speaker",
     "admin_add_tc": "Admin cộng TC",

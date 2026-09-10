@@ -281,15 +281,15 @@ account write.
 | `crocodile` | Everyone (guild only) | Show the caller's newest 10 pending or active Crocodile Dentist games in the current server |
 | `crocodile challenge [teeth] @user1 [@user2 @user3 @user4]` | Everyone (guild only) | Create a 2–5 player challenge; `teeth` must precede the mentions, defaults to 13, and accepts 2–25 |
 | `crocodile fire <game_id>` | Host (guild only) | Recreate the authoritative invitation or gameplay panel for an open game in the current channel without resetting its state or deadlines |
-| `noitu` | Channel-bound | Word-chain rules embed |
+| `noitu` | Channel-bound | Word-chain rules embed; a valid move leaving no unused continuation wins **50 TC** |
 | `noitu status` | Channel-bound | Current word and used-word list |
 | `noitu hint` | Channel-bound | Hint for the chain |
-| `noitu end` | Channel-bound | End the current game |
+| `noitu end` | Channel-bound | Reset the current game without awarding TC |
 | `noitu analyze` | Channel-bound | Analyze connectivity of the current word |
-| `vtv` | Channel-bound | Vua Tiếng Việt rules + current scramble |
+| `vtv` | Channel-bound | Vua Tiếng Việt rules + current scramble; the first correct solver wins **10 TC** |
 | `vtv status` | Channel-bound | Current puzzle status |
-| `vtv next` | Channel-bound | Start a new letter-scramble round |
-| `vtv hint` | Channel-bound | Reveal a letter hint |
+| `vtv next` | Channel-bound | Skip the current puzzle and start a new letter-scramble round without awarding TC |
+| `vtv hint` | Channel-bound | Reveal a letter hint; exhausting hints starts a new round without awarding TC |
 
 **Background:** Crocodile Dentist stores pending and active games in
 `crocodile_games`, so invitation responses, turns, pressed teeth, and the hidden
@@ -298,7 +298,14 @@ or unanswered invitees are removed, and the game starts only if at least one
 invitee accepts. One hidden dangerous tooth ends the game immediately; otherwise
 turns cycle in host-first order. Active games cancel after seven days without a
 valid tooth press. `noitu` and `vtv` also accept plain messages in their configured
-channels for gameplay.
+channels for gameplay. Vua Tiếng Việt awards **10 TC** to the first correct solver;
+Nối Từ awards **50 TC** for a valid move that leaves no unused continuation.
+Hint-assisted wins remain eligible. Ordinary connecting moves, manual resets,
+skipped puzzles, and hint exhaustion award nothing. Rewards have no entry fee or
+daily cap, use the existing global account balance, and create an account when
+needed. Winner announcements show the credited reward; transaction history labels
+these credits “Thắng Vua Tiếng Việt” and “Thắng Nối Từ”. Reward amounts are fixed
+and require no new configuration.
 
 **Module:** `cogs.minigames.*`; the interactive card-game cogs are
 `cogs.minigames.blackjack.blackjack` and `cogs.minigames.poker.poker`; persistent

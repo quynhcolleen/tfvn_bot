@@ -1,14 +1,22 @@
-import random
-from discord.ext import commands  # pyright: ignore[reportMissingImports]
-import discord  # pyright: ignore[reportMissingImports]
+import asyncio
 import datetime
+import logging
+import random
+
+import discord  # pyright: ignore[reportMissingImports]
+from discord.ext import commands  # pyright: ignore[reportMissingImports]
+from pymongo.errors import PyMongoError
+
+from cogs.minigames._card_game_economy import CardGameBank
+
+
+logger = logging.getLogger(__name__)
+WIN_REWARD = 50
 
 
 class WordConnectCommandCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-        print(self.bot.global_vars)  # Debug: print global variables
 
         if (self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"] is None or self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"] == ""):
             raise ValueError("WORD_CONNECT_GAMES_CHANNELS is not set in global variables.")
@@ -18,6 +26,10 @@ class WordConnectCommandCog(commands.Cog):
         self.word_list: list[str] = self.bot.WORD_CONNECT_WORDS
         self.channel_games: list[str] = [str(channel_id) for channel_id in self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"]]
         self.db = bot.db
+        self.bank = CardGameBank(self.db)
+        self.round_lock = asyncio.Lock()
+        self._round_generation = 0
+        self._round_started_at: datetime.datetime | None = None
         self.hint_timeout_datetime = None
         # self.rate_icon = {
         #     "brilliant": "<:brilliantmove:1458179812177870984>"  or "🌟",
@@ -60,7 +72,6 @@ class WordConnectCommandCog(commands.Cog):
                 "last_valid_message_id": record.get("last_valid_message_id"),
             }
 
-        self._clear_context()
         self._start_new_game()
 
         return {
@@ -85,11 +96,19 @@ class WordConnectCommandCog(commands.Cog):
             upsert=True,
         )
 
-    def _clear_context(self):
-        self.db["context"].delete_many({"context_type": "word_connect"})
-
     def _random_word(self) -> str:
-        return random.choice(self.word_list)
+        # A new round must ignore the previous round's used words. Selecting
+        # from valid starters also avoids an endless retry on an exhausted list.
+        words_by_first = {}
+        for word in self.word_list:
+            words_by_first.setdefault(word.split()[0], set()).add(word)
+        starters = [
+            word for word in self.word_list
+            if words_by_first.get(word.split()[-1], set()) - {word}
+        ]
+        if not starters:
+            raise ValueError("Word Connect needs at least one playable starting word")
+        return random.choice(starters)
 
     def _is_word_connect_channel(self, channel_id: int) -> bool:
         return str(channel_id) in self.channel_games
@@ -102,16 +121,25 @@ class WordConnectCommandCog(commands.Cog):
         )
 
     def _start_new_game(self):
-        while True:
-            word = self._random_word()
-            if not self._is_dead_end(word):
-                break
-
+        word = self._random_word()
+        previous_state = (
+            self.current_word, self.used_words,
+            self.last_player_id, self.last_valid_message_id,
+        )
         self.current_word = word
         self.used_words = [word]
         self.last_player_id = None
         self.last_valid_message_id = None
-        self._save_context()
+        try:
+            self._save_context()
+        except PyMongoError:
+            (
+                self.current_word, self.used_words,
+                self.last_player_id, self.last_valid_message_id,
+            ) = previous_state
+            raise
+        self._round_generation += 1
+        self._round_started_at = discord.utils.utcnow()
 
     def _turn_number_reactions(self, turn_number: int) -> list[str]:
         digit_reactions = {
@@ -129,9 +157,22 @@ class WordConnectCommandCog(commands.Cog):
         return [digit_reactions[digit] for digit in str(turn_number)]
 
     async def _react_with_turn_number(self, message: discord.Message, result_reaction: str, turn_number: int):
-        await message.add_reaction(result_reaction)
-        for reaction in self._turn_number_reactions(turn_number):
+        for reaction in [result_reaction, *self._turn_number_reactions(turn_number)]:
+            await self._add_reaction(message, reaction)
+
+    async def _add_reaction(self, message: discord.Message, reaction: str) -> None:
+        try:
             await message.add_reaction(reaction)
+        except discord.HTTPException:
+            logger.exception("Failed to react to Word Connect message=%s", message.id)
+
+    async def _send_game_message(
+        self, channel: discord.abc.Messageable, content: str, message_id: int,
+    ) -> None:
+        try:
+            await channel.send(content, allowed_mentions=discord.AllowedMentions.none())
+        except discord.HTTPException:
+            logger.exception("Failed to send Word Connect announcement message=%s", message_id)
 
     # def _count_dead_ends(self, word: str, word_list: list[str], visited: set[str], depth: int = 0, max_depth: int = 3) -> int:
     #     print(f"Counting dead ends for word: {word}, depth: {depth}, visited: {visited}")
@@ -250,6 +291,15 @@ class WordConnectCommandCog(commands.Cog):
         )
 
         embed.add_field(
+            name="🏆 Phần thưởng",
+            value=(
+                f"Nối hợp lệ khiến không còn từ chưa dùng nào nối tiếp: thắng **{WIN_REWARD} TC**.\n"
+                "Dùng gợi ý vẫn được nhận thưởng. Reset bằng lệnh không có thưởng."
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
             name="⚠️ Lưu ý", value="Vào **ngõ cụt** → game sẽ **reset**", inline=False
         )
 
@@ -282,14 +332,20 @@ class WordConnectCommandCog(commands.Cog):
         if not self._is_word_connect_channel(ctx.channel.id):
             return
 
-        # timeout 30 seconds to prevent spam
-        now = datetime.datetime.now()
-        if self.hint_timeout_datetime and (now - self.hint_timeout_datetime).total_seconds() < 30:
+        async with self.round_lock:
+            # timeout 30 seconds to prevent spam
+            now = datetime.datetime.now()
+            on_cooldown = (
+                self.hint_timeout_datetime is not None
+                and (now - self.hint_timeout_datetime).total_seconds() < 30
+            )
+            if not on_cooldown:
+                self.hint_timeout_datetime = now
+                top_suggestions = self._top_words(self.current_word.lower().strip())
+
+        if on_cooldown:
             await ctx.send("⏳ Vui lòng chờ trước khi yêu cầu gợi ý tiếp theo.")
             return
-        
-        self.hint_timeout_datetime = now
-        top_suggestions = self._top_words(self.current_word.lower().strip())
         
         if not top_suggestions:
             await ctx.send("❌ Không có từ gợi ý nào khả dụng.")
@@ -322,10 +378,19 @@ class WordConnectCommandCog(commands.Cog):
         if not self._is_word_connect_channel(ctx.channel.id):
             return
 
-        self._clear_context()
-        self._start_new_game()
+        async with self.round_lock:
+            try:
+                self._start_new_game()
+            except PyMongoError:
+                logger.exception(
+                    "Failed to reset Word Connect message=%s user=%s",
+                    ctx.message.id, ctx.author.id,
+                )
+                response = "❌ Không thể lưu ván mới. Game chưa được reset; không có TC được trao."
+            else:
+                response = f"🔄 Game đã reset!\nTừ bắt đầu mới là **{self.current_word}**!"
 
-        await ctx.send(f"🔄 Game đã reset!\nTừ bắt đầu mới là **{self.current_word}**!")
+        await self._send_game_message(ctx.channel, response, ctx.message.id)
 
     @noitu.command(name="analyze")
     async def wordconnect_analyze(self, ctx):
@@ -407,6 +472,7 @@ class WordConnectCommandCog(commands.Cog):
         if len(word.split()) != 2:
             return
 
+        round_generation = self._round_generation
         ctx = await self.bot.get_context(message)
         if ctx.valid:
             return
@@ -414,65 +480,120 @@ class WordConnectCommandCog(commands.Cog):
         if message.content.startswith(self.bot.command_prefix):
             return
         
-        # standardize the word
         word = self._normalize_old_tone(word)
-        turn_number = max(1, len(self.used_words))
+        error_message = None
+        persistence_error = None
+        winner_announcement = None
+        next_announcement = None
 
-        # ❌ Không được tự nối 2 lượt liên tiếp
-        if self.last_player_id == message.author.id:
-            await message.add_reaction("❌")
-            msg = await message.reply(
-                f"❌ Bạn vừa nối từ trước đó rồi, hãy để người khác chơi nhé. Từ hiện tại: **{self.current_word}**"
-            )
-            await msg.delete(delay=5)
+        async with self.round_lock:
+            if round_generation != self._round_generation:
+                return
+            if self._round_started_at is not None and message.created_at < self._round_started_at:
+                return
+
+            turn_number = max(1, len(self.used_words))
+            last = self.current_word.split()[-1]
+            if self.last_player_id == message.author.id:
+                error_message = (
+                    "❌ Bạn vừa nối từ trước đó rồi, hãy để người khác chơi nhé. "
+                    f"Từ hiện tại: **{self.current_word}**"
+                )
+            elif word not in self.word_list:
+                error_message = (
+                    "❌ Từ này không có trong từ điển.\n"
+                    f"Từ hiện tại: **{self.current_word}**"
+                )
+            elif word in self.used_words:
+                error_message = (
+                    "❌ Từ này đã được sử dụng. Các từ đã dùng: "
+                    + ", ".join(self.used_words)
+                )
+            elif not word.startswith(last + " "):
+                error_message = (
+                    f"❌ Từ phải bắt đầu bằng **{last}**. "
+                    f"Từ hiện tại: **{self.current_word}**"
+                )
+            elif self._is_dead_end(word):
+                try:
+                    # Consume the round before any credit or Discord await.
+                    self._start_new_game()
+                except PyMongoError:
+                    logger.exception(
+                        "Failed to persist Word Connect winning round message=%s user=%s",
+                        message.id, message.author.id,
+                    )
+                    persistence_error = (
+                        "❌ Không thể lưu ván mới nên chưa trao TC. "
+                        "Ván hiện tại được giữ nguyên."
+                    )
+                else:
+                    try:
+                        self.bank.credit(
+                            user_id=message.author.id,
+                            guild_id=message.guild.id if message.guild else None,
+                            game="word_connect",
+                            amount=WIN_REWARD,
+                            session_id=str(message.id),
+                            reason="win",
+                        )
+                    except PyMongoError:
+                        logger.exception(
+                            "Unable to confirm Word Connect reward message=%s user=%s",
+                            message.id, message.author.id,
+                        )
+                        reward_message = f"⚠️ Chưa thể xác nhận phần thưởng **{WIN_REWARD} TC**."
+                    else:
+                        reward_message = f"💰 Đã cộng **{WIN_REWARD} TC** vào tài khoản!"
+
+                    winner_announcement = (
+                        f"Không còn từ chưa dùng nào bắt đầu bằng **{word.split()[-1]}**! "
+                        f"🎉 **{message.author.display_name} là người thắng cuộc!**\n"
+                        f"📊 Tổng số lượt nối: **{turn_number}**\n{reward_message}"
+                    )
+                    next_announcement = f"🔄 Game mới bắt đầu với từ: **{self.current_word}**"
+            else:
+                previous_state = (
+                    self.current_word, self.used_words,
+                    self.last_player_id, self.last_valid_message_id,
+                )
+                self.used_words = [*self.used_words, word]
+                self.current_word = word
+                self.last_player_id = message.author.id
+                self.last_valid_message_id = message.id
+                try:
+                    self._save_context()
+                except PyMongoError:
+                    (
+                        self.current_word, self.used_words,
+                        self.last_player_id, self.last_valid_message_id,
+                    ) = previous_state
+                    logger.exception(
+                        "Failed to persist Word Connect move message=%s user=%s",
+                        message.id, message.author.id,
+                    )
+                    persistence_error = "❌ Không thể lưu lượt nối. Ván hiện tại được giữ nguyên."
+
+        if error_message is not None:
+            await self._add_reaction(message, "❌")
+            try:
+                reply = await message.reply(
+                    error_message, allowed_mentions=discord.AllowedMentions.none(),
+                )
+                await reply.delete(delay=5)
+            except discord.HTTPException:
+                logger.exception("Failed to report invalid Word Connect move message=%s", message.id)
             return
 
-        # ❌ Không có trong từ điển
-        if word not in self.word_list:
-            await message.add_reaction("❌")
-            msg = await message.reply(f"❌ Từ này không có trong từ điển.\nTừ hiện tại: **{self.current_word}**")
-            await msg.delete(delay=5)
+        if persistence_error is not None:
+            await self._send_game_message(message.channel, persistence_error, message.id)
             return
-
-        # ❌ Đã dùng
-        if word in self.used_words:
-            await message.add_reaction("❌")
-            msg = await message.reply("❌ Từ này đã được sử dụng. Các từ đã dùng: " + ", ".join(self.used_words))
-            await msg.delete(delay=5)
-            return
-
-        # ❌ Nối sai
-        last = self.current_word.split()[-1]
-        if not word.startswith(last + " "):
-            await message.add_reaction("❌")
-            msg = await message.reply(f"❌ Từ phải bắt đầu bằng **{last}**. Từ hiện tại: **{self.current_word}**")
-            await msg.delete(delay=5)
-            return
-
-        if self._is_dead_end(word):
-            await self._react_with_turn_number(message, "✅", turn_number)
-            await message.add_reaction("🏆")
-            await message.channel.send(
-                f"Không còn từ nào bắt đầu bằng **{last}**! 🎉 **{message.author.display_name} là người thắng cuộc!**\n"
-                f"📊 Tổng số lượt nối: **{turn_number}**"
-            )
-
-            self._clear_context()
-            self._start_new_game()
-
-            await message.channel.send(
-                f"🔄 Game mới bắt đầu với từ: **{self.current_word}**"
-            )
-            return
-
-        # ✅ HỢP LỆ
-        self.used_words.append(word)
-        self.current_word = word
-        self.last_player_id = message.author.id
-        self.last_valid_message_id = message.id
-        self._save_context()
 
         await self._react_with_turn_number(message, "✅", turn_number)
+        if winner_announcement is not None:
+            await self._add_reaction(message, "🏆")
+            await self._send_game_message(message.channel, winner_announcement, message.id)
+            await self._send_game_message(message.channel, next_announcement, message.id)
 
 
 async def setup(bot):
