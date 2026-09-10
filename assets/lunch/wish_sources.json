@@ -1,0 +1,23 @@
+{
+  "blue": {
+    "file": "wish_blue.gif",
+    "url": "https://media1.tenor.com/m/-0gPdn6GMVAAAAAd/genshin3star-wish.gif",
+    "source": "https://tenor.com/view/genshin3star-wish-gif-23716488",
+    "duration_seconds": 3.0,
+    "sha256": "6619fccff478708c94d760aa5d868bca2ae8ed45fc8cc4208fa0115ed879fd86"
+  },
+  "purple": {
+    "file": "wish_purple.gif",
+    "url": "https://media1.tenor.com/m/JcMSVVkgfgMAAAAd/genshin-wish.gif",
+    "source": "https://tenor.com/view/genshin-wish-genshin-impact-rare-purple-gif-26472708",
+    "duration_seconds": 6.0,
+    "sha256": "f01c77175d1ea4f9356ac6c375cab5b67d125b088ad9d4cf0618a555a35ed9cd"
+  },
+  "gold": {
+    "file": "wish_gold.gif",
+    "url": "https://media1.tenor.com/m/Nc7Fgo43GLwAAAAd/genshin-gold-genshin-wish.gif",
+    "source": "https://tenor.com/view/genshin-gold-genshin-wish-genshin-wishing-genshin-fate-genshin5star-gif-24554140",
+    "duration_seconds": 6.08,
+    "sha256": "b3e9701c26f49090ee11e7614c43cb1cb610afe2eff0075ed2402456d54c5183"
+  }
+}

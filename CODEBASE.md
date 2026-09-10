@@ -37,6 +37,7 @@ tfvn_bot/
 │
 ├── assets/
 │   ├── gifs.py                     Welcome and general interaction media URLs
+│   ├── lunch/                      Bundled food images, Genshin wish GIFs, and source notes
 │   └── nsfw_gifs.py                Legacy NSFW media lists used by migration tooling
 │
 ├── fonts/
@@ -53,6 +54,8 @@ tfvn_bot/
 │   │                                 Random Discord custom/action definitions
 │   ├── fake_loading_sentences.txt  Random progress text for fun commands
 │   ├── femboy_role.txt             Role names used by the femboy card command
+│   ├── lunch_foods.json            Bundled lunch catalog with prices, diet tags, and media mapping
+│   ├── lunch_foods_extra.json      Local lunch additions with reserved image IDs from 1000
 │   ├── nsfw_channel.json           Verification-managed NSFW channel definitions
 │   ├── role_exam.json              Role-exam questions, pass percentage, and reward role ID
 │   ├── vietnamese_king_data.json   Generated Vua Tiếng Việt puzzle dataset
@@ -60,6 +63,7 @@ tfvn_bot/
 │
 ├── scripts/
 │   ├── migrate_nsfw_gifs.py        Moves legacy GIF lists into Mongo global variables
+│   ├── prepare_lunch_assets.py     Prepares the upstream lunch catalog and food image sheets
 │   ├── vietnamese_king_data_prepare.py
 │   │                                 Normalizes/filter source words and generates game data
 │   └── words.txt                   Source records for Vietnamese data preparation
@@ -76,6 +80,10 @@ tfvn_bot/
 │   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
 │   ├── test_legacy_case_slowmode.py Direct case updates and slowmode override regression tests
+│   ├── test_lunch.py               Lunch filter UI, owner checks, animation, and lifecycle tests
+│   ├── test_lunch_helpers.py       Lunch argument parsing, catalog validation, and selection tests
+│   ├── test_lunch_media.py         Food atlas mapping, image crops, and bundled wish validation
+│   ├── test_prepare_lunch_assets.py Local additions, collision checks, and offline catalog rebuilds
 │   ├── test_highlight.py           Highlight listener, spacing, media download, and posting tests
 │   ├── test_highlight_card.py      Discord-chat highlight PNG, embed, and gallery tests
 │   ├── test_highlight_font.py      Highlight meter symbols and composite emoji rendering tests
@@ -230,12 +238,28 @@ tfvn_bot/
         ├── big_speaker.py               Paid TC big-text re-speak in current channel
         ├── _big_speaker_helpers.py      Size 1–6 → TC cost, mention sanitize, format helpers
         ├── random_member.py             Random guild member selection
+        ├── lunch.py                     Owner-only budget/diet picker and animated lunch reveal
+        ├── _lunch_helpers.py            Lunch catalog loading, filter parsing, and uniform selection
+        ├── _lunch_media.py              Local food-image and Genshin wish attachment helpers
         └── save_image.py                Discord attachment metadata persistence
 ```
 
 Local `dev_cogs.txt` selects extensions during development. `DISABLED_COGS` can
 filter loaded extensions with exact dotted modules or wildcard patterns.
 `draft.txt` is a local scratch file.
+
+Lunch owns its catalog and local media loading; it does not use shared bot data,
+MongoDB, or external APIs at runtime. `!tf lunch [budget] [chay]` opens a
+three-minute owner-only budget/diet panel. Rolls uniformly select from matching
+dishes, display the bundled wish GIF, then reveal the food image and catalog
+details in the same message. Rerolls preserve filters and avoid the previous
+dish when alternatives exist. Price-based animation colors are cosmetic.
+The preparation script updates the upstream food snapshot and image sheets
+together, merging the separately maintained local food additions. Its `--offline`
+mode rebuilds the combined catalog from bundled records and the local additions
+without downloading assets. Local image IDs start at 1000 and use `food-extra-*`
+sheets; image-generation prompts and wish animations have separate source notes
+under `assets/lunch/`.
 
 ## Persistence Boundaries
 
