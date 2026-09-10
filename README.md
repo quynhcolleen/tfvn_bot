@@ -227,9 +227,9 @@ commands rather than `setting set_variable`:
 | Shop | Add a role or badge item; no separate setup command is required |
 
 The role exam uses the repository file `data/role_exam.json` instead of MongoDB.
-It ships with `role_id` set to JSON `null`; after replacing all 20 placeholder
-questions and answers, set it to the reward role's decimal ID as a JSON string
-(for example, `"123456789012345678"`). Set `required_percent` to an integer from
+Use JSON `null` for `role_id` to leave the reward unconfigured. After replacing
+all 20 placeholder questions and answers, set it to the reward role's decimal ID
+as a JSON string (for example, `"123456789012345678"`). Set `required_percent` to an integer from
 1 through 100. The reward role must not grant privileged permissions and must be
 below both the invoking staff member and the bot in the Discord role hierarchy.
 Restart the bot or reload the role-exam cog after every file change.
