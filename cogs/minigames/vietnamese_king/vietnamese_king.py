@@ -1,9 +1,19 @@
 import asyncio
-import random
 import json
+import logging
 import os
+import random
+
 import discord  # pyright: ignore[reportMissingImports]
 from discord.ext import commands  # pyright: ignore[reportMissingImports]
+from pymongo.errors import PyMongoError
+
+from cogs.minigames._card_game_economy import CardGameBank
+
+
+logger = logging.getLogger(__name__)
+WIN_REWARD = 10
+
 
 class VietnameseKingCog(commands.Cog):
     def __init__(self, bot):
@@ -18,6 +28,7 @@ class VietnameseKingCog(commands.Cog):
             channel_var = [channel_var]
         self.VIETNAMESE_KING_GAMES_CHANNELS = [str(channel_id) for channel_id in channel_var]
         self.db = bot.db
+        self.bank = CardGameBank(self.db)
         
         # Load the vietnamese king data
         data_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'vietnamese_king_data.json')
@@ -33,6 +44,8 @@ class VietnameseKingCog(commands.Cog):
         self.scrambled_letters = None
         self.revealed_indices = []
         self.round_lock = asyncio.Lock()
+        self._round_generation = 0
+        self._round_started_at = None
 
         # Try to restore context
         self._load_context()
@@ -70,6 +83,8 @@ class VietnameseKingCog(commands.Cog):
         self.current_standardized_word = None
         self.scrambled_letters = None
         self.revealed_indices = []
+        self._round_generation += 1
+        self._round_started_at = discord.utils.utcnow()
 
     def _is_vietnamese_king_channel(self, channel_id: int) -> bool:
         return str(channel_id) in self.VIETNAMESE_KING_GAMES_CHANNELS
@@ -129,33 +144,61 @@ class VietnameseKingCog(commands.Cog):
         command_name = content.split()[0].lower()
         return command_name in self.bot.all_commands
 
-    def _start_new_round(self):
-        if not self.words_data:
-            return
-
-        while True:
-            choice = random.choice(self.words_data)
+    def _start_new_round(self) -> None:
+        previous = (
+            self.current_word,
+            self.current_standardized_word,
+            self.scrambled_letters,
+            self.revealed_indices,
+        )
+        choices = [entry for entry in self.words_data if entry.get("word_len", 0) >= 3]
+        self.current_word = None
+        self.current_standardized_word = None
+        self.scrambled_letters = None
+        self.revealed_indices = []
+        if choices:
+            choice = random.choice(choices)
             word = choice["word"]
-            
-            # Use rules to find a decent word to scramble (e.g. space_count > 0 for phrases, or word_len > 4)
-            if choice.get("word_len", 0) >= 3:
-                self.current_word = word
-                self.current_standardized_word = choice.get("standardize") or self._normalize_old_tone(word.lower().strip())
-                self.revealed_indices = []
-                # Scramble characters, ignoring spaces for simple shuffling?
-                # Actually, in Vua Tiếng Việt they scramble the phrase's letters.
-                characters = list(word.replace(" ", "").replace("-", ""))
-                
-                # Make sure it's actually scrambled
-                scrambled = characters[:]
-                attempts = 0
-                while scrambled == characters and attempts < 10:
-                    random.shuffle(scrambled)
-                    attempts += 1
-                
-                self.scrambled_letters = " ".join(scrambled).upper()
-                self._save_context()
-                break
+            self.current_word = word
+            self.current_standardized_word = choice.get("standardize") or (
+                self._normalize_old_tone(word.lower().strip())
+            )
+            characters = list(word.replace(" ", "").replace("-", ""))
+            scrambled = characters[:]
+            for _ in range(10):
+                random.shuffle(scrambled)
+                if scrambled != characters:
+                    break
+            self.scrambled_letters = " ".join(scrambled).upper()
+
+        # Persist the transition before settling the old round. A failed save
+        # must not leave a playable puzzle that only exists in memory.
+        try:
+            self._save_context()
+        except PyMongoError:
+            (
+                self.current_word,
+                self.current_standardized_word,
+                self.scrambled_letters,
+                self.revealed_indices,
+            ) = previous
+            raise
+        self._round_generation += 1
+        self._round_started_at = discord.utils.utcnow()
+
+    def _next_round_message(self) -> str:
+        if self.scrambled_letters:
+            return self._round_message("Câu đố mới")
+        return "Không thể bắt đầu câu đố mới do chưa tải được dữ liệu."
+
+    async def _send_messages(
+        self, destination: discord.abc.Messageable, messages: list[str]
+    ) -> None:
+        for content in messages:
+            try:
+                await destination.send(content)
+            except discord.HTTPException:
+                logger.exception("Failed to send Vietnamese King round announcement")
 
     @commands.group(name="vtv", invoke_without_command=True)
     async def vtv(self, ctx):
@@ -166,6 +209,14 @@ class VietnameseKingCog(commands.Cog):
             title="👑 VUA TIẾNG VIỆT",
             description="Luật chơi: Hãy sắp xếp lại các chữ cái để tạo thành từ/cụm từ đúng!",
             color=discord.Color.gold(),
+        )
+        embed.add_field(
+            name="🏆 Phần thưởng",
+            value=(
+                f"Người đầu tiên giải đúng nhận **{WIN_REWARD} TC**, kể cả khi đã dùng gợi ý.\n"
+                "Bỏ qua câu đố hoặc hết lượt gợi ý không có thưởng."
+            ),
+            inline=False,
         )
         embed.set_footer(text="Gõ trực tiếp từ bạn đoán vào kênh này.")
         await ctx.send(embed=embed)
@@ -194,52 +245,57 @@ class VietnameseKingCog(commands.Cog):
     async def vtv_next(self, ctx):
         if not self._is_vietnamese_king_channel(ctx.channel.id):
             return
-            
-        self._start_new_round()
-        if self.scrambled_letters:
-            await ctx.send(self._round_message("Câu đố mới"))
-        else:
-            await ctx.send("Không thể bắt đầu câu đố mới do chưa tải được dữ liệu.")
+
+        async with self.round_lock:
+            try:
+                self._start_new_round()
+            except PyMongoError:
+                logger.exception("Failed to persist Vietnamese King reset user=%s", ctx.author.id)
+                response = "⚠️ Không thể lưu câu đố mới. Vui lòng thử lại sau."
+            else:
+                response = self._next_round_message()
+        await self._send_messages(ctx, [response])
 
     @vtv.command(name="hint")
     async def vtv_hint(self, ctx):
         if not self._is_vietnamese_king_channel(ctx.channel.id):
             return
-            
-        if not self.current_word:
-            await ctx.send("Chưa có lượt chơi nào diễn ra.")
-            return
 
-        # Hint: reveal the structure of spaces/words with one stacked letter revealed
-        chars = list(self.current_word)
-        valid_indices = [i for i, c in enumerate(chars) if c != " " and c != "-"]
-        
-        unrevealed = [i for i in valid_indices if i not in self.revealed_indices]
-        
-        if unrevealed:
-            reveal_idx = random.choice(unrevealed)
-            self.revealed_indices.append(reveal_idx)
-            self._save_context()
-            
-        word_structure = self._word_structure()
-        
-        remaining_hidden = len([i for i in valid_indices if i not in self.revealed_indices])
-        if remaining_hidden <= 1:
-            answer = self.current_word
-            await ctx.send(
-                f"💡 Gợi ý: Cấu trúc từ: `{word_structure}`\n"
-                f"⌛ Hết lượt gợi ý! Không ai chiến thắng. Đáp án là: **{answer}**"
-            )
-
-            self._start_new_round()
-            if self.scrambled_letters:
-                await ctx.send(self._round_message("Câu đố mới"))
+        async with self.round_lock:
+            if not self.current_word:
+                responses = ["Chưa có lượt chơi nào diễn ra."]
             else:
-                await ctx.send("Không thể bắt đầu câu đố mới do chưa tải được dữ liệu.")
-        elif unrevealed:
-            await ctx.send(f"💡 Gợi ý: Cấu trúc từ: `{word_structure}`")
-        else:
-            await ctx.send(f"💡 Đã lật hết các chữ cái: `{word_structure}`")
+                previous_revealed = self.revealed_indices[:]
+                valid_indices = [
+                    i for i, char in enumerate(self.current_word) if char not in " -"
+                ]
+                unrevealed = [i for i in valid_indices if i not in self.revealed_indices]
+                if unrevealed:
+                    self.revealed_indices.append(random.choice(unrevealed))
+                word_structure = self._word_structure()
+                remaining_hidden = sum(
+                    i not in self.revealed_indices for i in valid_indices
+                )
+                try:
+                    if remaining_hidden <= 1:
+                        answer = self.current_word
+                        self._start_new_round()
+                        responses = [
+                            f"💡 Gợi ý: Cấu trúc từ: `{word_structure}`\n"
+                            f"⌛ Hết lượt gợi ý! Không ai chiến thắng. Đáp án là: **{answer}**",
+                            self._next_round_message(),
+                        ]
+                    else:
+                        self._save_context()
+                        responses = [f"💡 Gợi ý: Cấu trúc từ: `{word_structure}`"]
+                except PyMongoError:
+                    self.revealed_indices = previous_revealed
+                    logger.exception(
+                        "Failed to persist Vietnamese King hint user=%s", ctx.author.id
+                    )
+                    responses = ["⚠️ Không thể lưu gợi ý. Vui lòng thử lại sau."]
+
+        await self._send_messages(ctx, responses)
 
     @commands.Cog.listener("on_message")
     async def on_message(self, message: discord.Message):
@@ -248,36 +304,78 @@ class VietnameseKingCog(commands.Cog):
             
         if not self._is_vietnamese_king_channel(message.channel.id):
             return
-            
+
+        round_generation = self._round_generation
         # Ignore commands and command-like text in the game channel.
         if await self._is_command_message(message):
             return
 
-        if not self.current_word:
-            return
-
         guess = self._normalize_old_tone(message.content.lower().strip())
+        response = None
+        next_round_message = None
 
         async with self.round_lock:
+            if round_generation != self._round_generation or not self.current_word:
+                return
+            # Queued messages can start their listener after the previous win
+            # when command detection does not yield. They belong to the old round.
+            if self._round_started_at and message.created_at < self._round_started_at:
+                return
             answer_key = self.current_standardized_word or self._normalize_old_tone(self.current_word.lower().strip())
             is_correct = guess == answer_key
+            reaction = "✅" if is_correct else "❌"
             if is_correct:
                 answer = self.current_word
-                self._start_new_round()
-                has_next_round = bool(self.scrambled_letters)
-                next_round_message = self._round_message("Câu đố mới")
+                try:
+                    self._start_new_round()
+                except PyMongoError:
+                    logger.exception(
+                        "Failed to persist Vietnamese King win message=%s user=%s",
+                        message.id,
+                        message.author.id,
+                    )
+                    reaction = "⚠️"
+                    response = (
+                        "⚠️ Không thể lưu kết quả lượt chơi nên chưa cộng thưởng. "
+                        "Vui lòng thử lại sau."
+                    )
+                else:
+                    next_round_message = self._next_round_message()
+                    response = f"🎉 Chúc mừng bạn đã giải đúng! Đáp án là: **{answer}**"
+                    try:
+                        self.bank.credit(
+                            user_id=message.author.id,
+                            guild_id=message.guild.id if message.guild else None,
+                            game="vietnamese_king",
+                            amount=WIN_REWARD,
+                            session_id=str(message.id),
+                            reason="win",
+                        )
+                    except PyMongoError:
+                        logger.exception(
+                            "Could not confirm Vietnamese King reward message=%s user=%s",
+                            message.id,
+                            message.author.id,
+                        )
+                        response += (
+                            "\n⚠️ Chưa thể xác nhận phần thưởng Trap Coin. "
+                            "Vui lòng báo quản trị viên."
+                        )
+                    else:
+                        response += f"\n🪙 Bạn nhận được **{WIN_REWARD} TC**!"
 
-        if not is_correct:
-            await message.add_reaction("❌")
-            return
-
-        await message.add_reaction("✅")
-        await message.reply(f"🎉 Chúc mừng bạn đã giải đúng! Đáp án là: **{answer}**")
-
-        if has_next_round:
-            await message.channel.send(next_round_message)
-        else:
-            await message.channel.send("Không thể bắt đầu câu đố mới do chưa tải được dữ liệu.")
+        # Discord delivery is independent of settlement and never retries credit.
+        try:
+            await message.add_reaction(reaction)
+        except discord.HTTPException:
+            logger.exception("Failed to react to Vietnamese King message=%s", message.id)
+        if response is not None:
+            try:
+                await message.reply(response)
+            except discord.HTTPException:
+                logger.exception("Failed to reply to Vietnamese King message=%s", message.id)
+        if next_round_message is not None:
+            await self._send_messages(message.channel, [next_round_message])
 
 async def setup(bot):
     await bot.add_cog(VietnameseKingCog(bot))
