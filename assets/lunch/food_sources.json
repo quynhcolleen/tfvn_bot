@@ -1,0 +1,76 @@
+{
+  "repository": "https://github.com/truanayangi-com/truanayangi",
+  "revision": "87c41e2a4eb00834666f2970b278e7ceeaa4886a",
+  "catalog": "https://github.com/truanayangi-com/truanayangi/blob/87c41e2a4eb00834666f2970b278e7ceeaa4886a/src/lib/foods.ts",
+  "image_mapping": "https://github.com/truanayangi-com/truanayangi/blob/87c41e2a4eb00834666f2970b278e7ceeaa4886a/src/app/page.tsx",
+  "sheets": {
+    "food-common-0.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-common-0.webp",
+      "sha256": "0b12bbff36861162490be964f6c5aa05871d228a45b7038748ea427bf1feb1d7"
+    },
+    "food-expanded-0.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-expanded-0.webp",
+      "sha256": "8cc69a06b909a222c44681c46842e81c9f6647304bcfd969eb056a4e4f22d51f"
+    },
+    "food-expanded-1.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-expanded-1.webp",
+      "sha256": "ad6c0eb5c47e35570897e3f62655554fa310203be5d6623d6a6f924750b0cef9"
+    },
+    "food-expanded-2.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-expanded-2.webp",
+      "sha256": "c85b91c20eb1065984ca58dd11c5793e491ab0ec6cc82e2b96c5b3f62edbd542"
+    },
+    "food-hd-0.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-0.webp",
+      "sha256": "b05d6d30a4449af760ef94ded8c803efaa76d38cda4254183c6687eae8d21380"
+    },
+    "food-hd-1.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-1.webp",
+      "sha256": "5fb2b161fe5d4417d40e8ce967ce76678216b8cb504955f7b54a0d5ca76dd4e6"
+    },
+    "food-hd-2.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-2.webp",
+      "sha256": "a34a5cd017f870cbf62de03a9d5d6444c9eabd789c1d7b27e435c1ded9641483"
+    },
+    "food-hd-3.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-3.webp",
+      "sha256": "64199f7c17377eeb9b97ca021c171e23ed8c4f866eb0c39f32571333a9dcfdde"
+    },
+    "food-hd-4.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-4.webp",
+      "sha256": "bbb799ea5352476a559a71dfcd6eacf7a7608274711b2d064bd4030df546eec3"
+    },
+    "food-hd-5.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-5.webp",
+      "sha256": "429c5b76533791c02f81cb8c5be91442218bae89993184bf2990018e9605811e"
+    },
+    "food-hd-6.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-6.webp",
+      "sha256": "9765a3bc32daa167a9e05db8f81d375acde060296f98956d75bb951e7c5cf057"
+    },
+    "food-hd-7.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-7.webp",
+      "sha256": "b5dbb857eb0745cac557667457177efb2e545669e5207a2de5a77661f7efe781"
+    },
+    "food-hd-8.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-hd-8.webp",
+      "sha256": "1e6f4e2ec3c71008eec1c6391c5296ed0c747cc87695309c4785c3c8a0306dc3"
+    },
+    "food-lunch-0.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-lunch-0.webp",
+      "sha256": "0792dc5b03980366b5ea36b38c902f4a9ee8796b8a2caa43c605a50e9000d770"
+    },
+    "food-lunch-1.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-lunch-1.webp",
+      "sha256": "932a9eb0f05e6893ec0662206ed02bccf870c8a54bf9901ff95b39bd0523848b"
+    },
+    "food-lunch-2.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-lunch-2.webp",
+      "sha256": "9f155c565d9da68cf0c0758c42ccbf004168790981dbfb7397d5c84a78e12571"
+    },
+    "food-lunch-3.webp": {
+      "url": "https://raw.githubusercontent.com/truanayangi-com/truanayangi/87c41e2a4eb00834666f2970b278e7ceeaa4886a/public/food-lunch-3.webp",
+      "sha256": "461d94dd844540460db3193f2194471e3abd55a3e68f1c81ddcde6acb93469b7"
+    }
+  }
+}

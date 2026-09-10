@@ -870,6 +870,15 @@ HELP_TOPICS = (
                         "Chọn member được tag hoặc một member ngẫu nhiên trong role.",
                         "random_member <@member|@role>",
                     ),
+                    _entry(
+                        "lunch",
+                        (
+                            "Chọn ngân sách và chế độ ăn rồi quay món với GIF Genshin; "
+                            "chỉ người mở được thao tác, cooldown lệnh 3 giây."
+                        ),
+                        "lunch [ngân_sách] [chay]",
+                        aliases=("antrua", "what_should_i_have_lunch_today"),
+                    ),
                 ),
                 note="Giá big_speaker theo cỡ 1–6: 1 / 2 / 5 / 10 / 20 / 50 TC.",
             ),

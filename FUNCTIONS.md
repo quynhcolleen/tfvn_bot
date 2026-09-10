@@ -530,9 +530,33 @@ Duration range: 10 seconds–30 days; max 20 winners.
 | `hash_verify <proof_code>` | — | Everyone (guild) | Resolve a short `tfp1_…` code to its hidden signed token, require the requested/record/signed IDs to match, and verify the saved Femboy Card or quote snapshot against the signed digest. Full legacy `tfv1.…` tokens also work. Results are limited to the signed guild; private quote text is shown only in the exact source channel/thread with history access. Limited to 3 checks per 10 seconds per user |
 | `big_speaker <size> <message>` | `loa`, `speaker` | Everyone (guild) | Re-speak a message in large Discord markdown. **`size` is 1–6**; TC cost by size: **1 / 2 / 5 / 10 / 20 / 50**. Sizes 5–6 add separators; 6 is bold H1. Mentions: user only; strips `@everyone`, `@here`, role pings. 30s cooldown |
 | `random_member <@member\|@role>` | — | Everyone | Pick a random member (from role members if a role is given) |
+| `lunch [budget] [chay]` | `antrua`, `what_should_i_have_lunch_today` | Everyone | Open an owner-only lunch picker with budget and vegetarian filters, a Genshin wish GIF, and a food-image reveal; 3s command cooldown |
 | `save_image <collection> [key value ...]` | — | Manage Messages | Persist attached images + optional metadata pairs to Mongo (`images`) |
 
 **Module:** `cogs.utils.*`
+
+`lunch` opens a filter panel in servers or DMs. The defaults are an unlimited
+budget and all dishes. Choose a budget preset (35, 50, 75, 100, 150, or 200
+thousand VND), unlimited, or enter a custom amount; choose all dishes or `chay`
+(vegetarian). Optional command arguments prefill these controls: `lunch 50`,
+`lunch 50k chay`, and `lunch CHAY 50` are supported. A budget is a positive
+integer in **thousands of VND**, optionally followed by `k`; its position and
+the case of `chay` do not matter.
+
+**Quay món** uniformly selects an eligible dish, shows a Genshin wish animation,
+then reveals its image, name, description, estimated price, and a playful quip.
+Blue (up to 65k), purple (over 65k through 130k), and gold (over 130k) animations
+are cosmetic price bands and do not change selection odds. **Đổi món** keeps
+the filters and avoids the current dish when another match exists;
+**Đổi bộ lọc** returns to the controls. Empty matches cannot be rolled. Only
+the opener can use the panel, controls expire after 180 seconds of inactivity,
+and each user can have only one roll running at a time.
+
+The food catalog is bundled from
+[truanayangi's foods.ts](https://github.com/truanayangi-com/truanayangi/blob/main/src/lib/foods.ts),
+with local food images and wish GIFs under `assets/lunch/`. Lunch requires no
+MongoDB collection, external food API, or runtime media download; prices are
+estimates from the bundled catalog.
 
 ---
 
@@ -686,7 +710,7 @@ custom_role, update_custom_role, custom_room
 jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
 giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
-vote, highlight, quote, hash_verify, big_speaker, random_member, save_image
+vote, highlight, quote, hash_verify, big_speaker, random_member, lunch, save_image
 kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn
 nickchange, roleroll, roleunroll, rolecopy
 purge, purge_user, clean_before
