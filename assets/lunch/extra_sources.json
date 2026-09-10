@@ -1,0 +1,56 @@
+{
+  "generator": "built-in image_gen",
+  "description": "AI-generated food illustrations for locally maintained lunch additions; prices are editorial serving estimates.",
+  "catalog": "data/lunch_foods_extra.json",
+  "layout": {
+    "columns": 4,
+    "rows": 3,
+    "order": "row-major",
+    "bottom_trim_percent": 6,
+    "row_position_percent": [
+      0,
+      46,
+      92
+    ]
+  },
+  "sheets": [
+    {
+      "file": "food-extra-0.webp",
+      "image_ids": [
+        1000,
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1006,
+        1007,
+        1008,
+        1009,
+        1010,
+        1011
+      ],
+      "prompt": "Use case: product-mockup.\nAsset type: one complete raster food sprite atlas for an existing Discord lunch picker.\nCreate a photorealistic studio food catalog sprite sheet, exactly FOUR equal columns and THREE equal rows, TWELVE dishes total, in a landscape 4:3 canvas (ideally 2048 by 1536). Every tile has the same size. Flat seamless charcoal background #202126 across entire canvas, no visible grid lines, no gutters, no text, no lettering, no labels, no numbers, no watermarks, no people or utensils. Each dish is fully inside its own equal rectangular tile, centered, with generous empty margin on all four sides (at least 12 percent). Leave the bottom 6 percent of every cell completely background. Nothing crosses a tile boundary. Same scale and soft top-left studio lighting; mostly overhead three-quarter food photography, appetizing realistic ingredients, bowls and plates viewed consistently.\nEXACT ORDER from left to right, top row to bottom row:\nROW 1:\n1. Cao lau Hoi An: a white bowl of thick yellow-brown noodles, sliced roast pork, crisp fried noodle squares, bean sprouts and fresh green herbs, very little broth.\n2. Bun thang Hanoi: a white bowl of thin white rice vermicelli in clear broth, neatly separated shreds of chicken, thin yellow omelette strips, pale pink Vietnamese pork sausage strips and green scallions.\n3. Bun oc: a white bowl of rice vermicelli soup with cooked snail meat, red tomato wedges, golden fried tofu cubes and green herbs in lightly red broth. No snail shells.\n4. Com hen Hue: a white bowl of rice topped with tiny cooked clam meat, shredded herbs and vegetables, crushed peanuts and small crisp pork cracklings.\nROW 2:\n5. Cha ca La Vong: one large ceramic plate holding golden turmeric grilled fish chunks covered with fresh dill and scallions, alongside a small nest of white rice vermicelli and a few peanuts. All inside one plate.\n6. Banh trang cuon thit heo: one large round platter arranged with thin slices of boiled pork belly, rice paper rounds, leafy lettuce, cucumber sticks and fresh herbs, small dark dipping sauce at center of platter. Ingredients unrolled.\n7. Banh can hai san: one plate of small thick pale-white round Vietnamese rice cakes cooked in molds, topped with small pink shrimp and squid pieces, lightly browned bottom.\n8. Banh khot: one plate of small crisp yellow Vietnamese mini pancakes, each cupped around one pink shrimp, with a few lettuce leaves. Clearly yellow and crispy, different from the pale banh can before it.\nROW 3:\n9. Banh duc nong: one bowl of soft ivory rice-flour pudding topped with minced pork, small dark wood-ear mushroom pieces, fried shallots and light amber sauce.\n10. Banh beo nam loc: one mixed plate showing small white steamed rice cakes with shrimp topping, a flat banana-leaf opened rice dumpling, and translucent tapioca shrimp dumplings. All fully inside one plate.\n11. Bun quay Phu Quoc: one bowl of thin rice noodles in clear broth with pink shrimp paste patties and white fish paste patties, scallions, and a tiny lime wedge on the bowl edge.\n12. Com lam ga nuong: one dark oval platter with two short split bamboo tubes filled with sticky rice and several pieces of browned grilled chicken, small mound of sesame salt.\nThe result is a practical texture atlas: exact regular 4 by 3 placement is essential so software can crop the twelve individual dishes. No repeated dish.",
+      "sha256": "a5d701ff02bf4a0fa80ee66a57181d1bffe665f1621bc9993fa087bbd5145646"
+    },
+    {
+      "file": "food-extra-1.webp",
+      "image_ids": [
+        1012,
+        1013,
+        1014,
+        1015,
+        1016,
+        1017,
+        1018,
+        1019,
+        1020,
+        1021,
+        1022,
+        1023
+      ],
+      "prompt": "Use case: product-mockup.\nAsset type: one complete raster food sprite atlas for an existing Discord lunch picker.\nCreate a photorealistic studio food catalog sprite sheet, exactly FOUR equal columns and THREE equal rows, TWELVE dishes total, in a landscape 4:3 canvas (ideally 2048 by 1536). Every tile has the same size. Flat seamless charcoal background #202126 across entire canvas, no visible grid lines, no gutters, no text, no lettering, no labels, no numbers, no watermarks, no people or utensils. Each dish is fully inside its own equal rectangular tile, centered, with generous empty margin on all four sides (at least 12 percent). Leave the bottom 6 percent of every cell completely background. Nothing crosses a tile boundary. Same scale and soft top-left studio lighting; mostly overhead three-quarter food photography, appetizing realistic ingredients, bowls and plates viewed consistently.\nEXACT ORDER from left to right, top row to bottom row:\nROW 1:\n1. Banh mi hap: one plate of small steamed soft baguette slices, each topped with minced pork and chopped scallions, with lettuce and fresh herbs at side of plate.\n2. Banh tam bi: one white bowl with thick smooth white rice noodles, fine strands of cooked pork skin, sliced lean pork, scallions and a little creamy coconut sauce.\n3. Bun ken: one bowl of white rice vermicelli with minced cooked fish, orange coconut curry broth, shredded cucumber, bean sprouts and fresh herbs.\n4. Banh cong Soc Trang: one plate with three deep-fried tall rounded golden mung-bean rice-flour fritters, a whole pink shrimp sitting on top of each one, lettuce at side.\nROW 2 — THESE FOUR DISHES ARE ENTIRELY VEGETARIAN, NO MEAT OR SEAFOOD:\n5. Banh chung chay: one plate holding a square banana-leaf sticky-rice parcel opened and cut in half to show layers of green-white sticky rice, yellow mung bean and brown mushrooms. No pork.\n6. Banh bao chay: three white fluffy steamed buns on one plate, one opened to reveal mushroom, clear vermicelli and colorful vegetable filling. No meat.\n7. Com chay kho quet chay: a single large round platter with golden crispy rice slabs, steamed green vegetables and carrots surrounding a small central bowl of dark glossy mushroom and tofu sauce. No meat, no shrimp.\n8. Ca tim om dau kem com: one white ceramic meal plate with steamed white rice on one side, braised purple eggplant, golden tofu and brown mushrooms on the other. No meat.\nROW 3 — THESE FOUR DISHES ARE ENTIRELY VEGETARIAN, NO MEAT OR SEAFOOD:\n9. Masala dosa: one long crisp golden rice-and-lentil crepe folded around yellow potato filling on a round steel plate, with tiny portions of orange vegetable sambar and pale coconut chutney inside the plate.\n10. Koshari Egyptian: one white bowl of rice, brown lentils, elbow macaroni, chickpeas, bright red tomato sauce and a mound of crispy fried onion strips.\n11. Turkish lentil soup and bread: one wide white bowl of smooth orange-red lentil and carrot soup with three small pieces of crusty bread beside it on a single underlying plate.\n12. Ratatouille and bread: one large shallow bowl of rustic stewed diced eggplant, zucchini, red pepper and tomato, with two slices of crusty bread resting on the rim. No cheese or meat.\nThe result is a practical texture atlas: exact regular 4 by 3 placement is essential so software can crop the twelve individual dishes. No repeated dish.",
+      "sha256": "795203b316c534b9198920837472a6e6fe5de1a9541694afe32220018164e67f"
+    }
+  ]
+}

@@ -59,6 +59,10 @@ class TestLunchMedia(unittest.TestCase):
             119: ("food-lunch-3.webp", 11, 4, 3),
             120: ("food-common-0.webp", 0, 4, 3),
             129: ("food-common-0.webp", 9, 4, 3),
+            1000: ("food-extra-0.webp", 0, 4, 3),
+            1011: ("food-extra-0.webp", 11, 4, 3),
+            1012: ("food-extra-1.webp", 0, 4, 3),
+            1023: ("food-extra-1.webp", 11, 4, 3),
         }
         for image_id, expected in cases.items():
             with self.subTest(image_id=image_id):
@@ -131,6 +135,7 @@ class TestLunchMedia(unittest.TestCase):
         self.sheet("food-expanded-0.webp")
         self.sheet("food-lunch-0.webp")
         self.sheet("food-common-0.webp")
+        self.sheet("food-extra-0.webp")
         media = self.media()
         cases = (
             (0, (0, 0), (512, 512)),
@@ -143,6 +148,9 @@ class TestLunchMedia(unittest.TestCase):
             (123, (44, 0), (512, 492)),
             (124, (0, 100), (512, 492)),
             (128, (0, 200), (512, 492)),
+            (1000, (0, 0), (512, 481)),
+            (1005, (100, 92), (512, 481)),
+            (1011, (44, 184), (512, 481)),
         )
         for image_id, source_origin, size in cases:
             with self.subTest(image_id=image_id):

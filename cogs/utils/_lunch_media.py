@@ -20,7 +20,10 @@ class WishAnimation:
 
 
 def food_sheet(image_id: int) -> tuple[str, int, int, int]:
-    """Return sheet name, cell index, columns and rows from upstream FoodImage."""
+    """Resolve local additions or the upstream FoodImage atlas coordinates."""
+    if image_id >= 1000:
+        offset = image_id - 1000
+        return f"food-extra-{offset // 12}.webp", offset % 12, 4, 3
     if image_id >= 120:
         offset, group = image_id - 120, "common"
     elif image_id >= 72:
@@ -71,7 +74,7 @@ class LunchMedia:
         """Crop a dish using the original web UI's offsets and lower-edge trims.
 
         CSS background-position percentages are measured over the sheet minus
-        the visible cell. Expanded/lunch rows intentionally use 0/46/92%, while
+        the visible cell. Expanded/lunch and local rows use 0/46/92%, while
         common rows use 0/50/100%; an ordinary grid crop would show adjacent art.
         """
         filename, index, columns, rows = food_sheet(image_id)
@@ -83,9 +86,9 @@ class LunchMedia:
             if columns == 2:
                 y = row * cell_height
             else:
-                positions = (0, .5, 1) if image_id >= 120 else (0, .46, .92)
+                positions = (0, .5, 1) if 120 <= image_id < 1000 else (0, .46, .92)
                 y = (height - cell_height) * positions[row]
-            trim = .04 if image_id >= 120 else .07 if image_id >= 72 else 0
+            trim = .06 if image_id >= 1000 else .04 if image_id >= 120 else .07 if image_id >= 72 else 0
             crop = sheet.crop((round(x), round(y), round(x + cell_width),
                                round(y + cell_height * (1 - trim))))
             # The original winner art uses a square background, including sheets

@@ -554,7 +554,10 @@ and each user can have only one roll running at a time.
 
 The food catalog is bundled from
 [truanayangi's foods.ts](https://github.com/truanayangi-com/truanayangi/blob/main/src/lib/foods.ts),
-with local food images and wish GIFs under `assets/lunch/`. Lunch requires no
+with 24 local additions for **152 dishes**, including **16 vegetarian options**.
+The extra catalog includes cao lầu, bún thang, cơm hến, bánh khọt, bánh chưng chay,
+masala dosa, and more, with matching generated illustrations and estimated prices.
+Food images and wish GIFs are bundled under `assets/lunch/`. Lunch requires no
 MongoDB collection, external food API, or runtime media download; prices are
 estimates from the bundled catalog.
 

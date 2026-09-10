@@ -1,0 +1,194 @@
+[
+  {
+    "image": 1000,
+    "name": "Cao lầu",
+    "sub": "Sợi cao lầu, thịt heo, tóp giòn & rau sống • Hội An",
+    "price": 55,
+    "veg": false,
+    "quip": "Một tô đưa giờ nghỉ trưa về phố Hội."
+  },
+  {
+    "image": 1001,
+    "name": "Bún thang",
+    "sub": "Gà xé, trứng thái sợi, giò lụa & nước dùng • Hà Nội",
+    "price": 60,
+    "veg": false,
+    "quip": "Topping xếp ngay ngắn hơn lịch làm việc."
+  },
+  {
+    "image": 1002,
+    "name": "Bún ốc",
+    "sub": "Ốc, cà chua, đậu hũ & nước dùng chua thanh • Việt Nam",
+    "price": 50,
+    "veg": false,
+    "quip": "Ốc chậm mà giờ ăn trưa đến nhanh."
+  },
+  {
+    "image": 1003,
+    "name": "Cơm hến",
+    "sub": "Hến, cơm, rau thơm, đậu phộng & tóp mỡ • Huế",
+    "price": 35,
+    "veg": false,
+    "quip": "Tô nhỏ mà dàn topping đông đủ."
+  },
+  {
+    "image": 1004,
+    "name": "Chả cá Lã Vọng kèm bún",
+    "sub": "Cá ướp nghệ, thì là, hành & bún • Hà Nội",
+    "price": 150,
+    "veg": false,
+    "quip": "Thì là thơm quá, thì là ăn thôi."
+  },
+  {
+    "image": 1005,
+    "name": "Bánh tráng cuốn thịt heo",
+    "sub": "Thịt heo luộc, rau sống, bánh tráng & mắm nêm • Đà Nẵng",
+    "price": 70,
+    "veg": false,
+    "quip": "Tự tay cuốn một bữa trưa vừa ý."
+  },
+  {
+    "image": 1006,
+    "name": "Bánh căn hải sản",
+    "sub": "Bánh bột gạo nướng khuôn, tôm, mực & nước chấm • Việt Nam",
+    "price": 55,
+    "veg": false,
+    "quip": "Căn giờ ăn chuẩn, chiều làm việc khỏe."
+  },
+  {
+    "image": 1007,
+    "name": "Bánh khọt",
+    "sub": "Bánh giòn nhân tôm, rau sống & nước mắm • Vũng Tàu",
+    "price": 65,
+    "veg": false,
+    "quip": "Nhỏ xinh từng chiếc, hết đĩa lúc nào không hay."
+  },
+  {
+    "image": 1008,
+    "name": "Bánh đúc nóng",
+    "sub": "Bánh đúc mềm, thịt băm, mộc nhĩ & hành phi • Việt Nam",
+    "price": 35,
+    "veg": false,
+    "quip": "Mềm lòng trước một bát còn nghi ngút."
+  },
+  {
+    "image": 1009,
+    "name": "Bánh bèo, nậm, lọc",
+    "sub": "Phần bánh hấp nhân tôm thịt đủ bữa • Huế",
+    "price": 65,
+    "veg": false,
+    "quip": "Ba loại bánh, một quyết định sáng suốt."
+  },
+  {
+    "image": 1010,
+    "name": "Bún quậy",
+    "sub": "Bún tươi, chả tôm, chả cá & nước chấm tự pha • Phú Quốc",
+    "price": 65,
+    "veg": false,
+    "quip": "Quậy nước chấm rồi ngồi ăn thật ngoan."
+  },
+  {
+    "image": 1011,
+    "name": "Cơm lam gà nướng",
+    "sub": "Nếp nướng ống tre, gà nướng & muối mè • Việt Nam",
+    "price": 120,
+    "veg": false,
+    "quip": "Hương tre ghé qua bàn ăn giữa phố."
+  },
+  {
+    "image": 1012,
+    "name": "Bánh mì hấp",
+    "sub": "Bánh mì hấp mềm, thịt băm, mỡ hành & rau sống • Việt Nam",
+    "price": 40,
+    "veg": false,
+    "quip": "Bánh mì đổi phong cách, bữa trưa đổi tâm trạng."
+  },
+  {
+    "image": 1013,
+    "name": "Bánh tằm bì",
+    "sub": "Sợi bánh tằm, bì heo, thịt & nước cốt dừa • Miền Tây",
+    "price": 45,
+    "veg": false,
+    "quip": "Béo thơm một chút, vui thêm một buổi."
+  },
+  {
+    "image": 1014,
+    "name": "Bún kèn",
+    "sub": "Bún, cá xay, cà ri, nước cốt dừa & rau sống • Kiên Giang",
+    "price": 50,
+    "veg": false,
+    "quip": "Tên có kèn, vị đủ làm bữa trưa rộn ràng."
+  },
+  {
+    "image": 1015,
+    "name": "Bánh cống",
+    "sub": "Bánh chiên đậu xanh, tôm, thịt & rau sống • Sóc Trăng",
+    "price": 50,
+    "veg": false,
+    "quip": "Giòn bên ngoài, no vui bên trong."
+  },
+  {
+    "image": 1016,
+    "name": "Bánh chưng chay",
+    "sub": "Nếp, đậu xanh & nấm • Việt Nam",
+    "price": 40,
+    "veg": true,
+    "quip": "Không cần đợi Tết mới được ăn vuông vức."
+  },
+  {
+    "image": 1017,
+    "name": "Bánh bao chay",
+    "sub": "Phần 3 bánh nhân nấm, miến & rau củ • Việt Nam",
+    "price": 40,
+    "veg": true,
+    "quip": "Bao nhiêu phân vân, gói lại trong bữa trưa."
+  },
+  {
+    "image": 1018,
+    "name": "Cơm cháy kho quẹt chay",
+    "sub": "Cơm cháy, sốt nấm đậu hũ & rau luộc • Việt Nam",
+    "price": 55,
+    "veg": true,
+    "quip": "Cơm giòn chấm đậm, ăn chậm vẫn mê."
+  },
+  {
+    "image": 1019,
+    "name": "Cà tím om đậu kèm cơm",
+    "sub": "Cà tím, đậu hũ, nấm & cơm trắng • Việt Nam",
+    "price": 50,
+    "veg": true,
+    "quip": "Cà tím mềm rồi, tâm trạng cũng dịu theo."
+  },
+  {
+    "image": 1020,
+    "name": "Masala dosa",
+    "sub": "Bánh gạo đậu lăng giòn, nhân khoai tây & sốt rau • Ấn Độ",
+    "price": 110,
+    "veg": true,
+    "quip": "Chiếc bánh dài, giờ nghỉ trưa vừa đủ."
+  },
+  {
+    "image": 1021,
+    "name": "Koshari",
+    "sub": "Cơm, mì, đậu lăng, đậu gà, sốt cà chua & hành giòn • Ai Cập",
+    "price": 95,
+    "veg": true,
+    "quip": "Cơm và mì bắt tay giải cứu chiếc bụng đói."
+  },
+  {
+    "image": 1022,
+    "name": "Súp đậu lăng kèm bánh mì",
+    "sub": "Đậu lăng, cà rốt, nước dùng rau củ & bánh mì • Thổ Nhĩ Kỳ",
+    "price": 85,
+    "veg": true,
+    "quip": "Múc một thìa ấm, nhường chỗ cho buổi chiều."
+  },
+  {
+    "image": 1023,
+    "name": "Ratatouille kèm bánh mì",
+    "sub": "Cà tím, bí ngòi, cà chua hầm & bánh mì • Pháp",
+    "price": 110,
+    "veg": true,
+    "quip": "Dàn rau củ hôm nay nhận vai chính."
+  }
+]

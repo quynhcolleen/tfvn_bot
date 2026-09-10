@@ -55,6 +55,7 @@ tfvn_bot/
 │   ├── fake_loading_sentences.txt  Random progress text for fun commands
 │   ├── femboy_role.txt             Role names used by the femboy card command
 │   ├── lunch_foods.json            Bundled lunch catalog with prices, diet tags, and media mapping
+│   ├── lunch_foods_extra.json      Local lunch additions with reserved image IDs from 1000
 │   ├── nsfw_channel.json           Verification-managed NSFW channel definitions
 │   ├── role_exam.json              Role-exam questions, pass percentage, and reward role ID
 │   ├── vietnamese_king_data.json   Generated Vua Tiếng Việt puzzle dataset
@@ -82,6 +83,7 @@ tfvn_bot/
 │   ├── test_lunch.py               Lunch filter UI, owner checks, animation, and lifecycle tests
 │   ├── test_lunch_helpers.py       Lunch argument parsing, catalog validation, and selection tests
 │   ├── test_lunch_media.py         Food atlas mapping, image crops, and bundled wish validation
+│   ├── test_prepare_lunch_assets.py Local additions, collision checks, and offline catalog rebuilds
 │   ├── test_highlight.py           Highlight listener, spacing, media download, and posting tests
 │   ├── test_highlight_card.py      Discord-chat highlight PNG, embed, and gallery tests
 │   ├── test_highlight_font.py      Highlight meter symbols and composite emoji rendering tests
@@ -253,7 +255,11 @@ dishes, display the bundled wish GIF, then reveal the food image and catalog
 details in the same message. Rerolls preserve filters and avoid the previous
 dish when alternatives exist. Price-based animation colors are cosmetic.
 The preparation script updates the upstream food snapshot and image sheets
-together; wish animations have separate source notes under `assets/lunch/`.
+together, merging the separately maintained local food additions. Its `--offline`
+mode rebuilds the combined catalog from bundled records and the local additions
+without downloading assets. Local image IDs start at 1000 and use `food-extra-*`
+sheets; image-generation prompts and wish animations have separate source notes
+under `assets/lunch/`.
 
 ## Persistence Boundaries
 
