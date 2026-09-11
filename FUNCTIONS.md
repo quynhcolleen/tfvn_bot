@@ -668,6 +668,14 @@ five seconds in both direct commands and UI confirmations.
 
 **Background:** honeypot channel monitoring, cancel-ban UI, auto-prune, weekly reminder task. Configured via `AREA_51_CHANNEL_ID` / prune variables in Mongo settings.
 
+### MrBeast photo-dump filter
+
+| Command | Aliases | Access | Description |
+| --- | --- | --- | --- |
+| `scam_check` | `mrbeast` | Manage Messages | Reply to a message to inspect whether it is a 1–4 photo dump, how many dumps that author already has in the 2-minute window, and any caption-scam signals. Does not delete or timeout |
+
+**Background:** watches guild messages and edits. A near-empty 1–4 image dump is counted per author in a two-minute window. Dumps **1–2** are watch-only. Dump **3** (and 4, if they cleared the previous warning) sends a public **Xác nhận** button the author must click within **30 seconds**; missing the click deletes the dumps, applies a **24-hour timeout**, and opens the staff panel. Dump **5** skips the button and timeouts immediately. Staff panel: `MRBEAST_SCAM_ALERT_CHANNEL` (fallback: `case log_channel`) with Ban / Gỡ timeout / Giữ timeout. Ban is staff-only. Isolated caption scams that already match brand+prize+lure may still be deleted without a timeout. Webhooks are scanned; this bot, other bots, and members with Administrator or Manage Messages are ignored. Logs: `mrbeast_scam_logs`, `mrbeast_scam_incidents`.
+
 **Module:** `cogs.mod.*`
 
 ---
@@ -692,7 +700,7 @@ No user command. On message, if content matches entries in `data/banned_word_lis
 | `setting set_variable <NAME>` | Administrator | Interactive set of a Mongo `global_variables` key (loaded into `bot.global_vars`) |
 | `setting get_variable <NAME>` | Administrator | Read a stored variable |
 
-Common variable examples (not exhaustive): channel IDs, booster category, Area 51 channel, media arrays, `BETA_ROLE_IDS`.
+Common variable examples (not exhaustive): channel IDs, booster category, Area 51 channel, `MRBEAST_SCAM_ALERT_CHANNEL`, media arrays, `BETA_ROLE_IDS`.
 
 **Module:** `cogs.settings.variable_setting`
 
@@ -756,7 +764,7 @@ jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
 giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
 vote, highlight, quote, hash_verify, softotp, softotp get, softotp verify, big_speaker, random_member, lunch, save_image
-kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn
+kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn, scam_check
 nickchange, roleroll, roleunroll, rolecopy
 purge, purge_user, clean_before
 slowmode, slowmode check_bypass, slowmode immune, slowmode prominent
@@ -765,7 +773,7 @@ area51_fire
 setting, setting set_variable, setting get_variable
 ```
 
-**Automatic features:** random bot activity rotation at random 5–15 minute intervals, paused while an Administrator's temporary `bot_status` override is active; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
+**Automatic features:** random bot activity rotation at random 5–15 minute intervals, paused while an Administrator's temporary `bot_status` override is active; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, MrBeast photo-dump warnings (3rd dump / 30s click, 5th dump timeout) and staff decision panel, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
 
 Use `highlight` with the configured bot prefix (for example, `!tfd highlight`)
 to view the current requirements and destination channel, or a notice when no

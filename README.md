@@ -12,7 +12,7 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 ## Highlights
 
 - **Community management:** welcome and differentiated leave/kick/ban announcements, verification, AFK tracking, birthdays, scheduled bedtime reminders, votes, and giveaways.
-- **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, and the Area 51 guard workflow.
+- **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, the Area 51 guard workflow, and a MrBeast photo-dump raid filter (3rd dump in two minutes: 30-second confirm button or 24-hour timeout; 5th dump: timeout immediately plus a private staff decision panel).
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
 - **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
 - **Social and fun commands:** member interactions, rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
@@ -238,6 +238,7 @@ commands rather than `setting set_variable`:
 | System | Initial configuration |
 | --- | --- |
 | Moderation cases | `!tf case log_channel #mod-log` |
+| MrBeast photo-dump alerts | `!tf setting set_variable MRBEAST_SCAM_ALERT_CHANNEL` (falls back to the case log channel) |
 | Shop | Add a role or badge item; no separate setup command is required |
 
 The role exam uses the repository file `data/role_exam.json` instead of MongoDB.

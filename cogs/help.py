@@ -1016,6 +1016,7 @@ HELP_TOPICS = (
                 name="An toàn & bảo trì",
                 note=(
                     "• Bộ lọc từ cấm ghi log, cảnh cáo và xóa tin vi phạm.\n"
+                    "• Dump ảnh lần 3 trong 2 phút: cảnh báo bấm trong 30s, hết giờ timeout 24h; lần 5 timeout ngay, bảng Ban/Gỡ/Giữ cho min mót.\n"
                     "• Area 51 theo dõi honeypot, cho phép hủy ban, tự dọn và gửi nhắc định kỳ.\n"
                     "• Booster janitor dọn custom role/room sau khi member ngừng boost."
                 ),
@@ -1376,6 +1377,11 @@ HELP_TOPICS = (
                         "area51_fire",
                         "Preview đích và xác nhận gửi cảnh báo Area 51 — Administrator.",
                         aliases=("area51_bump_now", "area51_remind_now"),
+                    ),
+                    _entry(
+                        "scam_check",
+                        "Reply tin dump ảnh; không xử lý — Manage Messages.",
+                        aliases=("mrbeast",),
                     ),
                 ),
             ),

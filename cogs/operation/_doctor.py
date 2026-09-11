@@ -67,6 +67,10 @@ CHANNEL_REQUIREMENTS = (
         MESSAGE_PERMISSIONS + ("manage_messages",),
     ),
     ChannelRequirement(
+        "MRBEAST_SCAM_ALERT_CHANNEL", ("cogs.mod.mrbeast_scam",),
+        MESSAGE_PERMISSIONS + ("attach_files",),
+    ),
+    ChannelRequirement(
         "WORD_CONNECT_GAMES_CHANNELS", ("cogs.minigames.word_connect.word_connect",),
         GAME_PERMISSIONS, array=True,
     ),
@@ -96,8 +100,12 @@ GUILD_PERMISSION_MODULES = {
     ),
     "manage_channels": ("cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted"),
     "kick_members": ("cogs.mod.kick",),
-    "ban_members": ("cogs.mod.ban", "cogs.mod.unban", "cogs.mod.area_51_guard"),
-    "moderate_members": ("cogs.mod.timeout",),
+    "ban_members": (
+        "cogs.mod.ban", "cogs.mod.unban", "cogs.mod.area_51_guard",
+        "cogs.mod.mrbeast_scam",
+    ),
+    "moderate_members": ("cogs.mod.timeout", "cogs.mod.mrbeast_scam"),
+    "manage_messages": ("cogs.mod.mrbeast_scam",),
     "manage_nicknames": ("cogs.mod.nickname",),
     "view_audit_log": ("cogs.announcement.goodbye",),
 }
