@@ -377,6 +377,13 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `smack @user` | — | Everyone | Affectionate punch (đấm yêu) |
 | `sniff @user` | — | Everyone | Sniff |
 | `kidnap @user` | — | Everyone | Playful kidnap / carry |
+| `tickle @user` | — | Everyone | Tickle (self allowed) |
+| `pinch @user` | — | Everyone | Cheek pinch |
+| `wave @user` | — | Everyone | Wave |
+| `blush @user` | — | Everyone | Make the target blush (self allowed) |
+| `highfive @user` | `brofist` | Everyone | High five |
+| `feed @user` | — | Everyone | Feed |
+| `wink @user` | — | Everyone | Wink |
 | `avatar [@user]` | `av`, `global_avatar`, `globalav` | Everyone | Show Discord global avatar (default: author) |
 | `server_avatar [@user]` | `sav`, `guild_avatar`, `serverav` | Everyone (guild) | Show server avatar, or global avatar if unset |
 | `propose @user` | — | Everyone (guild) | Propose marriage; partner presses Yes/No (5m); expired proposals update UI) |
@@ -384,14 +391,14 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `marriage help` | — | Everyone (guild) | Rules: XP, ranks, cooldowns |
 | `marriage top` | `lb`, `leaderboard`, `rank` | Everyone (guild) | Top 10 couples by XP |
 | `divorce` | — | Everyone (guild) | End active marriage after confirm buttons |
-| `rank [r] [action]` | `ranking` | Everyone | All-time bot-wide interaction leaderboards (`r` = receivers); action can be kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, or kidnap |
+| `rank [r] [action]` | `ranking` | Everyone | All-time bot-wide interaction leaderboards (`r` = receivers); action can be kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap, tickle, pinch, wave, blush, highfive, feed, or wink |
 | `cat` | — | Everyone | Random cat image (external API) |
 | `dog` | — | Everyone | Random dog image (external API) |
 | `36` | — | Everyone | Static meme GIF reply |
 
 **Module:** `cogs.interaction.user_interaction`, `cat`, `dog`, `meme_interaction`
 
-All 18 SFW interactions require a non-bot target and have a 3-second per-command, per-user cooldown. Self-target is allowed only for `pat`, `slap`, `punch`, `hit`, `poke`, `bonk`, and `smack`.
+All 25 SFW interactions require a non-bot target and have a 3-second per-command, per-user cooldown. Self-target is allowed only for `pat`, `slap`, `punch`, `hit`, `poke`, `bonk`, `smack`, `tickle`, and `blush`.
 
 ---
 
@@ -423,7 +430,11 @@ All 18 SFW interactions require a non-bot target and have a 3-second per-command
 | `cream @user` | — | Creampie |
 | `3some @user1 @user2` | `threesome` | Threesome with two others |
 | `orgy @user1 … @userN` | — | Orgy with 2–10 other members |
-| `ranknsfw [r] [action]` | `nsfwrank` | Current-UTC-month bot-wide leaderboards; action can be bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, or orgy |
+| `gangbang @user1 … @userN` | `gb` | Gangbang with 1–10 other members |
+| `ride @user` | — | Ride |
+| `fingering @user` | `finger` | Fingering (self allowed) |
+| `facesit @user` | `sitface` | Facesitting |
+| `ranknsfw [r] [action]` | `nsfwrank` | Current-UTC-month bot-wide leaderboards; action can be bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, gangbang, ride, fingering, or facesit |
 | `mrank <month> <year>` | — | Administrator monthly NSFW ranking |
 
 ### Super-user controls
@@ -736,8 +747,9 @@ gay, les, ship, penisize, titansize, aura, redflag, based, brainrot, clown, cope
 gyatt, ick, mainchar, npc, ohio, rizz, simp, skillissue, touchgrass, yapper,
 femboycard, birthday, birthday set
 kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap,
+tickle, pinch, wave, blush, highfive, feed, wink,
 avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, rank, cat, dog, 36
-r34, gbr, nsfwrule, bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, ranknsfw, mrank
+r34, gbr, nsfwrule, bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, gangbang, ride, fingering, facesit, ranknsfw, mrank
 locknsfw, unlocknsfw, verified, unverified
 custom_role, update_custom_role, custom_room
 jobremind, jobremind add

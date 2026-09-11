@@ -366,8 +366,14 @@ class TestHelpCogCommand(unittest.IsolatedAsyncioTestCase):
         rendered = "\n".join(field.value for field in embed.fields)
         self.assertIn("`!tf <lệnh> @tên_thành_viên`", rendered)
         self.assertIn("cooldown) là 3 giây", rendered)
+        self.assertIn("`gangbang`", rendered)
+        self.assertIn("`ride`", rendered)
+        self.assertIn("`fingering`", rendered)
+        self.assertIn("`facesit`", rendered)
         self.assertNotIn("15 giây", rendered)
         self.assertNotIn("`!!tf", rendered)
+        for field in embed.fields:
+            self.assertLessEqual(len(field.value), 1024)
 
 
 class TestHelpViewInteractions(unittest.IsolatedAsyncioTestCase):

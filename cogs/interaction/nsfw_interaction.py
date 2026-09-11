@@ -36,6 +36,10 @@ class NSFWInteractionCog(commands.Cog):
         self.cream_picker = self._load_gif_picker("CREAMPIE_GIFS")
         self.threesome_picker = self._load_gif_picker("THREESOME_GIFS")
         self.orgy_picker = self._load_gif_picker("ORGY_GIFS")
+        self.gangbang_picker = self._load_gif_picker("GANGBANG_GIFS")
+        self.ride_picker = self._load_gif_picker("RIDE_GIFS")
+        self.fingering_picker = self._load_gif_picker("FINGERING_GIFS")
+        self.facesit_picker = self._load_gif_picker("FACESIT_GIFS")
         self.db = bot.db
         self.KING_ROLE_ID = int(self.bot.global_vars["KING_ROLE_ID"])
         self.QUEEN_ROLE_ID = int(self.bot.global_vars["QUEEN_ROLE_ID"])
@@ -52,6 +56,10 @@ class NSFWInteractionCog(commands.Cog):
             "cream",
             "3some",
             "orgy",
+            "gangbang",
+            "ride",
+            "fingering",
+            "facesit",
         ]
 
     def _load_gif_picker(self, variable_name: str) -> GifPicker:
@@ -205,11 +213,13 @@ class NSFWInteractionCog(commands.Cog):
             "🎮 **Cách Chơi Các Lệnh NSFW** 🎮\n"
             "1. Sử dụng lệnh với cú pháp: "
             f"`{ctx.clean_prefix}<lệnh> @tên_thành_viên` "
-            "(riêng `3some` cần tag 2 người, `orgy` tag 2-10 người).\n"
+            "(riêng `3some` cần tag 2 người, `orgy` tag 2-10 người, "
+            "`gangbang` tag 1-10 người).\n"
             "2. Các lệnh bao gồm: `bj` (bú cu), `rj` (liếm lồn), "
             "`hj` (sục cho), `fj` (footjob), `aj` (assjob), `tj` (thighjob), "
             "`spank` (vỗ mông), `frot` (đấu kiếm), `fuck` (chịch), "
-            "`cream` (xuất trong), `3some` (chơi 3some), `orgy` (chơi orgy).\n"
+            "`cream` (xuất trong), `3some` (chơi 3some), `orgy` (chơi orgy), "
+            "`gangbang`, `ride` (cưỡi), `fingering` (mó), `facesit` (ngồi mặt).\n"
             "3. Mỗi lệnh có thời gian hồi (cooldown) là 3 giây để tránh spam.\n"
             "4. Femboy Queen có thể khoá lệnh NSFW của người chơi bất kỳ "
             "trong vòng 24 giờ.\n"
@@ -362,6 +372,76 @@ class NSFWInteractionCog(commands.Cog):
             self.orgy_picker,
         )
 
+    @commands.command(name="gangbang", aliases=["gb"])
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def gangbang(self, ctx, *members: discord.Member):
+        if len(members) < 1:
+            await ctx.send("Tag từ 1 đến 10 người để gangbang nha.")
+            return
+        if len(members) > 10:
+            await ctx.send("Gangbang tối đa 10 người được tag thôi.")
+            return
+
+        unique_members = []
+        seen_member_ids = set()
+        for member in members:
+            if member.id in seen_member_ids:
+                await ctx.send("Mỗi người chỉ cần tag một lần thôi.")
+                return
+            seen_member_ids.add(member.id)
+            unique_members.append(member)
+
+        mentions = ", ".join(member.mention for member in unique_members)
+        await self._handle_interaction_multi(
+            ctx,
+            unique_members,
+            "gangbang",
+            "gangbang",
+            "😈 Gangbang tới bến~",
+            f"{ctx.author.mention} gangbang {mentions} 💦",
+            self.gangbang_picker,
+        )
+
+    @commands.command(name="ride")
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def ride(self, ctx, member: discord.Member):
+        await self._handle_interaction(
+            ctx,
+            member,
+            "ride",
+            "cưỡi",
+            "🥵 Cưỡi cái nào~",
+            f"{ctx.author.mention} cưỡi {member.mention} 💦",
+            self.ride_picker,
+        )
+
+    @commands.command(name="fingering", aliases=["finger"])
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def fingering(self, ctx, member: discord.Member):
+        await self._handle_interaction(
+            ctx,
+            member,
+            "fingering",
+            "mó",
+            "👉 Mó cái nè~",
+            f"{ctx.author.mention} mó {member.mention} 💦",
+            self.fingering_picker,
+            self_allowed=True,
+        )
+
+    @commands.command(name="facesit", aliases=["sitface"])
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def facesit(self, ctx, member: discord.Member):
+        await self._handle_interaction(
+            ctx,
+            member,
+            "facesit",
+            "ngồi lên mặt",
+            "🍑 Ngồi mặt nè~",
+            f"{ctx.author.mention} ngồi lên mặt {member.mention} 💦",
+            self.facesit_picker,
+        )
+
     # Generic error handler for all commands
     async def _cooldown_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
@@ -380,6 +460,10 @@ class NSFWInteractionCog(commands.Cog):
     creampie.error = _cooldown_error
     threesome.error = _cooldown_error
     orgy.error = _cooldown_error
+    gangbang.error = _cooldown_error
+    ride.error = _cooldown_error
+    fingering.error = _cooldown_error
+    facesit.error = _cooldown_error
 
     @commands.command(name="ranknsfw", aliases=["nsfwrank"])
     async def ranknsfw(
@@ -407,6 +491,10 @@ class NSFWInteractionCog(commands.Cog):
             "cream": "xuất trong",
             "3some": "chơi 3some",
             "orgy": "chơi orgy",
+            "gangbang": "gangbang người khác",
+            "ride": "cưỡi member khác",
+            "fingering": "mó người khác",
+            "facesit": "ngồi lên mặt người khác",
         }
 
         # text cho NGƯỜI BỊ
@@ -423,6 +511,10 @@ class NSFWInteractionCog(commands.Cog):
             "cream": "bị xuất trong",
             "3some": "tham gia 3some",
             "orgy": "tham gia orgy",
+            "gangbang": "bị gangbang",
+            "ride": "bị cưỡi",
+            "fingering": "bị mó",
+            "facesit": "bị ngồi lên mặt",
         }
 
         # mặc định: người CHỦ ĐỘNG
@@ -436,7 +528,7 @@ class NSFWInteractionCog(commands.Cog):
 
         if action not in (nsfw_interactions + [None]):
             await ctx.send(
-                "Loại tương tác không hợp lệ.\nVui lòng sử dụng: `bj`, `rj`, `hj`, `fj`, `aj`, `tj`, `spank`, `frot`, `fuck`, `cream`, `3some`, `orgy`."
+                "Loại tương tác không hợp lệ.\nVui lòng sử dụng: `bj`, `rj`, `hj`, `fj`, `aj`, `tj`, `spank`, `frot`, `fuck`, `cream`, `3some`, `orgy`, `gangbang`, `ride`, `fingering`, `facesit`."
             )
             return
 

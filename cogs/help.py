@@ -733,6 +733,12 @@ HELP_TOPICS = (
                             ("smack", "smack @user"),
                             ("sniff", "sniff @user"),
                             ("kidnap", "kidnap @user"),
+                            ("tickle", "tickle @user"),
+                            ("pinch", "pinch @user"),
+                            ("wave", "wave @user"),
+                            ("blush", "blush @user"),
+                            ("feed", "feed @user"),
+                            ("wink", "wink @user"),
                         ),
                         "Tương tác SFW; cần @user, không nhận bot và cooldown 3 giây/lệnh.",
                     ),
@@ -748,10 +754,16 @@ HELP_TOPICS = (
                         "bite @user",
                         aliases=("nom",),
                     ),
+                    _entry(
+                        "highfive",
+                        "High five member; không nhận bot, cooldown 3 giây.",
+                        "highfive @user",
+                        aliases=("brofist",),
+                    ),
                 ),
                 note=(
-                    "Tự tương tác chỉ được phép với pat, slap, punch, hit, poke, bonk và "
-                    "smack."
+                    "Tự tương tác chỉ được phép với pat, slap, punch, hit, poke, bonk, "
+                    "smack, tickle và blush."
                 ),
             ),
             HelpSection(
@@ -791,7 +803,8 @@ HELP_TOPICS = (
                         (
                             "BXH bot-wide toàn thời gian: chủ động/được tương tác. Action: "
                             "kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, "
-                            "handhold, bonk, bite, stare, lick, smack, sniff, kidnap."
+                            "handhold, bonk, bite, stare, lick, smack, sniff, kidnap, tickle, "
+                            "pinch, wave, blush, highfive, feed, wink."
                         ),
                         aliases=("ranking",),
                     ),
@@ -1401,6 +1414,7 @@ HELP_TOPICS = (
                             ("frot", "frot @user"),
                             ("fuck", "fuck @user"),
                             ("cream", "cream @user"),
+                            ("ride", "ride @user"),
                         ),
                         "Tương tác một mục tiêu; cooldown 3 giây mỗi lệnh.",
                     ),
@@ -1417,6 +1431,18 @@ HELP_TOPICS = (
                         aliases=("thighjob",),
                     ),
                     _entry(
+                        "fingering",
+                        "Tương tác một mục tiêu; cooldown 3 giây.",
+                        "fingering @user",
+                        aliases=("finger",),
+                    ),
+                    _entry(
+                        "facesit",
+                        "Tương tác một mục tiêu; cooldown 3 giây.",
+                        "facesit @user",
+                        aliases=("sitface",),
+                    ),
+                    _entry(
                         "3some",
                         "Hai mục tiêu khác nhau, không gồm người gọi.",
                         "3some @user1 @user2",
@@ -1427,10 +1453,16 @@ HELP_TOPICS = (
                         "Mục tiêu phải khác nhau và không gồm người gọi.",
                         "orgy @user1 @user2 [@user3 ... @user10]",
                     ),
+                    _entry(
+                        "gangbang",
+                        "Mục tiêu phải khác nhau và không gồm người gọi.",
+                        "gangbang @user1 [@user2 ... @user10]",
+                        aliases=("gb",),
+                    ),
                 ),
                 note=(
-                    "Chỉ hj và spank cho phép tự target. NSFW lock chỉ chặn 12 lệnh "
-                    "tương tác trong mục này."
+                    "Chỉ hj, spank và fingering cho phép tự target. NSFW lock chỉ chặn "
+                    "16 lệnh tương tác trong mục này."
                 ),
             ),
             HelpSection(
@@ -1446,7 +1478,7 @@ HELP_TOPICS = (
                         (
                             "BXH bot-wide tháng UTC hiện tại: chủ động/được tương tác. "
                             "Action: bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, "
-                            "3some, orgy."
+                            "3some, orgy, gangbang, ride, fingering, facesit."
                         ),
                         aliases=("nsfwrank",),
                     ),
