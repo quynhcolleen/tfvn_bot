@@ -211,6 +211,20 @@ Common settings include:
 | NSFW role controls | `KING_ROLE_ID`, `QUEEN_ROLE_ID` | `STRING` |
 | NSFW interaction media | `BLOWJOB_GIFS`, `HANDJOB_GIFS`, `FOOTJOB_GIFS`, `ASSJOB_GIFS`, `THIGHJOB_GIFS`, `SPANK_GIFS`, `RIMJOB_GIFS`, `FROTTING_GIFS`, `FUCKING_GIFS`, `CREAMPIE_GIFS`, `THREESOME_GIFS`, `ORGY_GIFS`, `GANGBANG_GIFS`, `FINGERING_GIFS`, `RIDE_GIFS`, `FACESIT_GIFS` | `ARRAY` |
 
+NSFW interaction commands load those GIF arrays from MongoDB at cog load, not from `assets/nsfw_gifs.py` at runtime. From the repository root, with `.env` Mongo settings available, seed any missing arrays from the file:
+
+```powershell
+python scripts/migrate_nsfw_gifs.py
+```
+
+Replace pools that already exist (needed after adding or expanding `GANGBANG_GIFS`, `FINGERING_GIFS`, `RIDE_GIFS`, or `FACESIT_GIFS`):
+
+```powershell
+python scripts/migrate_nsfw_gifs.py --overwrite
+```
+
+`ORGY_GIFS` is not in that seed file; set it with `!tf setting set_variable ORGY_GIFS`. Reload `cogs.interaction.nsfw_interaction` or restart the bot after changing GIF arrays.
+
 The booster role anchor is optional; without it, Discord keeps the custom role at its default position. `BOOSTER_CUSTOM_VOICE_CATEGORY_ID` is required for custom rooms so their private category placement and permission overwrites are deterministic. The word-chain move icons also have built-in emoji defaults.
 
 Voluntary-leave, kick, and ban announcements all use `BYE_CHANNEL`. Give the bot
