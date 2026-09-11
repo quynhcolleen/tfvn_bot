@@ -74,6 +74,9 @@ class FakeTransactions:
         self.documents = []
         self.error = None
 
+    def create_index(self, *args, **kwargs):
+        return kwargs.get("name")
+
     def insert_one(self, document):
         self.events.append("audit")
         if self.error:
@@ -81,90 +84,119 @@ class FakeTransactions:
         self.documents.append(deepcopy(document))
 
 
+def make_word_game(game, *, documents=(), identical_next=False, add_cleanup=None):
+    events = []
+    accounts = FakeAccounts(documents, events)
+    transactions = FakeTransactions(events)
+    next_word = "hoa hồng" if identical_next else "mặt trời"
+    if game == "vietnamese_king":
+        record = {
+            "context_type": game,
+            "current_word": "hoa hồng",
+            "current_standardized_word": "hoa hồng",
+            "scrambled_letters": "G N Ồ H A O H",
+            "revealed_indices": [],
+        }
+    else:
+        record = {
+            "context_type": game,
+            "current_word": "bông hoa",
+            "used_words": ["bông hoa"],
+            "last_player_id": 13,
+            "last_valid_message_id": 99,
+        }
+    context = FakeContextCollection(record, events)
+    database = {
+        "context": context,
+        "user_accounts": accounts,
+        "transaction_logs": transactions,
+    }
+    bot = SimpleNamespace(
+        db=database,
+        global_vars={
+            "VIETNAMESE_KING_GAMES_CHANNELS": [7],
+            "WORD_CONNECT_GAMES_CHANNELS": [7],
+        },
+        WORD_CONNECT_WORDS=[
+            "bông hoa", "hoa hồng", "hoa lá", "lá sen", "cây cỏ", "cỏ cây"
+        ],
+        command_prefix="!tf ",
+        all_commands={"vtv": object(), "noitu": object()},
+        get_context=AsyncMock(return_value=SimpleNamespace(valid=False)),
+    )
+    if game == "vietnamese_king":
+        dataset = [{"word": next_word, "standardize": next_word, "word_len": 7}]
+        with patch.object(
+            vietnamese_king, "open", mock_open(read_data=json.dumps(dataset)),
+            create=True,
+        ):
+            cog = vietnamese_king.VietnameseKingCog(bot)
+    else:
+        cog = word_connect.WordConnectCommandCog(bot)
+        random_word = patch.object(cog, "_random_word", return_value="cây cỏ")
+        random_word.start()
+        if add_cleanup is None:
+            random_word.stop()
+            raise AssertionError("Word Connect fixtures need addCleanup")
+        add_cleanup(random_word.stop)
+    return SimpleNamespace(
+        game=game, cog=cog, bot=bot, accounts=accounts,
+        transactions=transactions, context=context, events=events,
+    )
+
+
+def make_word_game_message(
+    fixture, *, content="hoa hồng", user_id=42, message_id=101, channel_id=7, is_bot=False,
+):
+    async def send(*args, **kwargs):
+        fixture.events.append("discord")
+        return SimpleNamespace(delete=AsyncMock())
+
+    return SimpleNamespace(
+        id=message_id,
+        created_at=discord.utils.utcnow(),
+        content=content,
+        author=SimpleNamespace(id=user_id, bot=is_bot, display_name="Người chơi"),
+        guild=SimpleNamespace(id=8),
+        channel=SimpleNamespace(id=channel_id, send=AsyncMock(side_effect=send)),
+        add_reaction=AsyncMock(side_effect=send),
+        reply=AsyncMock(side_effect=send),
+    )
+
+
+def make_word_game_command_context(message):
+    return SimpleNamespace(
+        channel=message.channel, author=message.author, guild=message.guild,
+        message=message, send=message.channel.send,
+    )
+
+
 class TestWordGameRewards(unittest.IsolatedAsyncioTestCase):
     GAMES = ("vietnamese_king", "word_connect")
     REWARDS = {"vietnamese_king": 10, "word_connect": 50}
 
     def make_game(self, game, *, documents=(), identical_next=False):
-        events = []
-        accounts = FakeAccounts(documents, events)
-        transactions = FakeTransactions(events)
-        next_word = "hoa hồng" if identical_next else "mặt trời"
-        if game == "vietnamese_king":
-            record = {
-                "context_type": game,
-                "current_word": "hoa hồng",
-                "current_standardized_word": "hoa hồng",
-                "scrambled_letters": "G N Ồ H A O H",
-                "revealed_indices": [],
-            }
-        else:
-            record = {
-                "context_type": game,
-                "current_word": "bông hoa",
-                "used_words": ["bông hoa"],
-                "last_player_id": 13,
-                "last_valid_message_id": 99,
-            }
-        context = FakeContextCollection(record, events)
-        database = {
-            "context": context,
-            "user_accounts": accounts,
-            "transaction_logs": transactions,
-        }
-        bot = SimpleNamespace(
-            db=database,
-            global_vars={
-                "VIETNAMESE_KING_GAMES_CHANNELS": [7],
-                "WORD_CONNECT_GAMES_CHANNELS": [7],
-            },
-            WORD_CONNECT_WORDS=[
-                "bông hoa", "hoa hồng", "hoa lá", "lá sen", "cây cỏ", "cỏ cây"
-            ],
-            command_prefix="!tf ",
-            all_commands={"vtv": object(), "noitu": object()},
-            get_context=AsyncMock(return_value=SimpleNamespace(valid=False)),
-        )
-        if game == "vietnamese_king":
-            dataset = [{"word": next_word, "standardize": next_word, "word_len": 7}]
-            with patch.object(
-                vietnamese_king, "open", mock_open(read_data=json.dumps(dataset)),
-                create=True,
-            ):
-                cog = vietnamese_king.VietnameseKingCog(bot)
-        else:
-            cog = word_connect.WordConnectCommandCog(bot)
-            random_word = patch.object(cog, "_random_word", return_value="cây cỏ")
-            random_word.start()
-            self.addCleanup(random_word.stop)
-        return SimpleNamespace(
-            game=game, cog=cog, bot=bot, accounts=accounts,
-            transactions=transactions, context=context, events=events,
+        return make_word_game(
+            game,
+            documents=documents,
+            identical_next=identical_next,
+            add_cleanup=self.addCleanup,
         )
 
     def make_message(self, fixture, *, content="hoa hồng", user_id=42,
                      message_id=101, channel_id=7, is_bot=False):
-        async def send(*args, **kwargs):
-            fixture.events.append("discord")
-            return SimpleNamespace(delete=AsyncMock())
-
-        return SimpleNamespace(
-            id=message_id,
-            created_at=discord.utils.utcnow(),
+        return make_word_game_message(
+            fixture,
             content=content,
-            author=SimpleNamespace(id=user_id, bot=is_bot, display_name="Người chơi"),
-            guild=SimpleNamespace(id=8),
-            channel=SimpleNamespace(id=channel_id, send=AsyncMock(side_effect=send)),
-            add_reaction=AsyncMock(side_effect=send),
-            reply=AsyncMock(side_effect=send),
+            user_id=user_id,
+            message_id=message_id,
+            channel_id=channel_id,
+            is_bot=is_bot,
         )
 
     @staticmethod
     def make_command_context(message):
-        return SimpleNamespace(
-            channel=message.channel, author=message.author, guild=message.guild,
-            message=message, send=message.channel.send,
-        )
+        return make_word_game_command_context(message)
 
     @staticmethod
     def output_text(message):

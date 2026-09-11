@@ -94,6 +94,7 @@ tfvn_bot/
 │   ├── test_operation_dashboard.py Health/audit, Doctor access/pagination, and owner UI tests
 │   ├── test_role_exam.py           Role-exam invitation, UI, safety, and role-grant tests
 │   ├── test_role_exam_helpers.py   Role-exam JSON validation, shuffling, and scoring tests
+│   ├── test_word_game_leaderboard.py Vua Tiếng Việt / Nối Từ win ranking and top commands
 │   └── word_stardardlize.py        Manual normalization utility; not auto-discovered as a test
 │
 └── cogs/
@@ -165,6 +166,7 @@ tfvn_bot/
     ├── minigames/
     │   ├── _playing_cards.py           Shared validated deck and card formatting
     │   ├── _card_game_economy.py       Atomic TC wagers, payouts, refunds, and audit logs
+    │   ├── _word_game_leaderboard.py   All-time vtv/noitu win ranks from transaction_logs
     │   ├── blackjack/
     │   │   ├── _blackjack_helpers.py   Pure Blackjack scoring and round state
     │   │   └── blackjack.py            Button-driven solo Blackjack against the dealer
@@ -179,9 +181,9 @@ tfvn_bot/
     │   │   ├── _crocodile_helpers.py  Pure challenge parsing and game-state transitions
     │   │   └── crocodile.py           Persistent invitations, tooth UI, expiry, and commands
     │   ├── word_connect/word_connect.py
-    │   │                                 Persistent Vietnamese word-chain game with TC win rewards
+    │   │                                 Persistent Vietnamese word-chain game with TC win rewards and `noitu top`
     │   └── vietnamese_king/vietnamese_king.py
-    │                                     Persistent letter-scramble game with TC win rewards
+    │                                     Persistent letter-scramble game with TC win rewards and `vtv top`
     ├── mod/
     │   ├── _case_helpers.py         Safe shared case recording and validation
     │   ├── _interaction_ui.py       Shared forms, confirmation guard, and legacy action dispatch
@@ -301,8 +303,10 @@ MongoDB collections are created lazily. Major groups are:
   and pruning
 - Shared sequence counters: `feature_counters`
 - Games and boosters: card-game wagers and word-game win rewards use
-  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`;
-  Crocodile Dentist uses `crocodile_games` plus guild-scoped IDs from
+  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`.
+  `vtv top` and `noitu top` rank `vietnamese_king_win` / `word_connect_win` credits
+  in that same audit collection. Crocodile Dentist uses `crocodile_games` plus
+  guild-scoped IDs from
   `feature_counters` keys named `crocodile_game:<guild_id>`; other state uses
   `context`, `sicbo_active_games`, `booster_custom_roles`, and `booster_custom_rooms`
 

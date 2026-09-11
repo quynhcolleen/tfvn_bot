@@ -590,6 +590,10 @@ HELP_TOPICS = (
                     _entry("noitu", "Xem luật trong kênh Nối Từ đã cấu hình."),
                     _entry("noitu status", "Xem từ hiện tại và các từ đã dùng."),
                     _entry(
+                        "noitu top",
+                        "BXH người thắng Nối Từ theo số lần thắng, toàn bộ lịch sử.",
+                    ),
+                    _entry(
                         "noitu hint",
                         "Nhận gợi ý; dùng trong kênh game, cooldown chung 30 giây.",
                     ),
@@ -605,7 +609,8 @@ HELP_TOPICS = (
                 note=(
                     "Gửi tin nhắn thường trong kênh game để nối từ. Nước đi hợp lệ "
                     "khiến không còn từ chưa dùng để nối tiếp sẽ thắng **50 TC**, "
-                    "kể cả sau gợi ý. Đặt lại ván không nhận thưởng."
+                    "kể cả sau gợi ý. Đặt lại ván không nhận thưởng. "
+                    "`noitu top` xếp hạng theo số lần thắng trên toàn bộ lịch sử."
                 ),
             ),
             HelpSection(
@@ -613,6 +618,10 @@ HELP_TOPICS = (
                 entries=(
                     _entry("vtv", "Xem luật và câu đố trong kênh đã cấu hình."),
                     _entry("vtv status", "Xem trạng thái câu đố trong kênh game."),
+                    _entry(
+                        "vtv top",
+                        "BXH người giải đúng Vua Tiếng Việt theo số lần thắng, toàn bộ lịch sử.",
+                    ),
                     _entry(
                         "vtv next",
                         "Thay câu đố hiện tại; bất kỳ member nào trong kênh game đều dùng được.",
@@ -625,7 +634,8 @@ HELP_TOPICS = (
                 note=(
                     "Gửi đáp án bằng tin nhắn thường trong kênh game. Người trả lời "
                     "đúng đầu tiên nhận **10 TC**, kể cả sau gợi ý. Bỏ qua câu đố "
-                    "hoặc hết gợi ý không nhận thưởng."
+                    "hoặc hết gợi ý không nhận thưởng. "
+                    "`vtv top` xếp hạng theo số lần thắng trên toàn bộ lịch sử."
                 ),
             ),
         ),

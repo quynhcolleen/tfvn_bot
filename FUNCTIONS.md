@@ -283,11 +283,13 @@ account write.
 | `crocodile fire <game_id>` | Host (guild only) | Recreate the authoritative invitation or gameplay panel for an open game in the current channel without resetting its state or deadlines |
 | `noitu` | Channel-bound | Word-chain rules embed; a valid move leaving no unused continuation wins **50 TC** |
 | `noitu status` | Channel-bound | Current word and used-word list |
+| `noitu top` | Channel-bound | All-time win leaderboard from `transaction_logs` (`word_connect_win`); top 10 by win count |
 | `noitu hint` | Channel-bound | Hint for the chain |
 | `noitu end` | Channel-bound | Reset the current game without awarding TC |
 | `noitu analyze` | Channel-bound | Analyze connectivity of the current word |
 | `vtv` | Channel-bound | Vua Tiếng Việt rules + current scramble; the first correct solver wins **10 TC** |
 | `vtv status` | Channel-bound | Current puzzle status |
+| `vtv top` | Channel-bound | All-time win leaderboard from `transaction_logs` (`vietnamese_king_win`); top 10 by win count |
 | `vtv next` | Channel-bound | Skip the current puzzle and start a new letter-scramble round without awarding TC |
 | `vtv hint` | Channel-bound | Reveal a letter hint; exhausting hints starts a new round without awarding TC |
 
@@ -305,7 +307,10 @@ skipped puzzles, and hint exhaustion award nothing. Rewards have no entry fee or
 daily cap, use the existing global account balance, and create an account when
 needed. Winner announcements show the credited reward; transaction history labels
 these credits “Thắng Vua Tiếng Việt” and “Thắng Nối Từ”. Reward amounts are fixed
-and require no new configuration.
+and require no new configuration. `vtv top` and `noitu top` rank those same win
+credits all-time and bot-wide. Order is win count, then total TC, then the
+earlier most-recent win, then user ID. They reuse `transaction_logs`, do not ping
+mentions, and stay silent outside a configured game channel.
 
 **Module:** `cogs.minigames.*`; the interactive card-game cogs are
 `cogs.minigames.blackjack.blackjack` and `cogs.minigames.poker.poker`; persistent
@@ -700,8 +705,8 @@ tutien doido, tutien doido mua, tutien doido ban,
 tutien profile, tutien top, tutien riengtu
 blackjack, poker, slot, flip_coin, sicbo_start
 crocodile, crocodile challenge, crocodile fire
-noitu, noitu status, noitu hint, noitu end, noitu analyze
-vtv, vtv status, vtv next, vtv hint
+noitu, noitu status, noitu top, noitu hint, noitu end, noitu analyze
+vtv, vtv status, vtv top, vtv next, vtv hint
 gay, les, ship, penisize, titansize, aura, redflag, based, brainrot, clown, cope, cringe, delulu,
 gyatt, ick, mainchar, npc, ohio, rizz, simp, skillissue, touchgrass, yapper,
 femboycard, birthday, birthday set
