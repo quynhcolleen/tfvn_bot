@@ -533,12 +533,37 @@ Duration range: 10 seconds–30 days; max 20 winners.
 | `highlight` | — | Everyone (guild) | Show the current unique non-bot 💀 threshold, eligible message content and SFW channel requirements, destination channel, and minimum interval between highlight posts in the server |
 | `quote [image] [message_link\|message_id]` | `q`, `quotes` | Everyone (guild) | Quote a replied/current-channel message as a text embed by default. Add `image` before the optional link/ID to generate a PNG card with bundled offline emoji/symbol fallback fonts. Both modes use the author's server avatar when available, link to the original message, include a signed TFVN proof bound to the source snapshot, and have a 5s per-user cooldown |
 | `hash_verify <proof_code>` | — | Everyone (guild) | Resolve a short `tfp1_…` code to its hidden signed token, require the requested/record/signed IDs to match, and verify the saved Femboy Card or quote snapshot against the signed digest. Full legacy `tfv1.…` tokens also work. Results are limited to the signed guild; private quote text is shown only in the exact source channel/thread with history access. Limited to 3 checks per 10 seconds per user |
+| `softotp` | — | Everyone (guild) | Reply with the Discord Soft OTP panel and the notice that only the opener can use it. Get OTP is available to the opener; Verify is shown only when that opener has Administrator or Manage Server. Controls expire after 3 minutes |
+| `softotp get <challenge>` | — | Everyone (guild) | Issue a guild-and-member-bound `tfotp1.<key-id>.<unix>.<code>` OTP for the given challenge and send it by DM. Different challenges such as `123456` and `jd3s1s` produce different codes. The token carries the active key version and issue time; changing `CONTENT_VERIFICATION_ACTIVE_KEY_ID` invalidates outstanding OTPs. If DMs are closed, a private reveal button is offered as a reply instead. Limited to 3 uses per 10 seconds per user |
+| `softotp verify <challenge> <otp> [@user]` | — | Administrator / Manage Guild | Reject OTPs whose key version is not the current active key. With `@user`, confirm the OTP belongs to that claimed member so another person's code is a mismatch. Without `@user`, look up `tfotp1.<key-id>.<unix>.<code>` in the issuance registry, re-check HMAC against the active key, and report who minted it. Guessed Discord IDs are not accepted and members are not scanned. Limited to 5 checks per 20 seconds per user |
 | `big_speaker <size> <message>` | `loa`, `speaker` | Everyone (guild) | Re-speak a message in large Discord markdown. **`size` is 1–6**; TC cost by size: **1 / 2 / 5 / 10 / 20 / 50**. Sizes 5–6 add separators; 6 is bold H1. Mentions: user only; strips `@everyone`, `@here`, role pings. 30s cooldown |
 | `random_member <@member\|@role>` | — | Everyone | Pick a random member (from role members if a role is given) |
 | `lunch [budget] [chay]` | `antrua`, `what_should_i_have_lunch_today` | Everyone | Open an owner-only lunch picker with budget and vegetarian filters, a Genshin wish GIF, and a food-image reveal; 3s command cooldown |
 | `save_image <collection> [key value ...]` | — | Manage Messages | Persist attached images + optional metadata pairs to Mongo (`images`) |
 
 **Module:** `cogs.utils.*`
+
+`softotp` proves Discord account ownership when a member fills a Google Form.
+The member types the form's challenge (one token, 1–64 characters, no spaces;
+`123456` and `jd3s1s` therefore mint different codes) and receives a
+opaque `tfotp1.<key-id>.<unix>.<8-character>` OTP. The HMAC binds that key
+version and issue time. Changing the active content-verification key ID
+invalidates every outstanding Soft OTP even if old keys remain for card/quote
+proofs. The token does not contain a Discord user ID;
+identity is stored privately in `softotp_issuances` when the member runs `get`,
+then revealed only by a successful staff `verify`. Do not trust a Discord ID
+typed on the Google Form. Paste the entire token into the form. The same
+challenge always yields the same code until the signing key is removed.
+`softotp` with no subcommand replies with the spoilered notice
+"Chỉ bạn thấy bảng này." and the Discord panel: everyone who opened it can get
+an OTP privately; Administrator or Manage Server also get Verify. Prefer
+selecting the member named on the form so a mistyped OTP that belongs to
+someone else is rejected instead of attaching the row to the wrong account. Prefix `get` sends the OTP by DM and never prints it in the
+channel; closed DMs fall back to a private reveal-button reply. Prefix `verify`
+reports in the current channel, so staff should run it in a staff channel.
+Verify is a hashed lookup plus HMAC check, never a guild member scan, so
+guessed IDs cannot be used to spam-walk the server. Soft OTP reuses the
+content-verification HMAC keys with a separate domain.
 
 `lunch` opens a filter panel in servers or DMs. The defaults are an unlimited
 budget and all dishes. Choose a budget preset (35, 50, 75, 100, 150, or 200
@@ -718,7 +743,7 @@ custom_role, update_custom_role, custom_room
 jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
 giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
-vote, highlight, quote, hash_verify, big_speaker, random_member, lunch, save_image
+vote, highlight, quote, hash_verify, softotp, softotp get, softotp verify, big_speaker, random_member, lunch, save_image
 kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn
 nickchange, roleroll, roleunroll, rolecopy
 purge, purge_user, clean_before

@@ -90,6 +90,7 @@ tfvn_bot/
 │   ├── test_highlight_media.py     Embed extraction, media limits, and Discord proxy URL tests
 │   ├── test_highlight_text.py      Embed Markdown parsing, styled wrapping, and text drawing tests
 │   ├── test_hash_verification.py    Signed proof, forgery, tamper, producer, and privacy tests
+│   ├── test_softotp.py              Soft OTP challenge codes, commands, UI, and permission tests
 │   ├── test_meter_number_bars.py   unittest coverage for signed meter formatting
 │   ├── test_operation_dashboard.py Health/audit, Doctor access/pagination, and owner UI tests
 │   ├── test_role_exam.py           Role-exam invitation, UI, safety, and role-grant tests
@@ -237,6 +238,9 @@ tfvn_bot/
         ├── quote.py                     Text-embed and PNG message quote modes
         ├── _quote_card.py               Quote text wrapping and PNG card rendering
         ├── hash_verify.py               Signature-first femboy-card/quote proof verification
+        ├── softotp.py                   Challenge-bound Soft OTP commands and staff verification
+        ├── _softotp_helpers.py          Opaque HMAC codes, issuance registry, and lookup
+        ├── _softotp_ui.py               Soft OTP panel, get/verify modals, and reveal button
         ├── big_speaker.py               Paid TC big-text re-speak in current channel
         ├── _big_speaker_helpers.py      Size 1–6 → TC cost, mention sanitize, format helpers
         ├── random_member.py             Random guild member selection
@@ -249,6 +253,20 @@ tfvn_bot/
 Local `dev_cogs.txt` selects extensions during development. `DISABLED_COGS` can
 filter loaded extensions with exact dotted modules or wildcard patterns.
 `draft.txt` is a local scratch file.
+
+`!tf softotp` replies with a three-minute owner-only panel and the notice that
+only the opener can use it. `softotp get <challenge>` DMs a deterministic
+opaque `tfotp1.<key-id>.<unix>.<code>` bound to the current guild, member,
+challenge, active key version, and issue time, and upserts that binding in
+`softotp_issuances`. `softotp verify` is limited to Administrator or Manage
+Server. It rejects tokens whose key ID is not the current active key, so
+rotating `CONTENT_VERIFICATION_ACTIVE_KEY_ID` invalidates outstanding Soft
+OTPs while old keys can still verify card/quote proofs. With `@user` it
+HMAC-confirms the claimed member so another person's OTP is a mismatch;
+without `@user` it resolves identity from the registry. It does not scan
+members or trust a Discord ID inside the token. Codes reuse the
+content-verification HMAC keyring with a separate domain so they cannot be
+confused with card/quote proofs.
 
 Lunch owns its catalog and local media loading; it does not use shared bot data,
 MongoDB, or external APIs at runtime. `!tf lunch [budget] [chay]` opens a
@@ -271,6 +289,7 @@ MongoDB collections are created lazily. Major groups are:
 - Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`
 - Cultivation audit: append-only `cultivation_events`; TC exchanges also write `transaction_logs`
 - Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`
+- Soft OTP issuances: `softotp_issuances` stores guild/member/challenge bindings for `tfotp1.<key-id>.<unix>.<code>` tokens. Lookup `_id` is a SHA-256 of guild, challenge, key ID, issue time, and code; the user ID stays out of the token. Verify authenticates only the active HMAC key and does not scan the guild. Unique `(guild_id, user_id, challenge)` prevents duplicate live codes per member
 - Content provenance: `hash_verifications` stores immutable, guild-scoped
   femboy-card and quote snapshots. New records use their signed 128-bit token ID
   as MongoDB `_id` and store the full HMAC token privately; legacy records remain

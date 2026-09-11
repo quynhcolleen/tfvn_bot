@@ -893,6 +893,31 @@ HELP_TOPICS = (
                 note="Giá big_speaker theo cỡ 1–6: 1 / 2 / 5 / 10 / 20 / 50 TC.",
             ),
             HelpSection(
+                name="Soft OTP (Google Form)",
+                entries=(
+                    _entry(
+                        "softotp",
+                        "Reply bảng Discord; chỉ người gọi lệnh dùng được.",
+                    ),
+                    _entry(
+                        "softotp get",
+                        (
+                            "Lấy OTP `tfotp1.<khóa>.<unix>.<mã>`; đổi khóa sẽ "
+                            "vô hiệu mã cũ."
+                        ),
+                        "softotp get <challenge>",
+                    ),
+                    _entry(
+                        "softotp verify",
+                        (
+                            "Admin/Manage Server đối chiếu OTP với `@user` trên form "
+                            "để tránh nhầm mã người khác; không `@user` thì tra mã đã lưu."
+                        ),
+                        "softotp verify <challenge> <otp> [@user]",
+                    ),
+                ),
+            ),
+            HelpSection(
                 name="Dành cho Booster",
                 entries=(
                     _entry(

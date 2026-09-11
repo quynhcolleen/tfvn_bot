@@ -77,7 +77,7 @@ DB_PASSWORD=replace_with_a_strong_password
 DB_HOST=localhost:27017
 DB_NAME=tfvn_bot
 
-# Required by femboy-card and quote proofs
+# Required by femboy-card, quote proofs, and Soft OTP
 CONTENT_VERIFICATION_ACTIVE_KEY_ID=2026-08
 CONTENT_VERIFICATION_KEYS_JSON={"2026-08":"replace_with_32_byte_base64url_key"}
 
@@ -104,7 +104,7 @@ python -c "import base64,secrets; print(base64.urlsafe_b64encode(secrets.token_b
 ```
 
 Use that output only as the JSON value; never reuse `DISCORD_TOKEN` or a database
-password. New cards and quotes fail closed when the keyring is missing or invalid.
+password. New cards, quotes, and Soft OTP codes fail closed when the keyring is missing or invalid.
 For rotation, add a new key ID, keep old key IDs in the JSON so existing proofs
 remain verifiable, then change `CONTENT_VERIFICATION_ACTIVE_KEY_ID` to the new ID.
 Use a different keyring for every bot deployment (for example development and
@@ -263,7 +263,7 @@ menu focused on their respective topics.
 | Tiên Lộ | `tutien`, `tutien thucong`, `tutien dotpha`, `tutien bicanh`, `tutien thiluyen`, `tutien doido` |
 | Moderation | `kick`, `ban`, `unban`, `softban`, `mute`, `timeout`, `warn`, `case`, `purge`, `slowmode`, `verified` |
 | Operations | `ping`, `server_stats`, `operation_dashboard`, `bot_status`, `setup check` |
-| Utilities | `quote`, `hash_verify`, `big_speaker`, `random_member`, `lunch` |
+| Utilities | `quote`, `hash_verify`, `softotp`, `big_speaker`, `random_member`, `lunch` |
 | Booster tools | `custom_role`, `update_custom_role`, `custom_room` |
 | Social and fun | `kiss`, `hug`, `pat`, `avatar`, `quote`, `rank`, `ship`, `aura`, `redflag`, configurable `triggerreply`, and other meter commands |
 | Automatic features | Welcome and leave/kick/ban announcements, AFK monitoring, job and bedtime reminders, bedtime chat replies, content filtering, scheduled cleanup, and persistent interaction handling |

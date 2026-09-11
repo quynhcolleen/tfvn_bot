@@ -117,6 +117,12 @@ class TestHelpTopicData(unittest.TestCase):
             rendered_topics["moderation"],
         )
         self.assertIn("`!tf mrank <tháng> <năm>`", rendered_topics["nsfw"])
+        self.assertIn("`!tf softotp`", rendered_topics["utilities"])
+        self.assertIn("`!tf softotp get <challenge>`", rendered_topics["utilities"])
+        self.assertIn(
+            "`!tf softotp verify <challenge> <otp> [@user]`",
+            rendered_topics["utilities"],
+        )
 
     def test_every_source_command_and_alias_is_documented(self) -> None:
         source_commands, source_aliases, beta_commands = source_command_inventory()

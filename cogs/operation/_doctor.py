@@ -29,6 +29,7 @@ CORE_ENVIRONMENT_VARIABLES = (
 )
 PROOF_MODULES = frozenset({
     "cogs.utils.quote", "cogs.funny_things.femboy_card", "cogs.utils.hash_verify",
+    "cogs.utils.softotp",
 })
 BOORU_ENVIRONMENT = {
     "cogs.nsfw.r34": (
