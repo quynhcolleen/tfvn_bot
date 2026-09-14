@@ -283,11 +283,13 @@ account write.
 | `crocodile fire <game_id>` | Host (guild only) | Recreate the authoritative invitation or gameplay panel for an open game in the current channel without resetting its state or deadlines |
 | `noitu` | Channel-bound | Word-chain rules embed; a valid move leaving no unused continuation wins **50 TC** |
 | `noitu status` | Channel-bound | Current word and used-word list |
+| `noitu top` | Channel-bound | All-time win leaderboard from `transaction_logs` (`word_connect_win`); top 10 by win count |
 | `noitu hint` | Channel-bound | Hint for the chain |
 | `noitu end` | Channel-bound | Reset the current game without awarding TC |
 | `noitu analyze` | Channel-bound | Analyze connectivity of the current word |
 | `vtv` | Channel-bound | Vua Tiếng Việt rules + current scramble; the first correct solver wins **10 TC** |
 | `vtv status` | Channel-bound | Current puzzle status |
+| `vtv top` | Channel-bound | All-time win leaderboard from `transaction_logs` (`vietnamese_king_win`); top 10 by win count |
 | `vtv next` | Channel-bound | Skip the current puzzle and start a new letter-scramble round without awarding TC |
 | `vtv hint` | Channel-bound | Reveal a letter hint; exhausting hints starts a new round without awarding TC |
 
@@ -305,7 +307,10 @@ skipped puzzles, and hint exhaustion award nothing. Rewards have no entry fee or
 daily cap, use the existing global account balance, and create an account when
 needed. Winner announcements show the credited reward; transaction history labels
 these credits “Thắng Vua Tiếng Việt” and “Thắng Nối Từ”. Reward amounts are fixed
-and require no new configuration.
+and require no new configuration. `vtv top` and `noitu top` rank those same win
+credits all-time and bot-wide. Order is win count, then total TC, then the
+earlier most-recent win, then user ID. They reuse `transaction_logs`, do not ping
+mentions, and stay silent outside a configured game channel.
 
 **Module:** `cogs.minigames.*`; the interactive card-game cogs are
 `cogs.minigames.blackjack.blackjack` and `cogs.minigames.poker.poker`; persistent
@@ -342,7 +347,7 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `skillissue` | — | Skill-issue meter |
 | `touchgrass` | — | Touch-grass meter |
 | `yapper` | — | Yap meter |
-| `femboycard` | — | Personal femboy card from configured role names (`data/femboy_role.txt`), issued with a signed TFVN proof that binds the member, role, guild, issuer, time, and saved snapshot; 10s per-user cooldown |
+| `femboycard` | — | Personal femboy card from configured role names (`data/femboy_role.txt`), including current guild marriage (partner, rank, level, wedding date / days together, or single); issued with a signed TFVN proof that binds the member, role, guild, issuer, time, and saved snapshot; 10s per-user cooldown |
 | `birthday` | — | Open the interactive month and day picker |
 | `birthday set <day> <month>` | — | Register a birthday directly (announced by scheduled task) |
 
@@ -372,6 +377,13 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `smack @user` | — | Everyone | Affectionate punch (đấm yêu) |
 | `sniff @user` | — | Everyone | Sniff |
 | `kidnap @user` | — | Everyone | Playful kidnap / carry |
+| `tickle @user` | — | Everyone | Tickle (self allowed) |
+| `pinch @user` | — | Everyone | Cheek pinch |
+| `wave @user` | — | Everyone | Wave |
+| `blush @user` | — | Everyone | Make the target blush (self allowed) |
+| `highfive @user` | `brofist` | Everyone | High five |
+| `feed @user` | — | Everyone | Feed |
+| `wink @user` | — | Everyone | Wink |
 | `avatar [@user]` | `av`, `global_avatar`, `globalav` | Everyone | Show Discord global avatar (default: author) |
 | `server_avatar [@user]` | `sav`, `guild_avatar`, `serverav` | Everyone (guild) | Show server avatar, or global avatar if unset |
 | `propose @user` | — | Everyone (guild) | Propose marriage; partner presses Yes/No (5m); expired proposals update UI) |
@@ -379,14 +391,14 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `marriage help` | — | Everyone (guild) | Rules: XP, ranks, cooldowns |
 | `marriage top` | `lb`, `leaderboard`, `rank` | Everyone (guild) | Top 10 couples by XP |
 | `divorce` | — | Everyone (guild) | End active marriage after confirm buttons |
-| `rank [r] [action]` | `ranking` | Everyone | All-time bot-wide interaction leaderboards (`r` = receivers); action can be kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, or kidnap |
+| `rank [r] [action]` | `ranking` | Everyone | All-time bot-wide interaction leaderboards (`r` = receivers); action can be kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap, tickle, pinch, wave, blush, highfive, feed, or wink |
 | `cat` | — | Everyone | Random cat image (external API) |
 | `dog` | — | Everyone | Random dog image (external API) |
 | `36` | — | Everyone | Static meme GIF reply |
 
 **Module:** `cogs.interaction.user_interaction`, `cat`, `dog`, `meme_interaction`
 
-All 18 SFW interactions require a non-bot target and have a 3-second per-command, per-user cooldown. Self-target is allowed only for `pat`, `slap`, `punch`, `hit`, `poke`, `bonk`, and `smack`.
+All 25 SFW interactions require a non-bot target and have a 3-second per-command, per-user cooldown. Self-target is allowed only for `pat`, `slap`, `punch`, `hit`, `poke`, `bonk`, `smack`, `tickle`, and `blush`.
 
 ---
 
@@ -418,7 +430,11 @@ All 18 SFW interactions require a non-bot target and have a 3-second per-command
 | `cream @user` | — | Creampie |
 | `3some @user1 @user2` | `threesome` | Threesome with two others |
 | `orgy @user1 … @userN` | — | Orgy with 2–10 other members |
-| `ranknsfw [r] [action]` | `nsfwrank` | Current-UTC-month bot-wide leaderboards; action can be bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, or orgy |
+| `gangbang @user1 … @userN` | `gb` | Gangbang with 1–10 other members |
+| `ride @user` | — | Ride |
+| `fingering @user` | `finger` | Fingering (self allowed) |
+| `facesit @user` | `sitface` | Facesitting |
+| `ranknsfw [r] [action]` | `nsfwrank` | Current-UTC-month bot-wide leaderboards; action can be bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, gangbang, ride, fingering, or facesit |
 | `mrank <month> <year>` | — | Administrator monthly NSFW ranking |
 
 ### Super-user controls
@@ -528,12 +544,37 @@ Duration range: 10 seconds–30 days; max 20 winners.
 | `highlight` | — | Everyone (guild) | Show the current unique non-bot 💀 threshold, eligible message content and SFW channel requirements, destination channel, and minimum interval between highlight posts in the server |
 | `quote [image] [message_link\|message_id]` | `q`, `quotes` | Everyone (guild) | Quote a replied/current-channel message as a text embed by default. Add `image` before the optional link/ID to generate a PNG card with bundled offline emoji/symbol fallback fonts. Both modes use the author's server avatar when available, link to the original message, include a signed TFVN proof bound to the source snapshot, and have a 5s per-user cooldown |
 | `hash_verify <proof_code>` | — | Everyone (guild) | Resolve a short `tfp1_…` code to its hidden signed token, require the requested/record/signed IDs to match, and verify the saved Femboy Card or quote snapshot against the signed digest. Full legacy `tfv1.…` tokens also work. Results are limited to the signed guild; private quote text is shown only in the exact source channel/thread with history access. Limited to 3 checks per 10 seconds per user |
+| `softotp` | — | Everyone (guild) | Reply with the Discord Soft OTP panel and the notice that only the opener can use it. Get OTP is available to the opener; Verify is shown only when that opener has Administrator or Manage Server. Controls expire after 3 minutes |
+| `softotp get <challenge>` | — | Everyone (guild) | Issue a guild-and-member-bound `tfotp1.<key-id>.<unix>.<code>` OTP for the given challenge and send it by DM. Different challenges such as `123456` and `jd3s1s` produce different codes. The token carries the active key version and issue time; changing `CONTENT_VERIFICATION_ACTIVE_KEY_ID` invalidates outstanding OTPs. If DMs are closed, a private reveal button is offered as a reply instead. Limited to 3 uses per 10 seconds per user |
+| `softotp verify <challenge> <otp> [@user]` | — | Administrator / Manage Guild | Reject OTPs whose key version is not the current active key. With `@user`, confirm the OTP belongs to that claimed member so another person's code is a mismatch. Without `@user`, look up `tfotp1.<key-id>.<unix>.<code>` in the issuance registry, re-check HMAC against the active key, and report who minted it. Guessed Discord IDs are not accepted and members are not scanned. Limited to 5 checks per 20 seconds per user |
 | `big_speaker <size> <message>` | `loa`, `speaker` | Everyone (guild) | Re-speak a message in large Discord markdown. **`size` is 1–6**; TC cost by size: **1 / 2 / 5 / 10 / 20 / 50**. Sizes 5–6 add separators; 6 is bold H1. Mentions: user only; strips `@everyone`, `@here`, role pings. 30s cooldown |
 | `random_member <@member\|@role>` | — | Everyone | Pick a random member (from role members if a role is given) |
 | `lunch [budget] [chay]` | `antrua`, `what_should_i_have_lunch_today` | Everyone | Open an owner-only lunch picker with budget and vegetarian filters, a Genshin wish GIF, and a food-image reveal; 3s command cooldown |
 | `save_image <collection> [key value ...]` | — | Manage Messages | Persist attached images + optional metadata pairs to Mongo (`images`) |
 
 **Module:** `cogs.utils.*`
+
+`softotp` proves Discord account ownership when a member fills a Google Form.
+The member types the form's challenge (one token, 1–64 characters, no spaces;
+`123456` and `jd3s1s` therefore mint different codes) and receives a
+opaque `tfotp1.<key-id>.<unix>.<8-character>` OTP. The HMAC binds that key
+version and issue time. Changing the active content-verification key ID
+invalidates every outstanding Soft OTP even if old keys remain for card/quote
+proofs. The token does not contain a Discord user ID;
+identity is stored privately in `softotp_issuances` when the member runs `get`,
+then revealed only by a successful staff `verify`. Do not trust a Discord ID
+typed on the Google Form. Paste the entire token into the form. The same
+challenge always yields the same code until the signing key is removed.
+`softotp` with no subcommand replies with the spoilered notice
+"Chỉ bạn thấy bảng này." and the Discord panel: everyone who opened it can get
+an OTP privately; Administrator or Manage Server also get Verify. Prefer
+selecting the member named on the form so a mistyped OTP that belongs to
+someone else is rejected instead of attaching the row to the wrong account. Prefix `get` sends the OTP by DM and never prints it in the
+channel; closed DMs fall back to a private reveal-button reply. Prefix `verify`
+reports in the current channel, so staff should run it in a staff channel.
+Verify is a hashed lookup plus HMAC check, never a guild member scan, so
+guessed IDs cannot be used to spam-walk the server. Soft OTP reuses the
+content-verification HMAC keys with a separate domain.
 
 `lunch` opens a filter panel in servers or DMs. The defaults are an unlimited
 budget and all dishes. Choose a budget preset (35, 50, 75, 100, 150, or 200
@@ -627,6 +668,14 @@ five seconds in both direct commands and UI confirmations.
 
 **Background:** honeypot channel monitoring, cancel-ban UI, auto-prune, weekly reminder task. Configured via `AREA_51_CHANNEL_ID` / prune variables in Mongo settings.
 
+### MrBeast photo-dump filter
+
+| Command | Aliases | Access | Description |
+| --- | --- | --- | --- |
+| `scam_check` | `mrbeast` | Manage Messages | Reply to a message to inspect whether it is a 1–4 photo dump, how many dumps that author already has in the 2-minute window, and any caption-scam signals. Does not delete or timeout |
+
+**Background:** watches guild messages and edits. A near-empty 1–4 image dump is counted per author in a two-minute window. Dumps **1–2** are watch-only. Dump **3** (and 4, if they cleared the previous warning) sends a public **Xác nhận** button the author must click within **30 seconds**; missing the click deletes the dumps, applies a **24-hour timeout**, and opens the staff panel. Dump **5** skips the button and timeouts immediately. Staff panel: `MRBEAST_SCAM_ALERT_CHANNEL` (fallback: `case log_channel`) with Ban / Gỡ timeout / Giữ timeout. Ban is staff-only. Isolated caption scams that already match brand+prize+lure may still be deleted without a timeout. Webhooks are scanned; this bot, other bots, and members with Administrator or Manage Messages are ignored. Logs: `mrbeast_scam_logs`, `mrbeast_scam_incidents`.
+
 **Module:** `cogs.mod.*`
 
 ---
@@ -651,7 +700,7 @@ No user command. On message, if content matches entries in `data/banned_word_lis
 | `setting set_variable <NAME>` | Administrator | Interactive set of a Mongo `global_variables` key (loaded into `bot.global_vars`) |
 | `setting get_variable <NAME>` | Administrator | Read a stored variable |
 
-Common variable examples (not exhaustive): channel IDs, booster category, Area 51 channel, media arrays, `BETA_ROLE_IDS`.
+Common variable examples (not exhaustive): channel IDs, booster category, Area 51 channel, `MRBEAST_SCAM_ALERT_CHANNEL`, media arrays, `BETA_ROLE_IDS`.
 
 **Module:** `cogs.settings.variable_setting`
 
@@ -700,21 +749,22 @@ tutien doido, tutien doido mua, tutien doido ban,
 tutien profile, tutien top, tutien riengtu
 blackjack, poker, slot, flip_coin, sicbo_start
 crocodile, crocodile challenge, crocodile fire
-noitu, noitu status, noitu hint, noitu end, noitu analyze
-vtv, vtv status, vtv next, vtv hint
+noitu, noitu status, noitu top, noitu hint, noitu end, noitu analyze
+vtv, vtv status, vtv top, vtv next, vtv hint
 gay, les, ship, penisize, titansize, aura, redflag, based, brainrot, clown, cope, cringe, delulu,
 gyatt, ick, mainchar, npc, ohio, rizz, simp, skillissue, touchgrass, yapper,
 femboycard, birthday, birthday set
 kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap,
+tickle, pinch, wave, blush, highfive, feed, wink,
 avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, rank, cat, dog, 36
-r34, gbr, nsfwrule, bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, ranknsfw, mrank
+r34, gbr, nsfwrule, bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, gangbang, ride, fingering, facesit, ranknsfw, mrank
 locknsfw, unlocknsfw, verified, unverified
 custom_role, update_custom_role, custom_room
 jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
 giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
-vote, highlight, quote, hash_verify, big_speaker, random_member, lunch, save_image
-kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn
+vote, highlight, quote, hash_verify, softotp, softotp get, softotp verify, big_speaker, random_member, lunch, save_image
+kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn, scam_check
 nickchange, roleroll, roleunroll, rolecopy
 purge, purge_user, clean_before
 slowmode, slowmode check_bypass, slowmode immune, slowmode prominent
@@ -723,7 +773,7 @@ area51_fire
 setting, setting set_variable, setting get_variable
 ```
 
-**Automatic features:** random bot activity rotation at random 5–15 minute intervals, paused while an Administrator's temporary `bot_status` override is active; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
+**Automatic features:** random bot activity rotation at random 5–15 minute intervals, paused while an Administrator's temporary `bot_status` override is active; welcome and differentiated leave/kick/ban announcements, AFK monitoring, banned-word discipline, booster unboost janitor, birthday announcements, job-reminder and bedtime-reminder loops, bedtime chat replies, giveaway/vote end scheduling, highlight posting when a SFW message reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀 (Discord-chat PNG to `HIGHLIGHT_CHANNEL`, at most one post per guild every `HIGHLIGHT_MIN_INTERVAL_SECONDS`; Vietnamese congrats reply on the source message; NSFW channels are ignored), Area 51 honeypot, MrBeast photo-dump warnings (3rd dump / 30s click, 5th dump timeout) and staff decision panel, Lunar New Year greeting, word-game message handling. All departure variants use `BYE_CHANNEL`; View Audit Log permission is required to reliably distinguish kicks from voluntary leaves.
 
 Use `highlight` with the configured bot prefix (for example, `!tfd highlight`)
 to view the current requirements and destination channel, or a notice when no

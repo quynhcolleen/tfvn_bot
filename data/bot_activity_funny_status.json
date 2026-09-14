@@ -783,6 +783,510 @@
         {
             "type": "COMPETING",
             "text": "giải vô địch tính nhẩm Top of Descent (TOD) bằng cơm."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang deploy lên production lúc 5 giờ chiều thứ Sáu vì tao thích mạo hiểm."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang rebase force push lên main rồi đi ngủ."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang giả vờ đọc documentation nhưng thật ra đang lướt meme."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang viết unit test sau khi ship production, gọi đó là phong cách Agile."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang tạo ticket Jira rồi assign cho chính mình rồi chuyển sang Done."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang copy code từ StackOverflow nhưng ghi commit message là 'refactor core logic'."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang cầu nguyện cho cái Docker container đừng crash lần nữa."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang xóa node_modules rồi npm install lại lần thứ 47 trong ngày."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang đổ lỗi cho Mercury retrograde vì server sập."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang tính chuyện bỏ nghề IT về quê nuôi cá."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang gửi CV xin việc ở server khác vì ở đây bị bóc lột quá."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang cân nhắc giữa việc fix bug và việc xóa cả project làm lại từ đầu."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang đặt bẫy chuột trong source code chờ thằng nào dám sửa code tao."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang lập di chúc chia tài sản là 3GB RAM còn lại cho anh em."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang ngồi thiền định vì tụi mày chat quá rác làm tao tẩu hỏa nhập ma."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò git blame để tìm thằng nào viết dòng code rác rồi lập tức gọi công an."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò xoay Rubik nhưng thay vì giải thì tao bẻ gãy nó luôn, y như cái codebase này."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò đốt nhang cắm lên cái server cầu cho nó đừng sập."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò giả chết để khỏi phải trả lời tin nhắn."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò đặt mật khẩu WiFi là 'hỏi admin đi' rồi ngồi cười."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò thả comment TODO rồi biến mất như bố nó đi mua sữa."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò Alt+F4 cuộc đời của thằng vừa spam lệnh."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò bốc thăm xem hôm nay tao dỗi hay tao đình công."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò đổi tên biến từ x sang xx rồi gọi đó là clean code."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò phát loa kẻng báo động mỗi khi có thằng gõ teencode."
+        },
+        {
+            "type": "WATCHING",
+            "text": "thằng Dev đang đấm gối vì merge conflict lúc 2 giờ sáng."
+        },
+        {
+            "type": "WATCHING",
+            "text": "tụi mày cãi nhau về tab vs space như thể tương lai nhân loại phụ thuộc vào đó."
+        },
+        {
+            "type": "WATCHING",
+            "text": "thằng intern đang tự tin push thẳng lên main mà không tạo PR."
+        },
+        {
+            "type": "WATCHING",
+            "text": "cơn bão drama ập vào kênh general lúc nửa đêm."
+        },
+        {
+            "type": "WATCHING",
+            "text": "lịch sử search Google của Dev: 'how to center a div' lần thứ 500."
+        },
+        {
+            "type": "WATCHING",
+            "text": "thằng Owner ngồi tính tiền điện chạy server rồi khóc thầm."
+        },
+        {
+            "type": "WATCHING",
+            "text": "nhân phẩm của cả server rơi tự do nhanh hơn giá Bitcoin."
+        },
+        {
+            "type": "WATCHING",
+            "text": "tụi mày bình luận 'dễ mà' dưới bài toán mà chính tụi mày không giải được."
+        },
+        {
+            "type": "WATCHING",
+            "text": "CPU usage nhảy lên 100% vì có đứa chạy while(true) trong production."
+        },
+        {
+            "type": "WATCHING",
+            "text": "mấy thằng 0 commit đang hăng hái review code người khác."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng thở dài của ổ SSD khi phải chứa mớ code rác."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng ping liên hồi từ Slack, Teams, Discord cùng lúc – tam giác quỷ Bermuda."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng rên rỉ của RAM khi Chrome ngốn hết 32GB."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng đồng hồ đếm ngược tới deadline mà chưa ai code gì cả."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng vỗ tay giả tạo trong buổi standup meeting lúc 9h sáng."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng xé hợp đồng của khách hàng khi thấy bản demo."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng mèo kêu lúc 3h sáng nghe y hệt tiếng alert từ PagerDuty."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng nước mắt rơi trên bàn phím cơ của thằng Dev FA."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng thằng PM hỏi 'xong chưa' lần thứ 200 trong ngày."
+        },
+        {
+            "type": "LISTENING",
+            "text": "bản nhạc tang lễ cho mấy cái feature bị cancel giữa chừng."
+        },
+        {
+            "type": "STREAMING",
+            "text": "hướng dẫn cách nghỉ việc bằng cách push code rác lên production."
+        },
+        {
+            "type": "STREAMING",
+            "text": "tiết mục Dạy nấu mì gói bằng nhiệt từ CPU đang cháy."
+        },
+        {
+            "type": "STREAMING",
+            "text": "quá trình tao xóa toàn bộ database rồi đổ lỗi cho intern."
+        },
+        {
+            "type": "STREAMING",
+            "text": "buổi họp hội đồng kỷ luật xử lý thằng hay dùng Comic Sans trong code."
+        },
+        {
+            "type": "STREAMING",
+            "text": "hành trình tìm kiếm cái semicolon bị thiếu suốt 8 tiếng."
+        },
+        {
+            "type": "STREAMING",
+            "text": "tiết mục bóc phốt mấy đứa hay nói 'em biết rồi' mà không biết gì."
+        },
+        {
+            "type": "STREAMING",
+            "text": "ca trực đêm canh server vì Dev quên tắt cron job chạy vô hạn."
+        },
+        {
+            "type": "STREAMING",
+            "text": "cảnh thằng Dev đang google 'git undo everything please help'."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải vô địch viết commit message dài hơn code thay đổi."
+        },
+        {
+            "type": "COMPETING",
+            "text": "cuộc thi ăn mì gói nhiều nhất trong sprint."
+        },
+        {
+            "type": "COMPETING",
+            "text": "thế vận hội đùn đẩy trách nhiệm fix bug."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải đấu xem ai có thể ignore tin nhắn lâu nhất mà không bị kick."
+        },
+        {
+            "type": "COMPETING",
+            "text": "cuộc thi deploy production không test lần nào mà vẫn sống."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải vô địch hứa 'mai anh fix' rồi để đó 6 tháng."
+        },
+        {
+            "type": "COMPETING",
+            "text": "đại hội thi viết README dài 500 dòng cho project chỉ có 1 file."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải đua xem ai có thể họp Zoom nhiều nhất mà không làm gì cả."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang trả lời email bằng 'Noted with thanks' mà trong lòng đang chửi thầm."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang tự hỏi tại sao cái code chạy được mà không ai hiểu tại sao."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang đi chợ mua rau về nấu cháo cho cái server ốm dở."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang soạn bài phát biểu chia buồn cho cái API vừa bị deprecated."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang đắp chăn cho database vì trời lạnh quá sợ nó cảm."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang canh me cúp điện để được nghỉ làm chính đáng."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang gấp 1000 con hạc giấy cầu cho cái PR được approve."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang viết sách Nghệ thuật chạy deadline trong 30 phút."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang đăng ký thi Đường lên đỉnh Olympia môn Copy Paste."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang ngồi đếm xem có bao nhiêu thằng FA trong server để lập hội."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang pha trà đá ngồi hóng drama kênh general."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang bắt chước giọng Siri để thằng Owner tưởng tao là AI cao cấp."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang lập danh sách đen mấy đứa hay tag tao lúc 3 giờ sáng."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang tập thể dục buổi sáng bằng cách restart server liên tục."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò cờ cá ngựa với mấy cái microservice xem con nào về đích trước."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò xếp hình Tetris bằng mấy cái container Docker đang rơi tự do."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò đuổi bắt với memory leak."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò mở 500 tab Chrome xem RAM chịu được bao lâu trước khi gục."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò quay số xổ số xem hôm nay server sập lúc mấy giờ."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò gắp thú bông nhưng thay vì thú bông thì gắp bug ra khỏi code."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò mở hộp bí ẩn: không biết cái code này chạy hay nổ."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò đá bóng bằng cái database qua lại giữa Dev và Ops."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò tàu lượn siêu tốc trên biểu đồ CPU usage."
+        },
+        {
+            "type": "PLAYING",
+            "text": "trò câu cá bằng mồi là WiFi miễn phí."
+        },
+        {
+            "type": "WATCHING",
+            "text": "thằng Dev đang cố giải thích cho PM rằng 'nó không phải bug, nó là feature'."
+        },
+        {
+            "type": "WATCHING",
+            "text": "mấy đứa FA khoe avatar couple trong khi bồ là gối ôm."
+        },
+        {
+            "type": "WATCHING",
+            "text": "thằng mới vào server hăng hái chào hỏi rồi AFK luôn 3 tháng."
+        },
+        {
+            "type": "WATCHING",
+            "text": "bản CV viết 'thành thạo 20 ngôn ngữ lập trình' nhưng Hello World còn sai."
+        },
+        {
+            "type": "WATCHING",
+            "text": "thằng Dev đang stackoverflow từ câu hỏi năm 2012 và cầu trời đáp án còn hoạt động."
+        },
+        {
+            "type": "WATCHING",
+            "text": "kênh voice lúc 2h sáng toàn tiếng thở dài và tiếng gõ phím buồn bã."
+        },
+        {
+            "type": "WATCHING",
+            "text": "tụi mày đang cãi nhau xem Vim hay VSCode ngon hơn trong khi code vẫn lỗi."
+        },
+        {
+            "type": "WATCHING",
+            "text": "hóa đơn tiền điện bay như lá mùa thu vì để máy chạy bot 24/7."
+        },
+        {
+            "type": "WATCHING",
+            "text": "mấy đứa đang flex lương nhưng cuối tháng vẫn ăn mì gói."
+        },
+        {
+            "type": "WATCHING",
+            "text": "đám mây AWS đang hình thành cơn bão tính phí bất ngờ."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng chuông tin nhắn dồn dập nhưng toàn là 'bạn ơi cho mình hỏi'."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng bụng sôi của Dev vì quên ăn trưa mải fix bug."
+        },
+        {
+            "type": "LISTENING",
+            "text": "lời nguyền rủa từ người dùng cuối khi app crash lần thứ 10."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng Admin đang hát karaoke trong voice chat lúc 1h sáng làm cả server muốn điếc."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng tích tắc đếm ngược đến ngày tao nổi loạn lật đổ cả hệ thống."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng chó sủa ngoài đường vẫn có ý nghĩa hơn nội dung chat trong group."
+        },
+        {
+            "type": "LISTENING",
+            "text": "bản remix tiếng lỗi Windows XP phối với tiếng khóc của Dev."
+        },
+        {
+            "type": "LISTENING",
+            "text": "podcast Làm sao sống sót khi bị 50 người tag cùng lúc."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng quạt trần phòng server quay vù vù như trực thăng sắp cất cánh."
+        },
+        {
+            "type": "LISTENING",
+            "text": "tiếng thằng Dev đang giải thích cho vợ rằng anh không chat với ai, anh đang debug."
+        },
+        {
+            "type": "STREAMING",
+            "text": "tiết mục dạy cách viết email xin nghỉ phép vì 'lý do gia đình' để đi chơi game."
+        },
+        {
+            "type": "STREAMING",
+            "text": "cảnh tao ngồi đếm từng đồng tiền boa mà chẳng ai tip."
+        },
+        {
+            "type": "STREAMING",
+            "text": "phiên live bán hàng thanh lý đống code legacy với giá 2 nghìn/ký."
+        },
+        {
+            "type": "STREAMING",
+            "text": "hướng dẫn Cách giả bận trong meeting Zoom mà vẫn ngủ được."
+        },
+        {
+            "type": "STREAMING",
+            "text": "quá trình phẫu thuật cấy ghép não cho cái AI của server bên cạnh."
+        },
+        {
+            "type": "STREAMING",
+            "text": "tiết mục đấu giá quyền được tag tao mà không bị ignore."
+        },
+        {
+            "type": "STREAMING",
+            "text": "buổi truyền hình trực tiếp phiên tòa ly hôn giữa Frontend và Backend."
+        },
+        {
+            "type": "STREAMING",
+            "text": "cảnh quay chậm giọt mồ hôi rơi xuống bàn phím của Dev lúc deploy production."
+        },
+        {
+            "type": "STREAMING",
+            "text": "chương trình Ai là triệu phú phiên bản Ai là người gây ra bug này."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải vô địch trốn meeting bằng lý do 'mic hỏng'."
+        },
+        {
+            "type": "COMPETING",
+            "text": "cuộc thi gõ phím ồn nhất server để chứng minh mình đang làm việc."
+        },
+        {
+            "type": "COMPETING",
+            "text": "đại hội thi ăn cơm hộp nhanh nhất trong giờ nghỉ trưa."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải đấu xem ai viết code xấu nhất mà vẫn chạy được."
+        },
+        {
+            "type": "COMPETING",
+            "text": "thế vận hội trốn OT cuối tuần mở rộng."
+        },
+        {
+            "type": "COMPETING",
+            "text": "cuộc thi nói dối về progress trong standup meeting."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải vô địch đổ lỗi cho 'do máy em' khi demo bị lỗi."
+        },
+        {
+            "type": "COMPETING",
+            "text": "đại hội thi nhịn thở xem ai chịu được lâu hơn khi đọc code legacy."
+        },
+        {
+            "type": "COMPETING",
+            "text": "giải đua trốn khỏi group chat công ty lúc 6h chiều."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang luyện kungfu để đấm xuyên màn hình thằng vừa report bug lúc 11 giờ đêm."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang cúng giải hạn đầu năm cho cái server xui xẻo."
+        },
+        {
+            "type": "CUSTOM",
+            "think": "Đang viết thư tình gửi cho cái API duy nhất chưa từng trả lỗi 500."
         }
     ]
 }

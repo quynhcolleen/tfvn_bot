@@ -42,6 +42,7 @@ ACTION_LABELS = {
     "unsoftban": "Unsoftban",
     "untimeout": "Untimeout",
     "warn": "Warn",
+    "scam": "Scam",
 }
 
 

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any
 
 
 XP_PER_INTERACTION = 5
@@ -119,3 +122,81 @@ def days_together(married_at, now) -> int:
     """Whole days between married_at and now (both timezone-aware or naive)."""
     delta = now - married_at
     return max(0, int(delta.total_seconds() // 86400))
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def partner_id_of(marriage: Mapping[str, Any], user_id: int) -> int:
+    """Return the other partner's Discord id."""
+    user_a = int(marriage["user_a"])
+    user_b = int(marriage["user_b"])
+    if user_id == user_a:
+        return user_b
+    if user_id == user_b:
+        return user_a
+    raise ValueError("user is not a partner in this marriage")
+
+
+@dataclass(frozen=True)
+class MarriageCardInfo:
+    partner_id: int
+    rank: RankInfo
+    level: int
+    married_on: str | None
+    days_together: int | None
+
+
+def marriage_card_info(
+    marriage: Mapping[str, Any],
+    user_id: int,
+    *,
+    now: datetime,
+) -> MarriageCardInfo:
+    """Summarize an active marriage for a member card."""
+    xp = int(marriage.get("xp", 0))
+    level = int(marriage.get("level") or level_from_xp(xp))
+    rank = rank_from_level(level)
+    married_at = marriage.get("married_at")
+    married_on = None
+    together = None
+    if isinstance(married_at, datetime):
+        married_utc = _as_utc(married_at)
+        married_on = married_utc.strftime("%Y-%m-%d")
+        together = days_together(married_utc, _as_utc(now))
+    return MarriageCardInfo(
+        partner_id=partner_id_of(marriage, user_id),
+        rank=rank,
+        level=level,
+        married_on=married_on,
+        days_together=together,
+    )
+
+
+def format_marriage_card_value(
+    marriage: Mapping[str, Any] | None,
+    user_id: int,
+    *,
+    now: datetime,
+) -> str:
+    """Vietnamese field text for a femboy/member card."""
+    if marriage is None:
+        return "Độc thân ✨"
+    info = marriage_card_info(marriage, user_id, now=now)
+    lines = [
+        f"❤️ <@{info.partner_id}>",
+        f"{info.rank.emoji} **{info.rank.display}** · Level **{info.level}**",
+    ]
+    if info.married_on is not None:
+        together = (
+            f" · **{info.days_together} ngày** bên nhau"
+            if info.days_together is not None
+            else ""
+        )
+        lines.append(f"📅 {info.married_on}{together}")
+    elif info.days_together is not None:
+        lines.append(f"**{info.days_together} ngày** bên nhau")
+    return "\n".join(lines)

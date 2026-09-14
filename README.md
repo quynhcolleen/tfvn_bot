@@ -12,7 +12,7 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 ## Highlights
 
 - **Community management:** welcome and differentiated leave/kick/ban announcements, verification, AFK tracking, birthdays, scheduled bedtime reminders, votes, and giveaways.
-- **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, and the Area 51 guard workflow.
+- **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, the Area 51 guard workflow, and a MrBeast photo-dump raid filter (3rd dump in two minutes: 30-second confirm button or 24-hour timeout; 5th dump: timeout immediately plus a private staff decision panel).
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
 - **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
 - **Social and fun commands:** member interactions, rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
@@ -77,7 +77,7 @@ DB_PASSWORD=replace_with_a_strong_password
 DB_HOST=localhost:27017
 DB_NAME=tfvn_bot
 
-# Required by femboy-card and quote proofs
+# Required by femboy-card, quote proofs, and Soft OTP
 CONTENT_VERIFICATION_ACTIVE_KEY_ID=2026-08
 CONTENT_VERIFICATION_KEYS_JSON={"2026-08":"replace_with_32_byte_base64url_key"}
 
@@ -104,7 +104,7 @@ python -c "import base64,secrets; print(base64.urlsafe_b64encode(secrets.token_b
 ```
 
 Use that output only as the JSON value; never reuse `DISCORD_TOKEN` or a database
-password. New cards and quotes fail closed when the keyring is missing or invalid.
+password. New cards, quotes, and Soft OTP codes fail closed when the keyring is missing or invalid.
 For rotation, add a new key ID, keep old key IDs in the JSON so existing proofs
 remain verifiable, then change `CONTENT_VERIFICATION_ACTIVE_KEY_ID` to the new ID.
 Use a different keyring for every bot deployment (for example development and
@@ -209,7 +209,21 @@ Common settings include:
 | Area 51 guard | `AREA_51_CHANNEL_ID`, `AREA_51_PRUNE_HOURS` | `STRING` |
 | Beta command access | `BETA_ROLE_IDS` | `ARRAY` |
 | NSFW role controls | `KING_ROLE_ID`, `QUEEN_ROLE_ID` | `STRING` |
-| NSFW interaction media | `BLOWJOB_GIFS`, `HANDJOB_GIFS`, `FOOTJOB_GIFS`, `ASSJOB_GIFS`, `THIGHJOB_GIFS`, `SPANK_GIFS`, `RIMJOB_GIFS`, `FROTTING_GIFS`, `FUCKING_GIFS`, `CREAMPIE_GIFS`, `THREESOME_GIFS`, `ORGY_GIFS` | `ARRAY` |
+| NSFW interaction media | `BLOWJOB_GIFS`, `HANDJOB_GIFS`, `FOOTJOB_GIFS`, `ASSJOB_GIFS`, `THIGHJOB_GIFS`, `SPANK_GIFS`, `RIMJOB_GIFS`, `FROTTING_GIFS`, `FUCKING_GIFS`, `CREAMPIE_GIFS`, `THREESOME_GIFS`, `ORGY_GIFS`, `GANGBANG_GIFS`, `FINGERING_GIFS`, `RIDE_GIFS`, `FACESIT_GIFS` | `ARRAY` |
+
+NSFW interaction commands load those GIF arrays from MongoDB at cog load, not from `assets/nsfw_gifs.py` at runtime. From the repository root, with `.env` Mongo settings available, seed any missing arrays from the file:
+
+```powershell
+python scripts/migrate_nsfw_gifs.py
+```
+
+Replace pools that already exist (needed after adding or expanding `GANGBANG_GIFS`, `FINGERING_GIFS`, `RIDE_GIFS`, or `FACESIT_GIFS`):
+
+```powershell
+python scripts/migrate_nsfw_gifs.py --overwrite
+```
+
+`ORGY_GIFS` is not in that seed file; set it with `!tf setting set_variable ORGY_GIFS`. Reload `cogs.interaction.nsfw_interaction` or restart the bot after changing GIF arrays.
 
 The booster role anchor is optional; without it, Discord keeps the custom role at its default position. `BOOSTER_CUSTOM_VOICE_CATEGORY_ID` is required for custom rooms so their private category placement and permission overwrites are deterministic. The word-chain move icons also have built-in emoji defaults.
 
@@ -224,6 +238,7 @@ commands rather than `setting set_variable`:
 | System | Initial configuration |
 | --- | --- |
 | Moderation cases | `!tf case log_channel #mod-log` |
+| MrBeast photo-dump alerts | `!tf setting set_variable MRBEAST_SCAM_ALERT_CHANNEL` (falls back to the case log channel) |
 | Shop | Add a role or badge item; no separate setup command is required |
 
 The role exam uses the repository file `data/role_exam.json` instead of MongoDB.
@@ -263,7 +278,7 @@ menu focused on their respective topics.
 | Tiên Lộ | `tutien`, `tutien thucong`, `tutien dotpha`, `tutien bicanh`, `tutien thiluyen`, `tutien doido` |
 | Moderation | `kick`, `ban`, `unban`, `softban`, `mute`, `timeout`, `warn`, `case`, `purge`, `slowmode`, `verified` |
 | Operations | `ping`, `server_stats`, `operation_dashboard`, `bot_status`, `setup check` |
-| Utilities | `quote`, `hash_verify`, `big_speaker`, `random_member`, `lunch` |
+| Utilities | `quote`, `hash_verify`, `softotp`, `big_speaker`, `random_member`, `lunch` |
 | Booster tools | `custom_role`, `update_custom_role`, `custom_room` |
 | Social and fun | `kiss`, `hug`, `pat`, `avatar`, `quote`, `rank`, `ship`, `aura`, `redflag`, configurable `triggerreply`, and other meter commands |
 | Automatic features | Welcome and leave/kick/ban announcements, AFK monitoring, job and bedtime reminders, bedtime chat replies, content filtering, scheduled cleanup, and persistent interaction handling |

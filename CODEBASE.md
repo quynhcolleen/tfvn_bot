@@ -90,10 +90,12 @@ tfvn_bot/
 │   ├── test_highlight_media.py     Embed extraction, media limits, and Discord proxy URL tests
 │   ├── test_highlight_text.py      Embed Markdown parsing, styled wrapping, and text drawing tests
 │   ├── test_hash_verification.py    Signed proof, forgery, tamper, producer, and privacy tests
+│   ├── test_softotp.py              Soft OTP challenge codes, commands, UI, and permission tests
 │   ├── test_meter_number_bars.py   unittest coverage for signed meter formatting
 │   ├── test_operation_dashboard.py Health/audit, Doctor access/pagination, and owner UI tests
 │   ├── test_role_exam.py           Role-exam invitation, UI, safety, and role-grant tests
 │   ├── test_role_exam_helpers.py   Role-exam JSON validation, shuffling, and scoring tests
+│   ├── test_word_game_leaderboard.py Vua Tiếng Việt / Nối Từ win ranking and top commands
 │   └── word_stardardlize.py        Manual normalization utility; not auto-discovered as a test
 │
 └── cogs/
@@ -139,7 +141,7 @@ tfvn_bot/
     │   ├── aura.py                 Signed aura score and icon bar
     │   ├── redflag.py              Signed red/green flag score and icon bar
     │   ├── birthday.py             Birthday registration and announcement task
-    │   ├── femboy_card.py          Member card based on configured role names
+    │   ├── femboy_card.py          Member card based on configured role names and guild marriage status
     │   ├── gay_meter.py            Daily member meter with staged loading
     │   ├── penisize.py             Daily member meter with staged loading
     │   ├── titansize.py            Daily fictional centimeter-size and cup meter
@@ -165,6 +167,7 @@ tfvn_bot/
     ├── minigames/
     │   ├── _playing_cards.py           Shared validated deck and card formatting
     │   ├── _card_game_economy.py       Atomic TC wagers, payouts, refunds, and audit logs
+    │   ├── _word_game_leaderboard.py   All-time vtv/noitu win ranks from transaction_logs
     │   ├── blackjack/
     │   │   ├── _blackjack_helpers.py   Pure Blackjack scoring and round state
     │   │   └── blackjack.py            Button-driven solo Blackjack against the dealer
@@ -179,9 +182,9 @@ tfvn_bot/
     │   │   ├── _crocodile_helpers.py  Pure challenge parsing and game-state transitions
     │   │   └── crocodile.py           Persistent invitations, tooth UI, expiry, and commands
     │   ├── word_connect/word_connect.py
-    │   │                                 Persistent Vietnamese word-chain game with TC win rewards
+    │   │                                 Persistent Vietnamese word-chain game with TC win rewards and `noitu top`
     │   └── vietnamese_king/vietnamese_king.py
-    │                                     Persistent letter-scramble game with TC win rewards
+    │                                     Persistent letter-scramble game with TC win rewards and `vtv top`
     ├── mod/
     │   ├── _case_helpers.py         Safe shared case recording and validation
     │   ├── _interaction_ui.py       Shared forms, confirmation guard, and legacy action dispatch
@@ -201,7 +204,9 @@ tfvn_bot/
     │   ├── unban.py                     Reply/user-ID unban and reinvite orchestration
     │   ├── warn.py                      Warning commands
     │   ├── verified.py                  Verified role grant/revoke and member self-unverify confirmation
-    │   └── area_51_guard.py             Honeypot channel, cancel view, bans, and reminders
+    │   ├── area_51_guard.py             Honeypot channel, cancel view, bans, and reminders
+    │   ├── _mrbeast_scam_helpers.py     Photo-dump candidate, caption scorer, 3rd/5th dump ladder
+    │   └── mrbeast_scam.py              Cross-channel image-dump timeout and staff decision panel
     ├── nsfw/
     │   ├── __init__.py             NSFW extension package marker
     │   ├── r34.py                       Age-gated Rule34 API search
@@ -235,6 +240,9 @@ tfvn_bot/
         ├── quote.py                     Text-embed and PNG message quote modes
         ├── _quote_card.py               Quote text wrapping and PNG card rendering
         ├── hash_verify.py               Signature-first femboy-card/quote proof verification
+        ├── softotp.py                   Challenge-bound Soft OTP commands and staff verification
+        ├── _softotp_helpers.py          Opaque HMAC codes, issuance registry, and lookup
+        ├── _softotp_ui.py               Soft OTP panel, get/verify modals, and reveal button
         ├── big_speaker.py               Paid TC big-text re-speak in current channel
         ├── _big_speaker_helpers.py      Size 1–6 → TC cost, mention sanitize, format helpers
         ├── random_member.py             Random guild member selection
@@ -247,6 +255,20 @@ tfvn_bot/
 Local `dev_cogs.txt` selects extensions during development. `DISABLED_COGS` can
 filter loaded extensions with exact dotted modules or wildcard patterns.
 `draft.txt` is a local scratch file.
+
+`!tf softotp` replies with a three-minute owner-only panel and the notice that
+only the opener can use it. `softotp get <challenge>` DMs a deterministic
+opaque `tfotp1.<key-id>.<unix>.<code>` bound to the current guild, member,
+challenge, active key version, and issue time, and upserts that binding in
+`softotp_issuances`. `softotp verify` is limited to Administrator or Manage
+Server. It rejects tokens whose key ID is not the current active key, so
+rotating `CONTENT_VERIFICATION_ACTIVE_KEY_ID` invalidates outstanding Soft
+OTPs while old keys can still verify card/quote proofs. With `@user` it
+HMAC-confirms the claimed member so another person's OTP is a mismatch;
+without `@user` it resolves identity from the registry. It does not scan
+members or trust a Discord ID inside the token. Codes reuse the
+content-verification HMAC keyring with a separate domain so they cannot be
+confused with card/quote proofs.
 
 Lunch owns its catalog and local media loading; it does not use shared bot data,
 MongoDB, or external APIs at runtime. `!tf lunch [budget] [chay]` opens a
@@ -269,6 +291,7 @@ MongoDB collections are created lazily. Major groups are:
 - Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`
 - Cultivation audit: append-only `cultivation_events`; TC exchanges also write `transaction_logs`
 - Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`
+- Soft OTP issuances: `softotp_issuances` stores guild/member/challenge bindings for `tfotp1.<key-id>.<unix>.<code>` tokens. Lookup `_id` is a SHA-256 of guild, challenge, key ID, issue time, and code; the user ID stays out of the token. Verify authenticates only the active HMAC key and does not scan the guild. Unique `(guild_id, user_id, challenge)` prevents duplicate live codes per member
 - Content provenance: `hash_verifications` stores immutable, guild-scoped
   femboy-card and quote snapshots. New records use their signed 128-bit token ID
   as MongoDB `_id` and store the full HMAC token privately; legacy records remain
@@ -292,7 +315,7 @@ MongoDB collections are created lazily. Major groups are:
   sleep minutes, announcement channel, next UTC deadline, local-date deduplication,
   and audit timestamps; unique guild/member and due-time indexes enforce one schedule
   per member and support the minute scheduler
-- AFK and moderation: `afk_reminders`, `afk_pings`, `discipline_logs`, `old_roles`, `warnings`, `moderation_cases`
+- AFK and moderation: `afk_reminders`, `afk_pings`, `discipline_logs`, `old_roles`, `warnings`, `moderation_cases`, `mrbeast_scam_logs`, `mrbeast_scam_incidents`. Photo-dump raids count the same author's 1–4 image dumps in a two-minute window: the 3rd dump sends a 30-second confirm button (missed click → 24h timeout), the 5th dump timeouts immediately and opens a persistent staff panel; Ban / Gỡ timeout / Giữ timeout CAS `pending` incidents. Alert channel is `MRBEAST_SCAM_ALERT_CHANNEL` with fallback to `moderation_config.log_channel_id`
 - Operations audit: `operation_logs` stores guild-scoped recognized prefix-command outcomes and dashboard export/prune actions; records have no automatic TTL and are removed only through the Administrator dashboard
 - Bot lifecycle: `bot_lifecycle_events` stores global, append-only `initial_ready`,
   `reidentified`, and `resumed` events indefinitely. The Bot owner dashboard reads
@@ -301,8 +324,10 @@ MongoDB collections are created lazily. Major groups are:
   and pruning
 - Shared sequence counters: `feature_counters`
 - Games and boosters: card-game wagers and word-game win rewards use
-  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`;
-  Crocodile Dentist uses `crocodile_games` plus guild-scoped IDs from
+  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`.
+  `vtv top` and `noitu top` rank `vietnamese_king_win` / `word_connect_win` credits
+  in that same audit collection. Crocodile Dentist uses `crocodile_games` plus
+  guild-scoped IDs from
   `feature_counters` keys named `crocodile_game:<guild_id>`; other state uses
   `context`, `sicbo_active_games`, `booster_custom_roles`, and `booster_custom_rooms`
 

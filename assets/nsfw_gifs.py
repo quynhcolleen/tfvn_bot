@@ -26,9 +26,22 @@ RIMJOB_GIFS = [
 ]
 
 FINGERING_GIFS = [
-    
-    "",
-    "",
+    "https://cdn.hentaigifz.com/115520/hentaigirl-getting-fingered-scaled.webp",
+    "https://cdn.hentaigifz.com/114936/hentai-fingering-pussy-scaled.webp",
+    "https://cdn.hentaigifz.com/113882/futa-lisa-and-sucrose-decided-to-play-horny-tonight-yurigenshin-impact-scaled.webp",
+    "https://cdn.hentaigifz.com/112181/arcana-heart-femboy-anal-fingering-mildred-avallone-and-fucks-her-doggystyle-scaled.webp",
+    "https://cdn.hentaigifz.com/111066/fingering-sweet-pussy-scaled.webp",
+    "https://cdn.hentaigifz.com/110502/demon-gal-getting-fingered-and-squirting-scaled.webp",
+    "https://cdn.hentaigifz.com/110466/ass-fingering-shocks-this-anime-gal-scaled.webp",
+    "https://cdn.hentaigifz.com/110380/fingering-this-anime-gals-wet-pussy-scaled.webp",
+    "https://cdn.hentaigifz.com/110044/hentai-with-a-dripping-pussy-getting-fingered-scaled.webp",
+    "https://cdn.hentaigifz.com/109922/anime-gal-lifts-her-skirt-and-gets-fingered-scaled.webp",
+    "https://cdn.hentaigifz.com/109744/hentai-babe-getting-fingered-while-standing-scaled.webp",
+    "https://cdn.hentaigifz.com/108796/fingering-pussy-scaled.webp",
+    "https://cdn.hentaigifz.com/105942/hentai-gal-gets-fingered-scaled.webp",
+    "https://cdn.hentaigifz.com/101134/yuri-fingering-scaled.webp",
+    "https://cdn.hentaigifz.com/115522/nami-getting-pleasured-by-kalifa-scaled.webp",
+    "https://cdn.hentaigifz.com/3412/cutehentaibabefingering001-scaled.webp",
 ]
 
 HANDJOB_GIFS = [
@@ -152,6 +165,49 @@ GANGBANG_GIFS = [
     "https://img2.gelbooru.com//images/f3/4a/f34ac86268036225c3f8df7760e0a700.gif",
     "https://img2.gelbooru.com//images/c2/da/c2dad182933ca3f10846e208045e122d.gif",
     "https://img2.gelbooru.com//images/74/4a/744a279127d28e8cd80355a98d9dfde0.gif",
+    "https://cdn.hentaigifz.com/116164/officer-juggs-thanksgiving-gangbang-scaled.webp",
+    "https://cdn.hentaigifz.com/116168/officer-juggs-thanksgiving-blowbang-scaled.webp",
+    "https://cdn.hentaigifz.com/115076/2-cocks-destroy-her-ass-scaled.webp",
+    "https://cdn.hentaigifz.com/114668/mileena-gangbang-scaled.webp",
+    "https://cdn.hentaigifz.com/114610/glory-hole-gangbang-scaled.webp",
+    "https://cdn.hentaigifz.com/113488/gang-bang-scaled.webp",
+    "https://cdn.hentaigifz.com/113322/ahsoka-gangbang-scaled.webp",
+    "https://cdn.hentaigifz.com/111971/gangbang-scaled.webp",
+    "https://cdn.hentaigifz.com/102174/gangbang-in-progress-scaled.webp",
+    "https://cdn.hentaigifz.com/101328/miss-gangbang-vi-dark-master-scaled.webp",
+]
+
+RIDE_GIFS = [
+    "https://cdn.hentaigifz.com/116306/ride-him-scaled.webp",
+    "https://cdn.hentaigifz.com/115618/ahsokas-cowgirl-scaled.webp",
+    "https://cdn.hentaigifz.com/113896/tracer-ridingirastris-ii-scaled.webp",
+    "https://cdn.hentaigifz.com/113536/cowgirl-position-scaled.webp",
+    "https://cdn.hentaigifz.com/113516/panam-palmer-ridingrapid-banana-scaled.webp",
+    "https://cdn.hentaigifz.com/113514/panam-palmer-ridingrapid-banana-2-scaled.webp",
+    "https://cdn.hentaigifz.com/112611/evelyn-parker-ridingnextr3d-2-scaled.webp",
+    "https://cdn.hentaigifz.com/112609/evelyn-parker-ridingnextr3d-scaled.webp",
+    "https://cdn.hentaigifz.com/104794/ashe-hot-ridingkisxsfm-scaled.webp",
+    "https://cdn.hentaigifz.com/104476/mercy-passionate-ridingrwt4184-scaled.webp",
+    "https://cdn.hentaigifz.com/104984/yennefer-riding-geralt-scaled.webp",
+    "https://cdn.hentaigifz.com/103458/lara-croft-ridingnikovako-ii-scaled.webp",
+    "https://cdn.hentaigifz.com/102162/liara-tsoni-passionate-cowgirl-scaled.webp",
+    "https://cdn.hentaigifz.com/102828/mercy-hot-experimentgnomfist-scaled.webp",
+    "https://cdn.hentaigifz.com/101304/riding-a-dick-scaled.webp",
+]
+
+FACESIT_GIFS = [
+    "https://cdn.hentaigifz.com/115106/starfire-facesitting-pov-scaled.webp",
+    "https://cdn.hentaigifz.com/113760/lick-that-pussy-scaled.webp",
+    "https://cdn.hentaigifz.com/102576/lola-facesitting-scaled.webp",
+    "https://cdn.hentaigifz.com/99814/suffocating-on-shemale-balls-scaled.webp",
+    "https://cdn.hentaigifz.com/99008/facesitting-scaled.webp",
+    "https://cdn.hentaigifz.com/89978/street-fighter-face-sitting-scaled.webp",
+    "https://cdn.hentaigifz.com/83976/chun-and-juri-face-sitting-scaled.webp",
+    "https://cdn.hentaigifz.com/81550/hottie-sits-on-well-endowed-futas-face-3d-scaled.webp",
+    "https://cdn.hentaigifz.com/77710/mida-facesitting-scaled.webp",
+    "https://cdn.hentaigifz.com/66970/rave-x-jinx-facesitting-session-scaled.webp",
+    "https://cdn.hentaigifz.com/58434/hentai-babe-sitting-on-my-face-pov-scaled.webp",
+    "https://cdn.hentaigifz.com/2264/facesitting001-scaled.webp",
 ]
 
 THREESOME_GIFS = [

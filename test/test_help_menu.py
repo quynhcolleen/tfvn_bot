@@ -117,6 +117,12 @@ class TestHelpTopicData(unittest.TestCase):
             rendered_topics["moderation"],
         )
         self.assertIn("`!tf mrank <tháng> <năm>`", rendered_topics["nsfw"])
+        self.assertIn("`!tf softotp`", rendered_topics["utilities"])
+        self.assertIn("`!tf softotp get <challenge>`", rendered_topics["utilities"])
+        self.assertIn(
+            "`!tf softotp verify <challenge> <otp> [@user]`",
+            rendered_topics["utilities"],
+        )
 
     def test_every_source_command_and_alias_is_documented(self) -> None:
         source_commands, source_aliases, beta_commands = source_command_inventory()
@@ -360,8 +366,14 @@ class TestHelpCogCommand(unittest.IsolatedAsyncioTestCase):
         rendered = "\n".join(field.value for field in embed.fields)
         self.assertIn("`!tf <lệnh> @tên_thành_viên`", rendered)
         self.assertIn("cooldown) là 3 giây", rendered)
+        self.assertIn("`gangbang`", rendered)
+        self.assertIn("`ride`", rendered)
+        self.assertIn("`fingering`", rendered)
+        self.assertIn("`facesit`", rendered)
         self.assertNotIn("15 giây", rendered)
         self.assertNotIn("`!!tf", rendered)
+        for field in embed.fields:
+            self.assertLessEqual(len(field.value), 1024)
 
 
 class TestHelpViewInteractions(unittest.IsolatedAsyncioTestCase):

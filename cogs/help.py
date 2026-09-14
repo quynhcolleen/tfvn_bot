@@ -590,6 +590,10 @@ HELP_TOPICS = (
                     _entry("noitu", "Xem luật trong kênh Nối Từ đã cấu hình."),
                     _entry("noitu status", "Xem từ hiện tại và các từ đã dùng."),
                     _entry(
+                        "noitu top",
+                        "BXH người thắng Nối Từ theo số lần thắng, toàn bộ lịch sử.",
+                    ),
+                    _entry(
                         "noitu hint",
                         "Nhận gợi ý; dùng trong kênh game, cooldown chung 30 giây.",
                     ),
@@ -605,7 +609,8 @@ HELP_TOPICS = (
                 note=(
                     "Gửi tin nhắn thường trong kênh game để nối từ. Nước đi hợp lệ "
                     "khiến không còn từ chưa dùng để nối tiếp sẽ thắng **50 TC**, "
-                    "kể cả sau gợi ý. Đặt lại ván không nhận thưởng."
+                    "kể cả sau gợi ý. Đặt lại ván không nhận thưởng. "
+                    "`noitu top` xếp hạng theo số lần thắng trên toàn bộ lịch sử."
                 ),
             ),
             HelpSection(
@@ -613,6 +618,10 @@ HELP_TOPICS = (
                 entries=(
                     _entry("vtv", "Xem luật và câu đố trong kênh đã cấu hình."),
                     _entry("vtv status", "Xem trạng thái câu đố trong kênh game."),
+                    _entry(
+                        "vtv top",
+                        "BXH người giải đúng Vua Tiếng Việt theo số lần thắng, toàn bộ lịch sử.",
+                    ),
                     _entry(
                         "vtv next",
                         "Thay câu đố hiện tại; bất kỳ member nào trong kênh game đều dùng được.",
@@ -625,7 +634,8 @@ HELP_TOPICS = (
                 note=(
                     "Gửi đáp án bằng tin nhắn thường trong kênh game. Người trả lời "
                     "đúng đầu tiên nhận **10 TC**, kể cả sau gợi ý. Bỏ qua câu đố "
-                    "hoặc hết gợi ý không nhận thưởng."
+                    "hoặc hết gợi ý không nhận thưởng. "
+                    "`vtv top` xếp hạng theo số lần thắng trên toàn bộ lịch sử."
                 ),
             ),
         ),
@@ -667,8 +677,8 @@ HELP_TOPICS = (
                     _entry(
                         "femboycard",
                         (
-                            "Tạo thẻ cho chính bạn kèm proof có chữ ký TFVN; "
-                            "cần một role trong danh sách femboy; cooldown 10 giây."
+                            "Thẻ femboy kèm hôn nhân và proof TFVN; "
+                            "cần role femboy; cooldown 10 giây."
                         ),
                     ),
                     _entry("ship", "Đo mức độ hợp đôi.", "ship @user1 @user2"),
@@ -723,6 +733,12 @@ HELP_TOPICS = (
                             ("smack", "smack @user"),
                             ("sniff", "sniff @user"),
                             ("kidnap", "kidnap @user"),
+                            ("tickle", "tickle @user"),
+                            ("pinch", "pinch @user"),
+                            ("wave", "wave @user"),
+                            ("blush", "blush @user"),
+                            ("feed", "feed @user"),
+                            ("wink", "wink @user"),
                         ),
                         "Tương tác SFW; cần @user, không nhận bot và cooldown 3 giây/lệnh.",
                     ),
@@ -738,10 +754,16 @@ HELP_TOPICS = (
                         "bite @user",
                         aliases=("nom",),
                     ),
+                    _entry(
+                        "highfive",
+                        "High five member; không nhận bot, cooldown 3 giây.",
+                        "highfive @user",
+                        aliases=("brofist",),
+                    ),
                 ),
                 note=(
-                    "Tự tương tác chỉ được phép với pat, slap, punch, hit, poke, bonk và "
-                    "smack."
+                    "Tự tương tác chỉ được phép với pat, slap, punch, hit, poke, bonk, "
+                    "smack, tickle và blush."
                 ),
             ),
             HelpSection(
@@ -781,7 +803,8 @@ HELP_TOPICS = (
                         (
                             "BXH bot-wide toàn thời gian: chủ động/được tương tác. Action: "
                             "kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, "
-                            "handhold, bonk, bite, stare, lick, smack, sniff, kidnap."
+                            "handhold, bonk, bite, stare, lick, smack, sniff, kidnap, tickle, "
+                            "pinch, wave, blush, highfive, feed, wink."
                         ),
                         aliases=("ranking",),
                     ),
@@ -883,6 +906,31 @@ HELP_TOPICS = (
                 note="Giá big_speaker theo cỡ 1–6: 1 / 2 / 5 / 10 / 20 / 50 TC.",
             ),
             HelpSection(
+                name="Soft OTP (Google Form)",
+                entries=(
+                    _entry(
+                        "softotp",
+                        "Reply bảng Discord; chỉ người gọi lệnh dùng được.",
+                    ),
+                    _entry(
+                        "softotp get",
+                        (
+                            "Lấy OTP `tfotp1.<khóa>.<unix>.<mã>`; đổi khóa sẽ "
+                            "vô hiệu mã cũ."
+                        ),
+                        "softotp get <challenge>",
+                    ),
+                    _entry(
+                        "softotp verify",
+                        (
+                            "Admin/Manage Server đối chiếu OTP với `@user` trên form "
+                            "để tránh nhầm mã người khác; không `@user` thì tra mã đã lưu."
+                        ),
+                        "softotp verify <challenge> <otp> [@user]",
+                    ),
+                ),
+            ),
+            HelpSection(
                 name="Dành cho Booster",
                 entries=(
                     _entry(
@@ -968,6 +1016,7 @@ HELP_TOPICS = (
                 name="An toàn & bảo trì",
                 note=(
                     "• Bộ lọc từ cấm ghi log, cảnh cáo và xóa tin vi phạm.\n"
+                    "• Dump ảnh lần 3 trong 2 phút: cảnh báo bấm trong 30s, hết giờ timeout 24h; lần 5 timeout ngay, bảng Ban/Gỡ/Giữ cho min mót.\n"
                     "• Area 51 theo dõi honeypot, cho phép hủy ban, tự dọn và gửi nhắc định kỳ.\n"
                     "• Booster janitor dọn custom role/room sau khi member ngừng boost."
                 ),
@@ -1329,6 +1378,11 @@ HELP_TOPICS = (
                         "Preview đích và xác nhận gửi cảnh báo Area 51 — Administrator.",
                         aliases=("area51_bump_now", "area51_remind_now"),
                     ),
+                    _entry(
+                        "scam_check",
+                        "Reply tin dump ảnh; không xử lý — Manage Messages.",
+                        aliases=("mrbeast",),
+                    ),
                 ),
             ),
         ),
@@ -1366,6 +1420,7 @@ HELP_TOPICS = (
                             ("frot", "frot @user"),
                             ("fuck", "fuck @user"),
                             ("cream", "cream @user"),
+                            ("ride", "ride @user"),
                         ),
                         "Tương tác một mục tiêu; cooldown 3 giây mỗi lệnh.",
                     ),
@@ -1382,6 +1437,18 @@ HELP_TOPICS = (
                         aliases=("thighjob",),
                     ),
                     _entry(
+                        "fingering",
+                        "Tương tác một mục tiêu; cooldown 3 giây.",
+                        "fingering @user",
+                        aliases=("finger",),
+                    ),
+                    _entry(
+                        "facesit",
+                        "Tương tác một mục tiêu; cooldown 3 giây.",
+                        "facesit @user",
+                        aliases=("sitface",),
+                    ),
+                    _entry(
                         "3some",
                         "Hai mục tiêu khác nhau, không gồm người gọi.",
                         "3some @user1 @user2",
@@ -1392,10 +1459,16 @@ HELP_TOPICS = (
                         "Mục tiêu phải khác nhau và không gồm người gọi.",
                         "orgy @user1 @user2 [@user3 ... @user10]",
                     ),
+                    _entry(
+                        "gangbang",
+                        "Mục tiêu phải khác nhau và không gồm người gọi.",
+                        "gangbang @user1 [@user2 ... @user10]",
+                        aliases=("gb",),
+                    ),
                 ),
                 note=(
-                    "Chỉ hj và spank cho phép tự target. NSFW lock chỉ chặn 12 lệnh "
-                    "tương tác trong mục này."
+                    "Chỉ hj, spank và fingering cho phép tự target. NSFW lock chỉ chặn "
+                    "16 lệnh tương tác trong mục này."
                 ),
             ),
             HelpSection(
@@ -1411,7 +1484,7 @@ HELP_TOPICS = (
                         (
                             "BXH bot-wide tháng UTC hiện tại: chủ động/được tương tác. "
                             "Action: bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, "
-                            "3some, orgy."
+                            "3some, orgy, gangbang, ride, fingering, facesit."
                         ),
                         aliases=("nsfwrank",),
                     ),

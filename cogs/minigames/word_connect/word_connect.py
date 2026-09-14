@@ -8,6 +8,10 @@ from discord.ext import commands  # pyright: ignore[reportMissingImports]
 from pymongo.errors import PyMongoError
 
 from cogs.minigames._card_game_economy import CardGameBank
+from cogs.minigames._word_game_leaderboard import (
+    ensure_win_leaderboard_index,
+    send_win_leaderboard,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +31,7 @@ class WordConnectCommandCog(commands.Cog):
         self.channel_games: list[str] = [str(channel_id) for channel_id in self.bot.global_vars["WORD_CONNECT_GAMES_CHANNELS"]]
         self.db = bot.db
         self.bank = CardGameBank(self.db)
+        ensure_win_leaderboard_index(self.db["transaction_logs"])
         self.round_lock = asyncio.Lock()
         self._round_generation = 0
         self._round_started_at: datetime.datetime | None = None
@@ -294,7 +299,8 @@ class WordConnectCommandCog(commands.Cog):
             name="🏆 Phần thưởng",
             value=(
                 f"Nối hợp lệ khiến không còn từ chưa dùng nào nối tiếp: thắng **{WIN_REWARD} TC**.\n"
-                "Dùng gợi ý vẫn được nhận thưởng. Reset bằng lệnh không có thưởng."
+                "Dùng gợi ý vẫn được nhận thưởng. Reset bằng lệnh không có thưởng.\n"
+                "Xem bảng xếp hạng bằng `noitu top`."
             ),
             inline=False,
         )
@@ -326,6 +332,12 @@ class WordConnectCommandCog(commands.Cog):
         )
 
         await ctx.send(embed=embed)
+
+    @noitu.command(name="top", help="Bảng xếp hạng người thắng Nối Từ.")
+    async def noitu_leaderboard(self, ctx):
+        if not self._is_word_connect_channel(ctx.channel.id):
+            return
+        await send_win_leaderboard(ctx, self.db["transaction_logs"], "word_connect")
 
     @noitu.command(name="hint")
     async def word_connect_top(self, ctx):

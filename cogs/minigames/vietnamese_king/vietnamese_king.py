@@ -9,6 +9,10 @@ from discord.ext import commands  # pyright: ignore[reportMissingImports]
 from pymongo.errors import PyMongoError
 
 from cogs.minigames._card_game_economy import CardGameBank
+from cogs.minigames._word_game_leaderboard import (
+    ensure_win_leaderboard_index,
+    send_win_leaderboard,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -29,6 +33,7 @@ class VietnameseKingCog(commands.Cog):
         self.VIETNAMESE_KING_GAMES_CHANNELS = [str(channel_id) for channel_id in channel_var]
         self.db = bot.db
         self.bank = CardGameBank(self.db)
+        ensure_win_leaderboard_index(self.db["transaction_logs"])
         
         # Load the vietnamese king data
         data_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'vietnamese_king_data.json')
@@ -214,7 +219,8 @@ class VietnameseKingCog(commands.Cog):
             name="🏆 Phần thưởng",
             value=(
                 f"Người đầu tiên giải đúng nhận **{WIN_REWARD} TC**, kể cả khi đã dùng gợi ý.\n"
-                "Bỏ qua câu đố hoặc hết lượt gợi ý không có thưởng."
+                "Bỏ qua câu đố hoặc hết lượt gợi ý không có thưởng.\n"
+                "Xem bảng xếp hạng bằng `vtv top`."
             ),
             inline=False,
         )
@@ -255,6 +261,12 @@ class VietnameseKingCog(commands.Cog):
             else:
                 response = self._next_round_message()
         await self._send_messages(ctx, [response])
+
+    @vtv.command(name="top", help="Bảng xếp hạng người thắng Vua Tiếng Việt.")
+    async def vtv_top(self, ctx):
+        if not self._is_vietnamese_king_channel(ctx.channel.id):
+            return
+        await send_win_leaderboard(ctx, self.db["transaction_logs"], "vietnamese_king")
 
     @vtv.command(name="hint")
     async def vtv_hint(self, ctx):

@@ -5,11 +5,14 @@ from cogs.interaction._marriage_helpers import (
     XP_PER_INTERACTION,
     XP_PER_LEVEL,
     days_together,
+    format_marriage_card_value,
     is_pair,
     level_from_xp,
     level_progress_bar,
+    marriage_card_info,
     next_rank,
     normalize_pair,
+    partner_id_of,
     progress_bar,
     rank_from_level,
     rank_from_xp,
@@ -80,6 +83,45 @@ class TestMarriageHelpers(unittest.TestCase):
         now = datetime(2026, 3, 16, tzinfo=timezone.utc)
         married = now - timedelta(days=3, hours=5)
         self.assertEqual(days_together(married, now), 3)
+
+    def test_partner_id_of(self) -> None:
+        marriage = {"user_a": 10, "user_b": 20}
+        self.assertEqual(partner_id_of(marriage, 10), 20)
+        self.assertEqual(partner_id_of(marriage, 20), 10)
+
+    def test_partner_id_of_rejects_outsider(self) -> None:
+        with self.assertRaises(ValueError):
+            partner_id_of({"user_a": 10, "user_b": 20}, 30)
+
+    def test_format_unmarried_card_value(self) -> None:
+        now = datetime(2026, 9, 14, tzinfo=timezone.utc)
+        self.assertEqual(
+            format_marriage_card_value(None, 10, now=now),
+            "Độc thân ✨",
+        )
+
+    def test_format_married_card_value(self) -> None:
+        now = datetime(2026, 9, 14, tzinfo=timezone.utc)
+        marriage = {
+            "user_a": 10,
+            "user_b": 20,
+            "xp": 80,
+            "level": 5,
+            "married_at": datetime(2026, 3, 14),
+        }
+        info = marriage_card_info(marriage, 10, now=now)
+        self.assertEqual(info.partner_id, 20)
+        self.assertEqual(info.rank.key, "silver")
+        self.assertEqual(info.level, 5)
+        self.assertEqual(info.married_on, "2026-03-14")
+        self.assertEqual(info.days_together, 184)
+
+        text = format_marriage_card_value(marriage, 10, now=now)
+        self.assertIn("<@20>", text)
+        self.assertIn("Bạc", text)
+        self.assertIn("Level **5**", text)
+        self.assertIn("2026-03-14", text)
+        self.assertIn("**184 ngày** bên nhau", text)
 
 
 if __name__ == "__main__":
