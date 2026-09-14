@@ -758,6 +758,7 @@ class TestVerificationProducers(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(document["kind"], FEMBOY_CARD_KIND)
         self.assertEqual(document["payload"]["member_id"], 20)
         self.assertEqual(document["payload"]["role_id"], 40)
+        self.assertNotIn("partner_id", document["payload"])
         self.assertIn(f"!tf hash_verify {reference}", rendered)
         proof_field = next(
             field

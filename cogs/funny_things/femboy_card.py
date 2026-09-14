@@ -1,7 +1,9 @@
 import logging
+from typing import Any
 
 import discord
 from discord.ext import commands
+from pymongo.errors import PyMongoError
 
 from cogs._hash_verification import (
     FEMBOY_CARD_KIND,
@@ -12,6 +14,8 @@ from cogs._hash_verification import (
     verification_keyring_from_bot,
     verification_reference_from_token,
 )
+from cogs.interaction._marriage_helpers import format_marriage_card_value
+from cogs.interaction.marriage import MARRIAGES_COLLECTION
 
 
 logger = logging.getLogger(__name__)
@@ -28,9 +32,49 @@ class FemboyCardCog(commands.Cog):
         except VerificationConfigurationError:
             self.verification_keyring = None
 
+    def _try_active_marriage(
+        self, guild_id: int, user_id: int
+    ) -> tuple[bool, dict[str, Any] | None]:
+        """Return (lookup_ok, active marriage or None)."""
+        get_cog = getattr(self.bot, "get_cog", None)
+        if callable(get_cog):
+            marriage_cog = get_cog("MarriageCog")
+            finder = getattr(marriage_cog, "find_active_marriage", None)
+            if callable(finder):
+                try:
+                    return True, finder(guild_id, user_id)
+                except PyMongoError:
+                    logger.exception("Failed to load marriage for femboy card")
+                    return False, None
+
+        db = getattr(self.bot, "db", None)
+        if db is None:
+            return False, None
+        try:
+            marriages = db[MARRIAGES_COLLECTION]
+        except (KeyError, TypeError):
+            return False, None
+        finder = getattr(marriages, "find_one", None)
+        if not callable(finder):
+            return False, None
+        try:
+            return True, finder(
+                {
+                    "guild_id": guild_id,
+                    "status": "active",
+                    "partner_ids": user_id,
+                }
+            )
+        except PyMongoError:
+            logger.exception("Failed to load marriage for femboy card")
+            return False, None
+
     @commands.command(
         name="femboycard",
-        help="Tạo thẻ femboy cho chính bạn kèm proof có chữ ký TFVN.",
+        help=(
+            "Tạo thẻ femboy cho chính bạn kèm hôn nhân hiện tại và proof "
+            "có chữ ký TFVN."
+        ),
     )
     @commands.guild_only()
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -125,6 +169,23 @@ class FemboyCardCog(commands.Cog):
             value="Dễ thương - Tự tin - Tỏa sáng ✨",
             inline=False,
         )
+
+        lookup_ok, marriage = self._try_active_marriage(ctx.guild.id, member.id)
+        if lookup_ok:
+            try:
+                marriage_value = format_marriage_card_value(
+                    marriage,
+                    member.id,
+                    now=issued_at,
+                )
+            except (KeyError, TypeError, ValueError):
+                logger.exception("Failed to format marriage for femboy card")
+            else:
+                embed.add_field(
+                    name="💍 Hôn nhân",
+                    value=marriage_value,
+                    inline=False,
+                )
 
         embed.add_field(
             name="",

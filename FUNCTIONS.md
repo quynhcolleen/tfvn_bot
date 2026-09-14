@@ -347,7 +347,7 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `skillissue` | — | Skill-issue meter |
 | `touchgrass` | — | Touch-grass meter |
 | `yapper` | — | Yap meter |
-| `femboycard` | — | Personal femboy card from configured role names (`data/femboy_role.txt`), issued with a signed TFVN proof that binds the member, role, guild, issuer, time, and saved snapshot; 10s per-user cooldown |
+| `femboycard` | — | Personal femboy card from configured role names (`data/femboy_role.txt`), including current guild marriage (partner, rank, level, wedding date / days together, or single); issued with a signed TFVN proof that binds the member, role, guild, issuer, time, and saved snapshot; 10s per-user cooldown |
 | `birthday` | — | Open the interactive month and day picker |
 | `birthday set <day> <month>` | — | Register a birthday directly (announced by scheduled task) |
 

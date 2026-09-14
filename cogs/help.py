@@ -677,8 +677,8 @@ HELP_TOPICS = (
                     _entry(
                         "femboycard",
                         (
-                            "Tạo thẻ cho chính bạn kèm proof có chữ ký TFVN; "
-                            "cần một role trong danh sách femboy; cooldown 10 giây."
+                            "Thẻ femboy kèm hôn nhân và proof TFVN; "
+                            "cần role femboy; cooldown 10 giây."
                         ),
                     ),
                     _entry("ship", "Đo mức độ hợp đôi.", "ship @user1 @user2"),

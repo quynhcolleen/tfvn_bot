@@ -141,7 +141,7 @@ tfvn_bot/
     │   ├── aura.py                 Signed aura score and icon bar
     │   ├── redflag.py              Signed red/green flag score and icon bar
     │   ├── birthday.py             Birthday registration and announcement task
-    │   ├── femboy_card.py          Member card based on configured role names
+    │   ├── femboy_card.py          Member card based on configured role names and guild marriage status
     │   ├── gay_meter.py            Daily member meter with staged loading
     │   ├── penisize.py             Daily member meter with staged loading
     │   ├── titansize.py            Daily fictional centimeter-size and cup meter
