@@ -552,11 +552,11 @@ tfvn_bot/
 │   ├── operation/          # Health/audit UI, owner controls, and lifecycle events
 │   ├── booster/            # Booster custom roles/rooms and cleanup
 │   ├── minigames/          # Economy/card, persistent multiplayer, and Vietnamese word games
-│   ├── funny_things/       # Fun meters, cards, and birthday features
+│   ├── funny_things/       # Fun meters, cards, birthday, and tarot features
 │   ├── interaction/        # Social and optional NSFW interactions
 │   └── ...
 ├── data/                   # Word lists, filters, and game datasets
-├── assets/                 # GIF and media constants
+├── assets/                 # GIF constants, lunch media, and public-domain tarot scans
 ├── fonts/                  # Bundled quote-card fonts, licenses, and source notes
 ├── scripts/                # One-off data preparation/migration utilities
 ├── test/                   # Unit tests and development utilities

@@ -355,10 +355,11 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `touchgrass` | — | Touch-grass meter |
 | `yapper` | — | Yap meter |
 | `femboycard` | — | Personal femboy card from configured role names (`data/femboy_role.txt`), including current guild marriage (partner, rank, level, wedding date / days together, or single); issued with a signed TFVN proof that binds the member, role, guild, issuer, time, and saved snapshot; 10s per-user cooldown |
+| `tarot [trải] [câu hỏi]` | `boi` | Interactive tarot: 1-card, 3-card past/present/future, 5-card cross, 7-card horseshoe, or 10-card Celtic Cross; cards start face down and the querent can flip each card or flip all; **Hướng dẫn** explains upright/reversed and each seat; card names are English; 20s per-user cooldown |
 | `birthday` | — | Open the interactive month and day picker |
 | `birthday set <day> <month>` | — | Register a birthday directly (announced by scheduled task) |
 
-**Module:** `cogs.funny_things.meters.*`, `cogs.funny_things.cards.femboy_card`, `cogs.funny_things.birthday.birthday`
+**Module:** `cogs.funny_things.meters.*`, `cogs.funny_things.cards.femboy_card`, `cogs.funny_things.tarot.tarot`, `cogs.funny_things.birthday.birthday`
 
 ---
 
@@ -760,7 +761,7 @@ noitu, noitu status, noitu top, noitu hint, noitu end, noitu analyze
 vtv, vtv status, vtv top, vtv next, vtv hint
 gay, les, ship, penisize, titansize, aura, redflag, based, brainrot, clown, cope, cringe, delulu,
 gyatt, ick, mainchar, npc, ohio, rizz, simp, skillissue, touchgrass, yapper,
-femboycard, birthday, birthday set
+femboycard, tarot, birthday, birthday set
 kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap,
 tickle, pinch, wave, blush, highfive, feed, wink,
 avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, rank, cat, dog, 36

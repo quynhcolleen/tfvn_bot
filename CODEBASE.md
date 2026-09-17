@@ -38,6 +38,7 @@ tfvn_bot/
 ├── assets/
 │   ├── gifs.py                     Welcome and general interaction media URLs
 │   ├── lunch/                      Bundled food images, Genshin wish GIFs, and source notes
+│   ├── tarot/                      Public-domain Rider-Waite-Smith card scans and source notes
 │   └── nsfw_gifs.py                Legacy NSFW media lists used by migration tooling
 │
 ├── fonts/
@@ -64,6 +65,7 @@ tfvn_bot/
 ├── scripts/
 │   ├── migrate_nsfw_gifs.py        Moves legacy GIF lists into Mongo global variables
 │   ├── prepare_lunch_assets.py     Prepares the upstream lunch catalog and food image sheets
+│   ├── prepare_tarot_assets.py     Downloads and crops public-domain RWS scans into assets/tarot/
 │   ├── vietnamese_king_data_prepare.py
 │   │                                 Normalizes/filter source words and generates game data
 │   └── words.txt                   Source records for Vietnamese data preparation
@@ -152,7 +154,12 @@ tfvn_bot/
     │   ├── birthday/
     │   │   ├── _birthday_ui.py     Owner-only month and day picker view
     │   │   └── birthday.py         Birthday registration and announcement task
-    │   └── cards/femboy_card.py    Member card based on configured role names and guild marriage status
+    │   ├── cards/femboy_card.py    Member card based on configured role names and guild marriage status
+    │   └── tarot/
+    │       ├── tarot.py            Tarot command, spread picker, and reading session
+    │       ├── _tarot_helpers.py   78-card deck, spreads, draw, and flip state
+    │       ├── _tarot_ui.py        Owner-only spread select and per-card flip views
+    │       └── _tarot_render.py    Spread cloth using bundled Rider-Waite-Smith card scans
     ├── happy_new_year/
     │   └── happy_lunar_new_year_2026.py
     │                                     Time-limited one-time Lunar New Year greeting
@@ -289,6 +296,12 @@ mode rebuilds the combined catalog from bundled records and the local additions
 without downloading assets. Local image IDs start at 1000 and use `food-extra-*`
 sheets; image-generation prompts and wish animations have separate source notes
 under `assets/lunch/`.
+
+Tarot composites bundled Rider-Waite-Smith scans from `assets/tarot/` onto the
+spread cloth at runtime and does not download card art while handling commands.
+`scripts/prepare_tarot_assets.py` refreshes those WebP files from Wikimedia Commons
+and crops each scan to the printed card frame. `--from-existing` recrops bundled
+files without downloading.
 
 ## Persistence Boundaries
 

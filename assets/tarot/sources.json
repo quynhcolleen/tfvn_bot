@@ -1,0 +1,721 @@
+{
+  "title": "Rider-Waite-Smith tarot (1909)",
+  "artist": "Pamela Colman Smith",
+  "designer": "A. E. Waite",
+  "license": "Public domain",
+  "notes": "Published 1909. Public domain in the United States as a work published before 1930. Pamela Colman Smith died in 1951. Bundled WebP files are cropped to the printed card frame.",
+  "source": "Wikimedia Commons",
+  "cards": [
+    {
+      "id": "back",
+      "file": "back.webp",
+      "commons_file": "Waite–Smith_Tarot_Roses_and_Lilies_cropped.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Waite%E2%80%93Smith_Tarot_Roses_and_Lilies_cropped.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Waite%E2%80%93Smith_Tarot_Roses_and_Lilies_cropped.jpg",
+      "sha256": "e79637851209423050905980ec806c44d7b6f33f09bec740a88af0cdefca1e93",
+      "bytes": 71846
+    },
+    {
+      "id": "major:00",
+      "file": "major-00.webp",
+      "commons_file": "RWS_Tarot_00_Fool.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_00_Fool.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/RWS_Tarot_00_Fool.jpg",
+      "sha256": "7acb283f8e52c8fa86d1c5f0d6d8b7db40b9ecd500c3f4eb849bc942b86a65d2",
+      "bytes": 55092
+    },
+    {
+      "id": "major:01",
+      "file": "major-01.webp",
+      "commons_file": "RWS_Tarot_01_Magician.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_01_Magician.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/RWS_Tarot_01_Magician.jpg",
+      "sha256": "775bfff2bbaf2beeba05cc5d3f32fb659642c0ec0c7e9729d126b1bbcf24fead",
+      "bytes": 57702
+    },
+    {
+      "id": "major:02",
+      "file": "major-02.webp",
+      "commons_file": "RWS_Tarot_02_High_Priestess.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_02_High_Priestess.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/88/RWS_Tarot_02_High_Priestess.jpg",
+      "sha256": "1b083ffb2655bfb21055e6cec1b1c6c60bd0f723dea2b32f7a70e456ac9e66bd",
+      "bytes": 66998
+    },
+    {
+      "id": "major:03",
+      "file": "major-03.webp",
+      "commons_file": "RWS_Tarot_03_Empress.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_03_Empress.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/RWS_Tarot_03_Empress.jpg",
+      "sha256": "32e6473c4dfd070f25bf256bd0e2ee3a5d45b6d04da8faabe4938bdfd1b62f77",
+      "bytes": 75894
+    },
+    {
+      "id": "major:04",
+      "file": "major-04.webp",
+      "commons_file": "RWS_Tarot_04_Emperor.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_04_Emperor.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/RWS_Tarot_04_Emperor.jpg",
+      "sha256": "dbbf3a439d2f391c24c88a2671384cf0e9ec2a74df994637e0bfa0079fc003bb",
+      "bytes": 71520
+    },
+    {
+      "id": "major:05",
+      "file": "major-05.webp",
+      "commons_file": "RWS_Tarot_05_Hierophant.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_05_Hierophant.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/RWS_Tarot_05_Hierophant.jpg",
+      "sha256": "c5a1fb917ed0a021c442c64196954224b09cea1d5888120d3ecfe665b9eac6bd",
+      "bytes": 72210
+    },
+    {
+      "id": "major:06",
+      "file": "major-06.webp",
+      "commons_file": "RWS_Tarot_06_Lovers.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_06_Lovers.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_06_Lovers.jpg",
+      "sha256": "af8b0eec1b9b1f05bf760dbdacfc183f1fb2d2069d61672b3f6fc93f048f1d56",
+      "bytes": 77636
+    },
+    {
+      "id": "major:07",
+      "file": "major-07.webp",
+      "commons_file": "RWS_Tarot_07_Chariot.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_07_Chariot.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/RWS_Tarot_07_Chariot.jpg",
+      "sha256": "b739d5af82a5112942e21ed90776f231ddfc12e0d50b2029730fb98cbdf363fe",
+      "bytes": 67074
+    },
+    {
+      "id": "major:08",
+      "file": "major-08.webp",
+      "commons_file": "RWS_Tarot_08_Strength.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_08_Strength.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/RWS_Tarot_08_Strength.jpg",
+      "sha256": "c3d6172cf89b2c2553169306ae3d135a3d1f8590889eb58722f04a45efa7d2f4",
+      "bytes": 54794
+    },
+    {
+      "id": "major:09",
+      "file": "major-09.webp",
+      "commons_file": "RWS_Tarot_09_Hermit.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_09_Hermit.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/RWS_Tarot_09_Hermit.jpg",
+      "sha256": "0fbb2479f0778c57708ae54d0e393f1f10de1adc30fd1c705301e15a8294d374",
+      "bytes": 39270
+    },
+    {
+      "id": "major:10",
+      "file": "major-10.webp",
+      "commons_file": "RWS_Tarot_10_Wheel_of_Fortune.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_10_Wheel_of_Fortune.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg",
+      "sha256": "7b8ec9086ae3f7e9668c9d62ba78c9c814e35bf2defe65d580a404ee9ee2255e",
+      "bytes": 71406
+    },
+    {
+      "id": "major:11",
+      "file": "major-11.webp",
+      "commons_file": "RWS_Tarot_11_Justice.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_11_Justice.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/RWS_Tarot_11_Justice.jpg",
+      "sha256": "de70000a128d48c45f45359330150d48a99b645e63c208751d02d5068d2e2545",
+      "bytes": 69640
+    },
+    {
+      "id": "major:12",
+      "file": "major-12.webp",
+      "commons_file": "RWS_Tarot_12_Hanged_Man.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_12_Hanged_Man.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/RWS_Tarot_12_Hanged_Man.jpg",
+      "sha256": "946e740034b57f1e06bd47345fe63620dcb0ec15b655afaec9f0a0f3befdf51b",
+      "bytes": 69374
+    },
+    {
+      "id": "major:13",
+      "file": "major-13.webp",
+      "commons_file": "RWS_Tarot_13_Death.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_13_Death.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/RWS_Tarot_13_Death.jpg",
+      "sha256": "a06d278157b7279a1f57b475c4f195507ec29dec5f327a4a1578635287134cf8",
+      "bytes": 75524
+    },
+    {
+      "id": "major:14",
+      "file": "major-14.webp",
+      "commons_file": "RWS_Tarot_14_Temperance.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_14_Temperance.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/RWS_Tarot_14_Temperance.jpg",
+      "sha256": "85ccc2a74ab945c5a7e1ae80da9c525c0c2ec017f4be536b3ede495f35cb1b97",
+      "bytes": 78882
+    },
+    {
+      "id": "major:15",
+      "file": "major-15.webp",
+      "commons_file": "RWS_Tarot_15_Devil.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_15_Devil.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/RWS_Tarot_15_Devil.jpg",
+      "sha256": "e63d0ce8992e65a52022e0040bb3956562ce7ad3860e50e8cfd021b9b461c7ce",
+      "bytes": 56088
+    },
+    {
+      "id": "major:16",
+      "file": "major-16.webp",
+      "commons_file": "RWS_Tarot_16_Tower.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_16_Tower.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/RWS_Tarot_16_Tower.jpg",
+      "sha256": "5e457c690537739d3ae68183f961dbeba45ef6015cebe00780ca028348b53c46",
+      "bytes": 54750
+    },
+    {
+      "id": "major:17",
+      "file": "major-17.webp",
+      "commons_file": "RWS_Tarot_17_Star.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_17_Star.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_17_Star.jpg",
+      "sha256": "8d1ece6bd3385250e8041a317b6db4cec352181e3860d41cdc2c1997ac6d7f5c",
+      "bytes": 59578
+    },
+    {
+      "id": "major:18",
+      "file": "major-18.webp",
+      "commons_file": "RWS_Tarot_18_Moon.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_18_Moon.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/RWS_Tarot_18_Moon.jpg",
+      "sha256": "34ad9d2043a695b08d2328577619b8acf93c1252da68a1c7487c90589b3f90f5",
+      "bytes": 61882
+    },
+    {
+      "id": "major:19",
+      "file": "major-19.webp",
+      "commons_file": "RWS_Tarot_19_Sun.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_19_Sun.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/RWS_Tarot_19_Sun.jpg",
+      "sha256": "bc6a423985632ab075e68b27e829dcaa880cd008611f6a44876899824c0cfe83",
+      "bytes": 74682
+    },
+    {
+      "id": "major:20",
+      "file": "major-20.webp",
+      "commons_file": "RWS_Tarot_20_Judgement.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_20_Judgement.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/RWS_Tarot_20_Judgement.jpg",
+      "sha256": "a0673321850cccd1da8051982b72400bc78d3cbfbdeb68c2e23071f39b1f9ae7",
+      "bytes": 72954
+    },
+    {
+      "id": "major:21",
+      "file": "major-21.webp",
+      "commons_file": "RWS_Tarot_21_World.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:RWS_Tarot_21_World.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/RWS_Tarot_21_World.jpg",
+      "sha256": "52d3ea2189ac9fad4d483d179d64fb0f5b0538359dafee7d5bc77107d1627e21",
+      "bytes": 71488
+    },
+    {
+      "id": "wands:01",
+      "file": "wands-01.webp",
+      "commons_file": "Wands01.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands01.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/11/Wands01.jpg",
+      "sha256": "fcb315c650b6e441b576cdb113269985763aaed5fd3f6d24f88b7d0d1a3a1a03",
+      "bytes": 61664
+    },
+    {
+      "id": "wands:02",
+      "file": "wands-02.webp",
+      "commons_file": "Wands02.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands02.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Wands02.jpg",
+      "sha256": "b8acf133c6b79cce49bc7914f713b7a311a453af8d910aca991cc7b1e2f8fad0",
+      "bytes": 59648
+    },
+    {
+      "id": "wands:03",
+      "file": "wands-03.webp",
+      "commons_file": "Wands03.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands03.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Wands03.jpg",
+      "sha256": "b5c8833cdea05078851ab6e0b478f4215e4ddddda3c78831ea474e5561f735b6",
+      "bytes": 67154
+    },
+    {
+      "id": "wands:04",
+      "file": "wands-04.webp",
+      "commons_file": "Wands04.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands04.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Wands04.jpg",
+      "sha256": "98a0f217c6425fdd725bdb71a0a72493cd9f5b65681b87863534ddbc4955bdb6",
+      "bytes": 54792
+    },
+    {
+      "id": "wands:05",
+      "file": "wands-05.webp",
+      "commons_file": "Wands05.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands05.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Wands05.jpg",
+      "sha256": "951fb57484cdf95a16b198f50a9581bce734f87576b17ec0e03368efccd2ef9e",
+      "bytes": 57004
+    },
+    {
+      "id": "wands:06",
+      "file": "wands-06.webp",
+      "commons_file": "Wands06.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands06.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Wands06.jpg",
+      "sha256": "1f7cc06042c2c18e638805298bb6cad0a8cf0d69c4aeb70970a2f37eb82bdc65",
+      "bytes": 62626
+    },
+    {
+      "id": "wands:07",
+      "file": "wands-07.webp",
+      "commons_file": "Wands07.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands07.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Wands07.jpg",
+      "sha256": "b5de02d9dd805922ae5912e0597ad091b465c96e524695b3e2189c44c34472d0",
+      "bytes": 46266
+    },
+    {
+      "id": "wands:08",
+      "file": "wands-08.webp",
+      "commons_file": "Wands08.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands08.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Wands08.jpg",
+      "sha256": "ed76a552cca2b16bc0a28df083614f020bfb0efd1f73f925efe9bbc7555457de",
+      "bytes": 45396
+    },
+    {
+      "id": "wands:09",
+      "file": "wands-09.webp",
+      "commons_file": "Wands09.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands09.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Wands09.jpg",
+      "sha256": "fc9a4ffba632ab95a06509d3014d6a3beedba68a6ce8ab9fd5c0b4335be0a602",
+      "bytes": 62390
+    },
+    {
+      "id": "wands:10",
+      "file": "wands-10.webp",
+      "commons_file": "Wands10.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands10.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Wands10.jpg",
+      "sha256": "8585de50706c264d9b5b958de899906d7c570585c8085dd18d79e2070b5ee98d",
+      "bytes": 54922
+    },
+    {
+      "id": "wands:11",
+      "file": "wands-11.webp",
+      "commons_file": "Wands11.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands11.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Wands11.jpg",
+      "sha256": "4be2887a8123c510064cd880725174c3c6b92fc5e0995e76092304a0a20ce5e1",
+      "bytes": 68048
+    },
+    {
+      "id": "wands:12",
+      "file": "wands-12.webp",
+      "commons_file": "Wands12.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands12.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/16/Wands12.jpg",
+      "sha256": "86312b0ab3f2729809025b2a823860055ba5aca36b4c7ad8e9adff4cfa2f0fbc",
+      "bytes": 75512
+    },
+    {
+      "id": "wands:13",
+      "file": "wands-13.webp",
+      "commons_file": "Wands13.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands13.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Wands13.jpg",
+      "sha256": "ec8ecbc44fa24496514679105fb2ce9a8ea5ba2bfd9a6a1f051ed5abbc2b14b5",
+      "bytes": 76516
+    },
+    {
+      "id": "wands:14",
+      "file": "wands-14.webp",
+      "commons_file": "Wands14.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Wands14.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Wands14.jpg",
+      "sha256": "a7fafc74fe7d4b616514bdb76aa4fc2ca4e886430b8da67302bb511ddbef080d",
+      "bytes": 78122
+    },
+    {
+      "id": "cups:01",
+      "file": "cups-01.webp",
+      "commons_file": "Cups01.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups01.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/36/Cups01.jpg",
+      "sha256": "081ccb0b88b5e96bde00550974e411f261a3598ac618b12026ca257ac51a8bc4",
+      "bytes": 69250
+    },
+    {
+      "id": "cups:02",
+      "file": "cups-02.webp",
+      "commons_file": "Cups02.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups02.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/Cups02.jpg",
+      "sha256": "2dcc2471bcab6711b5002f98b4964df7322011b2f1cf9e55f6feb4f0322f6d5d",
+      "bytes": 66016
+    },
+    {
+      "id": "cups:03",
+      "file": "cups-03.webp",
+      "commons_file": "Cups03.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups03.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Cups03.jpg",
+      "sha256": "02b39218d54082b69b351e73203df45f73d5dfa5fa3c05e8ab2ab52e65ef88cd",
+      "bytes": 66496
+    },
+    {
+      "id": "cups:04",
+      "file": "cups-04.webp",
+      "commons_file": "Cups04.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups04.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Cups04.jpg",
+      "sha256": "bb0240a5c5987ab65a90f25f2f734388ee9e8148fcf1c85fccf9dd1c786ff6a9",
+      "bytes": 52852
+    },
+    {
+      "id": "cups:05",
+      "file": "cups-05.webp",
+      "commons_file": "Cups05.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups05.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Cups05.jpg",
+      "sha256": "29aea15faab3caeede5c2ee71c43d528af42ad718e91139e82fd2b887c0df8e6",
+      "bytes": 36784
+    },
+    {
+      "id": "cups:06",
+      "file": "cups-06.webp",
+      "commons_file": "Cups06.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups06.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Cups06.jpg",
+      "sha256": "b5b8fd6039921b4fc3574d98aba60aa97c284ba20f88eb9b7e9956aaa7439a01",
+      "bytes": 78438
+    },
+    {
+      "id": "cups:07",
+      "file": "cups-07.webp",
+      "commons_file": "Cups07.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups07.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Cups07.jpg",
+      "sha256": "0980e402017943950a48be116a88a253a4b6454fd3256fcc4b745007fd78b3ab",
+      "bytes": 57432
+    },
+    {
+      "id": "cups:08",
+      "file": "cups-08.webp",
+      "commons_file": "Cups08.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups08.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/60/Cups08.jpg",
+      "sha256": "7c75ef2de657d76c8558034c5ea107569b22952b58e57b666a23fca00aa26cbc",
+      "bytes": 55544
+    },
+    {
+      "id": "cups:09",
+      "file": "cups-09.webp",
+      "commons_file": "Cups09.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups09.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/24/Cups09.jpg",
+      "sha256": "dc937ed486f951ed82b031fccc0e63b21e25915f55830b2734bded7018696437",
+      "bytes": 61526
+    },
+    {
+      "id": "cups:10",
+      "file": "cups-10.webp",
+      "commons_file": "Cups10.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups10.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Cups10.jpg",
+      "sha256": "750b49ed6e745b99ff02da9bf5032d9c25c0b32006dcf36c219a4cf6c6ded7d9",
+      "bytes": 69854
+    },
+    {
+      "id": "cups:11",
+      "file": "cups-11.webp",
+      "commons_file": "Cups11.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups11.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Cups11.jpg",
+      "sha256": "9e6078443a7d9e6087cc7b085fcd6f9fb0a62ceb99fb89ef8e12e5f1dc1333a5",
+      "bytes": 69292
+    },
+    {
+      "id": "cups:12",
+      "file": "cups-12.webp",
+      "commons_file": "Cups12.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups12.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Cups12.jpg",
+      "sha256": "b8bd127b8d9deb5e6b86542a4d4b3011c00204d5bdb94a0b9c14e5c11c641c69",
+      "bytes": 67670
+    },
+    {
+      "id": "cups:13",
+      "file": "cups-13.webp",
+      "commons_file": "Cups13.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups13.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Cups13.jpg",
+      "sha256": "b751be4f7fddceeea868eca63a75f91ea9843a7bf8522df528724df47150109d",
+      "bytes": 66058
+    },
+    {
+      "id": "cups:14",
+      "file": "cups-14.webp",
+      "commons_file": "Cups14.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Cups14.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/04/Cups14.jpg",
+      "sha256": "8388b24f7e82a0a5fa993ecfd6264d4667f21564013c6c20acc8bfdf9cd9725c",
+      "bytes": 67374
+    },
+    {
+      "id": "swords:01",
+      "file": "swords-01.webp",
+      "commons_file": "Swords01.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords01.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Swords01.jpg",
+      "sha256": "c3f499ac5b277b6bf0a9bd1ab0d53d91f7b0db5547c890b16ffcde65dc32fb47",
+      "bytes": 61724
+    },
+    {
+      "id": "swords:02",
+      "file": "swords-02.webp",
+      "commons_file": "Swords02.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords02.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Swords02.jpg",
+      "sha256": "7e1d6c9326a76d826a24883f81674b718b2b895eab0d6b31e481a6bd8600ed4f",
+      "bytes": 53992
+    },
+    {
+      "id": "swords:03",
+      "file": "swords-03.webp",
+      "commons_file": "Swords03.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords03.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/02/Swords03.jpg",
+      "sha256": "6be894f0404b587e2266c64d837d861fedb0c3dfc1b463d20c253d6bcb0e963c",
+      "bytes": 45214
+    },
+    {
+      "id": "swords:04",
+      "file": "swords-04.webp",
+      "commons_file": "Swords04.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords04.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Swords04.jpg",
+      "sha256": "8c63b66cf7e4aa710ddf287684ac232d7a9e287c5985f869ac07134046574cfc",
+      "bytes": 58898
+    },
+    {
+      "id": "swords:05",
+      "file": "swords-05.webp",
+      "commons_file": "Swords05.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords05.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Swords05.jpg",
+      "sha256": "6150bfa688fa8205558e1a1a92fb75fce4ef3da1438023479bcbbdd8e2b5fd43",
+      "bytes": 64382
+    },
+    {
+      "id": "swords:06",
+      "file": "swords-06.webp",
+      "commons_file": "Swords06.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords06.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/Swords06.jpg",
+      "sha256": "0b2c96ec64a31e37f360c20b3d95969597a525cc49eaed4e8f2c6218f904aab4",
+      "bytes": 66476
+    },
+    {
+      "id": "swords:07",
+      "file": "swords-07.webp",
+      "commons_file": "Swords07.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords07.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/34/Swords07.jpg",
+      "sha256": "8df70be79a753a2712c1bb28cb082f35c646171bede46581ffc0e53b011443a3",
+      "bytes": 51514
+    },
+    {
+      "id": "swords:08",
+      "file": "swords-08.webp",
+      "commons_file": "Swords08.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords08.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Swords08.jpg",
+      "sha256": "65753f514e235a4e1a852b58742f48258df3f19b87b587fcf071638ac964187f",
+      "bytes": 66358
+    },
+    {
+      "id": "swords:09",
+      "file": "swords-09.webp",
+      "commons_file": "Swords09.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords09.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Swords09.jpg",
+      "sha256": "ed48aa3918fa99f9dd3edb453c532569f427af93a9cab2dc174266e000ec66b8",
+      "bytes": 50656
+    },
+    {
+      "id": "swords:10",
+      "file": "swords-10.webp",
+      "commons_file": "Swords10.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords10.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Swords10.jpg",
+      "sha256": "d9e2d622e7e96d0eb74aac58f2e67f1b6a1f4f102ce122c51b0dfd62ee1c725c",
+      "bytes": 48866
+    },
+    {
+      "id": "swords:11",
+      "file": "swords-11.webp",
+      "commons_file": "Swords11.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords11.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Swords11.jpg",
+      "sha256": "027e5459121d928d103aacca347e834e10caa47feabcdc7ad809c0822dcd2584",
+      "bytes": 61972
+    },
+    {
+      "id": "swords:12",
+      "file": "swords-12.webp",
+      "commons_file": "Swords12.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords12.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Swords12.jpg",
+      "sha256": "fc794439ca6a7a6f167e853d63c56de50ba14c371db1d87c50ae8fbe069bcd73",
+      "bytes": 64134
+    },
+    {
+      "id": "swords:13",
+      "file": "swords-13.webp",
+      "commons_file": "Swords13.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords13.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Swords13.jpg",
+      "sha256": "03f397ab3c4b1d752cf6a49ec7fac248f929fa988a316de586d1d71f35d128a3",
+      "bytes": 56726
+    },
+    {
+      "id": "swords:14",
+      "file": "swords-14.webp",
+      "commons_file": "Swords14.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Swords14.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Swords14.jpg",
+      "sha256": "56a9524d1775cca3eac7199bc160195f93c155af536abcf9338c39b4f9c73167",
+      "bytes": 68648
+    },
+    {
+      "id": "pentacles:01",
+      "file": "pentacles-01.webp",
+      "commons_file": "Pents01.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents01.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Pents01.jpg",
+      "sha256": "f42adb7363daf53aa0d13a59b67f8914b5fe98af64a9d1d75e07d6fe8effe766",
+      "bytes": 64008
+    },
+    {
+      "id": "pentacles:02",
+      "file": "pentacles-02.webp",
+      "commons_file": "Pents02.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents02.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Pents02.jpg",
+      "sha256": "83ae67007b6aa859ae088bad6ec6dedbe340d60fdce541924be5e682a060b216",
+      "bytes": 62904
+    },
+    {
+      "id": "pentacles:03",
+      "file": "pentacles-03.webp",
+      "commons_file": "Pents03.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents03.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/42/Pents03.jpg",
+      "sha256": "b3939e9d102f8e6c27298cc8a0a05cfebcc88652d34a3f6cf9427c41075e94d1",
+      "bytes": 66470
+    },
+    {
+      "id": "pentacles:04",
+      "file": "pentacles-04.webp",
+      "commons_file": "Pents04.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents04.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Pents04.jpg",
+      "sha256": "4ae8d3c7ae94eaa0d4df2997cd1fdfa75f4887727b144497e3c8faf9491733e1",
+      "bytes": 55714
+    },
+    {
+      "id": "pentacles:05",
+      "file": "pentacles-05.webp",
+      "commons_file": "Pents05.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents05.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Pents05.jpg",
+      "sha256": "741da43e34716e2b76011e664d25be952a7150293eaa7ef1f180b554bf5d1277",
+      "bytes": 75804
+    },
+    {
+      "id": "pentacles:06",
+      "file": "pentacles-06.webp",
+      "commons_file": "Pents06.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents06.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Pents06.jpg",
+      "sha256": "e0bae381fe01a63c2f09d46386a6841aba096231f9861a209acacce549ee937c",
+      "bytes": 63836
+    },
+    {
+      "id": "pentacles:07",
+      "file": "pentacles-07.webp",
+      "commons_file": "Pents07.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents07.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Pents07.jpg",
+      "sha256": "29f03e9c5b06cbd0652b8bbaf2026aa23a1c25f0fc3a0dc2b8e71848240f0593",
+      "bytes": 69394
+    },
+    {
+      "id": "pentacles:08",
+      "file": "pentacles-08.webp",
+      "commons_file": "Pents08.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents08.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/49/Pents08.jpg",
+      "sha256": "0398bc7233b84ddae98d868fe45bd5414c05a0405aa90c5ec92b74db4482036f",
+      "bytes": 61822
+    },
+    {
+      "id": "pentacles:09",
+      "file": "pentacles-09.webp",
+      "commons_file": "Pents09.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents09.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Pents09.jpg",
+      "sha256": "1c0e95db61888dee6ffbf27f3b2cfdb2718d04da1db850e8dcb29c832b4e9f14",
+      "bytes": 63816
+    },
+    {
+      "id": "pentacles:10",
+      "file": "pentacles-10.webp",
+      "commons_file": "Pents10.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents10.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/42/Pents10.jpg",
+      "sha256": "a66aff9f7abb5442eac684bd1bece84ec3db22ac5ac06f367f1743648c0ebd42",
+      "bytes": 76886
+    },
+    {
+      "id": "pentacles:11",
+      "file": "pentacles-11.webp",
+      "commons_file": "Pents11.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents11.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Pents11.jpg",
+      "sha256": "cda6fb47c69a03742bd378bf0c6b2f919928382f85667fe76d793ccbb21b23c2",
+      "bytes": 50752
+    },
+    {
+      "id": "pentacles:12",
+      "file": "pentacles-12.webp",
+      "commons_file": "Pents12.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents12.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Pents12.jpg",
+      "sha256": "099c6c31c386c282f42a6891f1c386c0a8664178ad580825305ae018a45fc9fe",
+      "bytes": 45246
+    },
+    {
+      "id": "pentacles:13",
+      "file": "pentacles-13.webp",
+      "commons_file": "Pents13.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents13.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/88/Pents13.jpg",
+      "sha256": "b675ff1fc949031acd696037d61a05c42593906db24a97ad247aa888fa2ba4db",
+      "bytes": 81234
+    },
+    {
+      "id": "pentacles:14",
+      "file": "pentacles-14.webp",
+      "commons_file": "Pents14.jpg",
+      "commons_page": "https://commons.wikimedia.org/wiki/File:Pents14.jpg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Pents14.jpg",
+      "sha256": "16f68800f9c7e819c271d6198f7eb1142b2b207ad98de3f9ebd5e1df04789cd4",
+      "bytes": 65256
+    }
+  ]
+}

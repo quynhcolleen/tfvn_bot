@@ -722,6 +722,21 @@ HELP_TOPICS = (
                 ),
             ),
             HelpSection(
+                name="Tarot",
+                entries=(
+                    _entry(
+                        "tarot",
+                        (
+                            "Bói Tarot: 1/3/5/7 lá hoặc Celtic Cross 10 lá; "
+                            "lật từng lá hoặc lật tất cả; nút Hướng dẫn; "
+                            "tên lá bằng tiếng Anh."
+                        ),
+                        "tarot [trải] [câu hỏi]",
+                        aliases=("boi",),
+                    ),
+                ),
+            ),
+            HelpSection(
                 name="Tương tác SFW",
                 entries=(
                     _grouped_entry(
