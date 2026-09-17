@@ -77,7 +77,7 @@ tfvn_bot/
 │   ├── test_community_features.py  Pure validation/time/helper regression tests
 │   ├── test_doctor.py              Environment, feature, permission, and runtime diagnostics
 │   ├── test_extension_loading.py   Selected extensions and safe startup-failure diagnostics
-│   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
+│   ├── test_cultivation.py         Tiên Lộ calculations, dashboard panels, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
 │   ├── test_legacy_case_slowmode.py Direct case updates and slowmode override regression tests
 │   ├── test_lunch.py               Lunch filter UI, owner checks, animation, and lifecycle tests
@@ -127,6 +127,7 @@ tfvn_bot/
     ├── cultivation/
     │   ├── __init__.py             Cultivation package marker
     │   ├── cultivation.py          Tiên Lộ commands, dashboard, and atomic persistence
+    │   ├── _cultivation_ui.py      Owner-only dashboard panels, selects, and buttons
     │   └── _cultivation_helpers.py Pure realms, rewards, market, PvE, and exchange rules
     ├── daily_reward/
     │   ├── daily_action.py         Daily Trap Coin grant and claim tracking

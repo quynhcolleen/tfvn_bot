@@ -361,7 +361,7 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "tutien",
-                        "Mở bảng điều khiển Tiên Lộ chỉ người gọi được sử dụng.",
+                        "Mở bảng Cảnh giới, Phái & Thiên phú, Chợ, Kho & Trang bị, Tháp Thí Luyện & Bí Cảnh.",
                         aliases=("cultivate",),
                     ),
                     _entry("tutien batdau", "Khởi tạo hồ sơ và bắt đầu Bế Quan."),
@@ -397,7 +397,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "tutien phai",
-                        "Xem phái hoặc chọn Kiếm Tu, Thể Tu, Đan Tu khi đạt Luyện Khí 1.",
+                        "Mở bảng Phái & Thiên phú, hoặc chọn Kiếm Tu, Thể Tu, Đan Tu khi đạt Luyện Khí 1.",
                         "tutien phai [kiem|the|dan]",
                     ),
                     _entry(
@@ -406,7 +406,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "tutien thienphu",
-                        "Xem talent ID, hiệu ứng, cấp hiện tại và điểm còn lại.",
+                        "Mở bảng Phái & Thiên phú với talent ID, hiệu ứng, cấp và điểm còn lại.",
                     ),
                     _entry(
                         "tutien thienphu tang",
@@ -445,14 +445,14 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "tutien choden",
-                        "Xem vật phẩm cơ bản và bốn ưu đãi luân phiên theo ngày ICT.",
+                        "Mở bảng Chợ với vật phẩm cơ bản và bốn ưu đãi luân phiên theo ngày ICT.",
                     ),
                     _entry(
                         "tutien mua",
                         "Mua vật phẩm từ Chợ Đen.",
                         "tutien mua <item_id>",
                     ),
-                    _entry("tutien kho", "Xem nguyên liệu và trang bị đang sở hữu."),
+                    _entry("tutien kho", "Mở bảng Kho & Trang bị để mặc, phân rã hoặc luyện."),
                     _entry(
                         "tutien trangbi",
                         "Trang bị vật phẩm thuộc một trong bốn ô cố định.",
@@ -479,7 +479,7 @@ HELP_TOPICS = (
                         "Đánh tầng kế tiếp trong tháp 30 tầng; mỗi tầng chỉ nhận thưởng một lần.",
                         "tutien thiluyen [tang]",
                     ),
-                    _entry("tutien bicanh", "Xem hướng dẫn Bí Cảnh."),
+                    _entry("tutien bicanh", "Mở bảng Tháp Thí Luyện & Bí Cảnh."),
                     _entry(
                         "tutien bicanh start",
                         "Bắt đầu chuyến đi 2/4/8 giờ với một hướng săn thưởng.",

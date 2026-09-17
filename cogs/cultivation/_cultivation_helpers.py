@@ -52,6 +52,17 @@ PATH_NAMES = {
     "the": "Thể Tu",
     "dan": "Đan Tu",
 }
+PATH_DESCRIPTIONS = {
+    "kiem": "Lực chiến, tốc độ Bí Cảnh và tỉ lệ đột phá đại cảnh giới.",
+    "the": "Lực chiến, trữ Bế Quan và giảm phí đột phá thất bại.",
+    "dan": "Lực chiến, giảm chi phí luyện và nguyên liệu Bí Cảnh.",
+}
+REALM_GROUP_NAMES = {
+    "pham": "Phàm Nhân",
+    "luyen_khi": "Luyện Khí",
+    "truc_co": "Trúc Cơ",
+    "kim_dan": "Kim Đan",
+}
 
 GEAR_SLOT_NAMES = {
     "weapon": "Pháp Khí",
@@ -922,3 +933,88 @@ def progress_bar(current: int, required: int | None, segments: int = 12) -> str:
         return "█" * segments
     filled = max(0, min(segments, current * segments // required))
     return "█" * filled + "░" * (segments - filled)
+
+
+def clip_text(text: str, limit: int) -> str:
+    value = str(text)
+    if len(value) <= limit:
+        return value
+    if limit <= 1:
+        return "…"[:limit]
+    return value[: limit - 1] + "…"
+
+
+def item_stat_summary(item: Item) -> str:
+    parts: list[str] = []
+    if item.power:
+        parts.append(f"+{item.power} lực chiến")
+    if item.qi_bonus_bp:
+        parts.append(f"+{item.qi_bonus_bp // 100}% Tu Vi")
+    if item.stone_bonus_bp:
+        parts.append(f"+{item.stone_bonus_bp // 100}% LT")
+    if item.storage_hours:
+        parts.append(f"+{item.storage_hours}h trữ")
+    return " · ".join(parts) if parts else "Trang bị cơ bản"
+
+
+def stage_short_name(stage: Stage) -> str:
+    if " · " in stage.name:
+        return stage.name.split(" · ", 1)[1]
+    return stage.name
+
+
+def realm_map_text(state: Mapping[str, object]) -> str:
+    current = min(_safe_int(state.get("stage_index")), len(STAGES) - 1)
+    groups: dict[str, list[tuple[int, Stage]]] = {}
+    for index, stage in enumerate(STAGES):
+        groups.setdefault(stage.realm_key, []).append((index, stage))
+    lines: list[str] = []
+    for realm_key, title in REALM_GROUP_NAMES.items():
+        parts: list[str] = []
+        for index, stage in groups.get(realm_key, ()):
+            label = stage_short_name(stage)
+            if index == current:
+                parts.append(f"**▶{label}**")
+            elif index < current:
+                parts.append(f"✓{label}")
+            else:
+                parts.append(label)
+        lines.append(f"{title}: {' · '.join(parts)}")
+    return "\n".join(lines)
+
+
+def tower_map_text(cleared_floor: int) -> str:
+    cleared = min(30, max(0, int(cleared_floor)))
+    lines: list[str] = []
+    for start in range(1, 31, 5):
+        cells: list[str] = []
+        for floor in range(start, start + 5):
+            if floor <= cleared:
+                cells.append("👑" if floor % 5 == 0 else "✅")
+            else:
+                cells.append("⬜")
+        lines.append(f"{start:>2}–{start + 4}: {''.join(cells)}")
+    return "\n".join(lines)
+
+
+def recipe_cost_text(recipe: Recipe, state: Mapping[str, object] | None = None) -> str:
+    discount = 0
+    if state is not None:
+        discount = min(30, talent_effects(state).get("craft_discount_pct", 0))
+    stone_cost = _ceil_div(recipe.stone_cost * (100 - discount), 100)
+    materials = " · ".join(
+        f"{MATERIAL_NAMES[key]} ×{_ceil_div(amount * (100 - discount), 100)}"
+        for key, amount in recipe.materials.items()
+    )
+    return f"{stone_cost:,} LT · {materials}"
+
+
+def format_duration_seconds(seconds: int) -> str:
+    total = max(0, int(seconds))
+    hours, remainder = divmod(total, SECONDS_PER_HOUR)
+    minutes = remainder // 60
+    if hours and minutes:
+        return f"{hours}h {minutes:02d}m"
+    if hours:
+        return f"{hours}h"
+    return f"{minutes}m"

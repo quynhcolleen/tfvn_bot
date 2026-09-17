@@ -156,18 +156,20 @@ The main prefix-command group is `tutien`, with alias `cultivate`:
 - `tutien profile [@member]`, `tutien top`,
   `tutien riengtu [public|private]`
 
-The bare `tutien` command opens an owner-only dashboard with buttons and selects
-for common actions. Prefix subcommands remain complete fallbacks. Replies mention
-only the invoking member, while denied component interactions are ephemeral.
+The bare `tutien` command opens an owner-only dashboard with five panels:
+Cảnh giới, Phái & Thiên phú, Chợ, Kho & Trang bị, and Tháp Thí Luyện & Bí Cảnh.
+Prefix subcommands remain complete fallbacks. Replies mention only the invoking
+member, while denied component interactions are ephemeral.
 
 Profiles are global. `tutien top` compares only visible members in the current
 guild, and private profiles are excluded.
 
 ### Dashboard and interaction safety
 
-- The dashboard edits its existing message and exposes common claim,
-  breakthrough, cave, tower, and focus actions. Every operation remains available
-  through the prefix-command fallbacks above.
+- The dashboard edits its existing message and exposes the five panels above,
+  including claim, breakthrough, cave, class/talent, market, inventory, crafting,
+  tower, and expedition actions. Every operation remains available through the
+  prefix-command fallbacks above. Destructive panel actions require confirmation.
 - Only the member who opened the dashboard may operate its components.
   Unauthorized interactions receive an ephemeral denial and never mutate state.
 - Controls are disabled when the transient view times out.

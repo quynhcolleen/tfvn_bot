@@ -203,25 +203,25 @@ never both at the same time.
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
-| `tutien` | `cultivate` | Everyone | Open the owner-only Tiên Lộ dashboard |
+| `tutien` | `cultivate` | Everyone | Open the owner-only Tiên Lộ dashboard with panels for Cảnh giới, Phái & Thiên phú, Chợ, Kho & Trang bị, and Tháp Thí Luyện & Bí Cảnh |
 | `tutien batdau` | — | Everyone | Create a cultivation profile and begin Bế Quan |
 | `tutien thucong` | — | Everyone | Collect at least 10 minutes of AFK rewards, then automatically resume the selected focus |
 | `tutien huong <canbang\|tinhtu\|khaikhoang>` | — | Everyone | Select balanced, Tu Vi-focused, or Linh Thạch-focused cultivation |
 | `tutien dotpha` | — | Everyone | Attempt the next breakthrough when resource and tower requirements are met |
-| `tutien phai [kiem\|the\|dan]` | — | Everyone | View the current class or choose Kiếm Tu, Thể Tu, or Đan Tu at Luyện Khí 1 |
+| `tutien phai [kiem\|the\|dan]` | — | Everyone | Open the Phái & Thiên phú panel, or choose Kiếm Tu, Thể Tu, or Đan Tu at Luyện Khí 1 |
 | `tutien phai reset` | — | Everyone | Clear the class and refund all talent points for a realm-scaled fee; seven-day cooldown |
-| `tutien thienphu` | — | Everyone | View talent IDs, effects, ranks, and unallocated points |
+| `tutien thienphu` | — | Everyone | Open the Phái & Thiên phú panel with talent IDs, effects, ranks, and unallocated points |
 | `tutien thienphu tang <talent_id> [points]` | — | Everyone | Allocate one or more points to a talent belonging to the selected class |
 | `tutien dongphu` | — | Everyone | View cave level, bonuses, capacity, and the next upgrade price |
 | `tutien dongphu nangcap` | — | Everyone | Buy the next cave level when enough Linh Thạch is available |
-| `tutien choden` | — | Everyone | View permanent stock and four deterministic offers for the current ICT date |
+| `tutien choden` | — | Everyone | Open the Chợ panel with permanent stock and four deterministic ICT-date offers |
 | `tutien mua <item_id>` | — | Everyone | Buy one market item with Linh Thạch |
-| `tutien kho` | — | Everyone | View materials and owned equipment |
+| `tutien kho` | — | Everyone | Open the Kho & Trang bị panel |
 | `tutien trangbi <item_id>` | — | Everyone | Equip an owned item in its fixed slot |
 | `tutien phanra <item_id>` | — | Everyone | Salvage one equipment item into crafting fragments |
 | `tutien luyen [recipe_id]` | — | Everyone | View fixed recipes or craft one guaranteed item |
 | `tutien thiluyen [tang]` | — | Everyone | Challenge the next uncleared floor of the 30-floor tower |
-| `tutien bicanh` | — | Everyone | Show the expedition guide and current status |
+| `tutien bicanh` | — | Everyone | Open the Tháp Thí Luyện & Bí Cảnh panel |
 | `tutien bicanh start <linhduoc\|cokhoang\|yeuthuson> <2\|4\|8>` | — | Everyone | Begin a timed expedition in the selected zone |
 | `tutien bicanh claim` | — | Everyone | Collect a finished expedition |
 | `tutien bicanh cancel` | — | Everyone | Cancel an active expedition without rewards and resume Bế Quan |
@@ -254,10 +254,15 @@ never both at the same time.
 - Weekly exchange limits reset Monday at 00:00 `Asia/Ho_Chi_Minh`. The unequal
   buy/sell rates prevent exchange arbitrage.
 
-The dashboard and its components are restricted to the invoking member. Replies
-mention only that member; an unauthorized component click receives an ephemeral
-denial. Profiles are global, but private profiles are absent from guild
-leaderboards.
+The dashboard edits its existing message and has five owner-only panels:
+Cảnh giới (Bế Quan, đột phá, Động Phủ), Phái & Thiên phú, Chợ, Kho & Trang bị,
+and Tháp Thí Luyện & Bí Cảnh. Prefix subcommands remain complete fallbacks.
+`tutien phai`, `tutien thienphu`, `tutien choden`, `tutien kho`, and
+`tutien bicanh` open the matching panel. Destructive actions (tẩy tủy, phân rã,
+hủy Bí Cảnh) require a second confirmation click. The dashboard and its
+components are restricted to the invoking member. Replies mention only that
+member; an unauthorized component click receives an ephemeral denial. Profiles
+are global, but private profiles are absent from guild leaderboards.
 
 **Persistence:** versioned `user_accounts.cultivation` state, append-only
 `cultivation_events`, and TC exchange records in `transaction_logs`. Trap Coin

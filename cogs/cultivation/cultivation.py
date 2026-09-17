@@ -17,6 +17,16 @@ from pymongo import ASCENDING, DESCENDING, ReturnDocument
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from cogs.cultivation import _cultivation_helpers as rules
+from cogs.cultivation._cultivation_ui import (
+    DASHBOARD_TIMEOUT_SECONDS,
+    PANEL_INVENTORY,
+    PANEL_MARKET,
+    PANEL_PATH,
+    PANEL_PVE,
+    PANEL_REALM,
+    CultivationView,
+    is_dashboard_panel,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +34,6 @@ logger = logging.getLogger(__name__)
 ACCOUNTS_COLLECTION = "user_accounts"
 EVENTS_COLLECTION = "cultivation_events"
 TRANSACTIONS_COLLECTION = "transaction_logs"
-DASHBOARD_TIMEOUT_SECONDS = 180
 CAS_RETRY_LIMIT = 3
 
 
@@ -74,99 +83,6 @@ def _naive_timestamp(value: datetime) -> int:
 def _stable_roll(request_id: str, namespace: str, upper: int) -> int:
     digest = hashlib.sha256(f"{namespace}:{request_id}".encode()).digest()
     return int.from_bytes(digest[:8], "big") % upper
-
-
-class CultivationView(discord.ui.View):
-    """Short-lived dashboard controlled only by the invoking member."""
-
-    def __init__(self, cog: "CultivationCog", author_id: int) -> None:
-        super().__init__(timeout=DASHBOARD_TIMEOUT_SECONDS)
-        self.cog = cog
-        self.author_id = author_id
-        self.message: discord.Message | None = None
-        self.add_item(CultivationFocusSelect(cog, author_id))
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id == self.author_id:
-            return True
-        await interaction.response.send_message(
-            "Chỉ đạo hữu đã mở Tiên Lộ mới dùng được bảng này.",
-            ephemeral=True,
-        )
-        return False
-
-    async def _run(
-        self,
-        interaction: discord.Interaction,
-        action: str,
-        value: str | None = None,
-    ) -> None:
-        await self.cog.handle_dashboard_action(interaction, self, action, value)
-
-    @discord.ui.button(label="Thu công", emoji="🧘", style=discord.ButtonStyle.success, row=0)
-    async def claim_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        await self._run(interaction, "claim")
-
-    @discord.ui.button(label="Đột phá", emoji="⚡", style=discord.ButtonStyle.primary, row=0)
-    async def breakthrough_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        await self._run(interaction, "breakthrough")
-
-    @discord.ui.button(label="Nâng Động Phủ", emoji="🏚️", style=discord.ButtonStyle.secondary, row=0)
-    async def cave_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        await self._run(interaction, "cave")
-
-    @discord.ui.button(label="Thí luyện", emoji="⚔️", style=discord.ButtonStyle.secondary, row=0)
-    async def trial_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        await self._run(interaction, "trial")
-
-    async def on_timeout(self) -> None:
-        for child in self.children:
-            child.disabled = True
-        if self.message is None:
-            return
-        try:
-            await self.message.edit(view=self)
-        except discord.HTTPException:
-            pass
-
-
-class CultivationFocusSelect(discord.ui.Select):
-    def __init__(self, cog: "CultivationCog", author_id: int) -> None:
-        self.cog = cog
-        self.author_id = author_id
-        super().__init__(
-            placeholder="Chọn hướng Bế Quan…",
-            min_values=1,
-            max_values=1,
-            options=[
-                discord.SelectOption(
-                    label=rules.FOCUS_NAMES[key],
-                    value=key,
-                    description=description,
-                    emoji=emoji,
-                )
-                for key, description, emoji in (
-                    (rules.FOCUS_BALANCED, "100% Tu Vi · 100% Linh Thạch", "⚖️"),
-                    (rules.FOCUS_QI, "125% Tu Vi · 60% Linh Thạch", "🧘"),
-                    (rules.FOCUS_STONES, "75% Tu Vi · 150% Linh Thạch", "⛏️"),
-                )
-            ],
-            row=1,
-        )
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        view = self.view
-        if not isinstance(view, CultivationView):
-            return
-        await view._run(interaction, "focus", self.values[0])
 
 
 class CultivationCog(commands.Cog):
@@ -936,54 +852,228 @@ class CultivationCog(commands.Cog):
         )
         return embed
 
+    def realm_embed(
+        self,
+        member: discord.abc.User,
+        state: Mapping[str, object],
+        now: datetime,
+    ) -> discord.Embed:
+        normalized = rules.normalize_state(state, now)
+        stage = rules.stage_for(normalized)
+        next_stage = rules.next_stage_for(normalized)
+        cost = stage.qi_cost
+        qi_rate, stone_rate = rules.production_rates(normalized)
+        cave_bonus = 5 * (int(normalized["cave_level"]) - 1)
+        cave_cost = rules.cave_upgrade_cost(normalized)
+        embed = discord.Embed(
+            title=f"☯️ Cảnh giới của {member.display_name}",
+            description=(
+                f"**Cảnh giới:** {stage.name}\n"
+                f"**Tu Vi:** {normalized['qi']:,}"
+                + (
+                    f" / {cost:,}\n{rules.progress_bar(normalized['qi'], cost)}"
+                    if cost
+                    else " · đã đạt giới hạn phiên bản"
+                )
+                + f"\n\n{rules.realm_map_text(normalized)}"
+            ),
+            color=0x8E44AD,
+        )
+        embed.add_field(
+            name="🪨 Tài nguyên",
+            value=(
+                f"Linh Thạch: **{normalized['spirit_stones']:,}**\n"
+                f"Điểm Thiên Phú: **{normalized['talent_points']}**\n"
+                f"Sản lượng: **~{qi_rate} Tu Vi/h · ~{stone_rate} LT/h**"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="🧘 Phiên hiện tại",
+            value=self._session_text(normalized, now),
+            inline=False,
+        )
+        session = normalized.get("session")
+        if isinstance(session, Mapping) and session.get("kind") == "meditation":
+            preview = rules.settle_state(normalized, now, rng=lambda upper: upper - 1)
+            if preview.qi_gained or preview.stones_gained:
+                embed.add_field(
+                    name="📥 Đang chờ Thu Công",
+                    value=f"+{preview.qi_gained:,} Tu Vi · +{preview.stones_gained:,} Linh Thạch",
+                    inline=False,
+                )
+        next_cave = f"{cave_cost:,} Linh Thạch" if cave_cost is not None else "Đã tối đa"
+        embed.add_field(
+            name="🏚️ Động Phủ",
+            value=(
+                f"Cấp **{normalized['cave_level']}/{rules.MAX_CAVE_LEVEL}** · "
+                f"thưởng cấp **+{cave_bonus}% sản lượng** · "
+                f"trữ **{rules.storage_cap_hours(normalized)}h**.\n"
+                f"Cấp kế: **{next_cave}**."
+            ),
+            inline=False,
+        )
+        chance = rules.breakthrough_chance(normalized)
+        if next_stage is None or cost is None:
+            breakthrough = "Đã tối đa"
+        else:
+            breakthrough = f"{next_stage.name} · {cost:,} Tu Vi"
+            if stage.stone_cost:
+                breakthrough += f" · {stage.stone_cost:,} LT · {chance}%"
+            trial = rules.required_trial_floor(normalized)
+            if trial:
+                breakthrough += f" · Tháp {trial}"
+            retry_at = normalized.get("breakthrough_retry_at")
+            if isinstance(retry_at, datetime) and rules.naive_utc(now) < retry_at:
+                breakthrough += f"\nChờ <t:{_naive_timestamp(retry_at)}:R>"
+            elif stage.major_next:
+                pity = int(normalized["breakthrough_failures"])
+                breakthrough += f"\nPity đại cảnh giới: {pity}/3 thất bại"
+        embed.add_field(name="⚡ Đột phá", value=breakthrough, inline=False)
+        embed.set_footer(
+            text="Tu Vi và trang bị không mất khi đột phá thất bại · Chọn bảng bên dưới"
+        )
+        return embed
+
+    def pve_embed(self, state: Mapping[str, object], now: datetime) -> discord.Embed:
+        normalized = rules.normalize_state(state, now)
+        floor = int(normalized["tower_floor"])
+        power = rules.combat_power(normalized)
+        embed = discord.Embed(
+            title="⚔️ Tháp Thí Luyện & Bí Cảnh",
+            description=(
+                f"Tháp: **{floor}/30** · Lực chiến: **{power:,}**\n"
+                f"{rules.tower_map_text(floor)}"
+            ),
+            color=discord.Color.dark_red(),
+        )
+        if floor < len(rules.TOWER_FLOORS):
+            nxt = rules.TOWER_FLOORS[floor]
+            reward = f"{nxt.stone_reward:,} LT"
+            if nxt.material:
+                reward += (
+                    f" · {rules.MATERIAL_NAMES[nxt.material]} ×{nxt.material_amount}"
+                )
+            embed.add_field(
+                name=f"Tầng kế · {nxt.floor}" + (" · Boss" if nxt.boss else ""),
+                value=(
+                    f"Cần **{nxt.required_power:,}** lực chiến "
+                    f"(hiện có {power:,})\nThưởng: {reward}"
+                ),
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="Tháp Thí Luyện",
+                value="Đã vượt hết 30 tầng của phiên bản này.",
+                inline=False,
+            )
+        embed.add_field(
+            name="🌌 Bí Cảnh",
+            value=self._session_text(normalized, now),
+            inline=False,
+        )
+        for zone in rules.EXPEDITION_ZONES.values():
+            rewards = ", ".join(
+                f"{rules.MATERIAL_NAMES[key]} ×{amount}/2h"
+                for key, amount in zone.materials_per_two_hours.items()
+            )
+            locked = (
+                " · chưa đủ cảnh giới"
+                if int(normalized["stage_index"]) < zone.min_stage
+                else ""
+            )
+            embed.add_field(
+                name=zone.name,
+                value=(
+                    f"ID: `{zone.key}` · {zone.base_stones_per_two_hours} LT/2h · "
+                    f"{rewards}{locked}"
+                ),
+                inline=False,
+            )
+        next_gear_run = int(normalized["boss_pity"]) + 1
+        embed.set_footer(
+            text=(
+                "Thời lượng: 2, 4 hoặc 8 giờ · "
+                f"Pity Yêu Thú Sơn: lượt gear kế tiếp {next_gear_run}/10"
+            )
+        )
+        return embed
+
     def market_embed(self, state: Mapping[str, object], now: datetime) -> discord.Embed:
         embed = discord.Embed(
             title="🏪 Chợ Đen Tiên Lộ",
             description=(
                 "📌 Bốn món cơ bản luôn có sẵn; 🔄 bốn món còn lại luân phiên "
-                "theo ngày ICT. Không có reroll trả phí."
+                "theo ngày ICT. Không có reroll trả phí.\n"
+                f"Bạn đang có **{int(state.get('spirit_stones', 0)):,} Linh Thạch**."
             ),
             color=discord.Color.dark_purple(),
         )
         owned = set(state.get("owned_items", []))
         for item in rules.daily_market(now):
-            stats = []
-            if item.power:
-                stats.append(f"+{item.power} lực chiến")
-            if item.qi_bonus_bp:
-                stats.append(f"+{item.qi_bonus_bp // 100}% Tu Vi")
-            if item.stone_bonus_bp:
-                stats.append(f"+{item.stone_bonus_bp // 100}% LT")
-            if item.storage_hours:
-                stats.append(f"+{item.storage_hours}h trữ")
             stock_icon = "📌" if item.permanent_market else "🔄"
             embed.add_field(
                 name=f"{stock_icon} {item.name} · {item.price:,} LT",
                 value=(
                     f"ID: `{item.key}` · {rules.GEAR_SLOT_NAMES[item.slot]}\n"
-                    + " · ".join(stats or ["Trang bị cơ bản"])
+                    + rules.item_stat_summary(item)
                     + ("\n✅ Đã sở hữu" if item.key in owned else "")
                 ),
                 inline=False,
             )
         return embed
 
-    def inventory_embed(self, member: discord.abc.User, state: Mapping[str, object]) -> discord.Embed:
-        owned = [rules.ITEMS[key].name + f" (`{key}`)" for key in state.get("owned_items", []) if key in rules.ITEMS]
+    def inventory_embed(
+        self,
+        member: discord.abc.User,
+        state: Mapping[str, object],
+        *,
+        include_recipes: bool = False,
+    ) -> discord.Embed:
+        owned = [
+            rules.ITEMS[key].name + f" (`{key}`)"
+            for key in state.get("owned_items", [])
+            if key in rules.ITEMS
+        ]
         materials = [
             f"{name}: **{int(state.get('materials', {}).get(key, 0)):,}**"
             for key, name in rules.MATERIAL_NAMES.items()
         ]
+        gear_lines = []
+        equipped = state.get("equipped") if isinstance(state.get("equipped"), Mapping) else {}
+        for slot, label in rules.GEAR_SLOT_NAMES.items():
+            item_key = equipped.get(slot) if isinstance(equipped, Mapping) else None
+            gear_lines.append(
+                f"{label}: **{rules.ITEMS[item_key].name if item_key in rules.ITEMS else '—'}**"
+            )
         embed = discord.Embed(
-            title=f"🎒 Kho Tiên Lộ của {member.display_name}",
+            title=f"🎒 Kho & Trang bị của {member.display_name}",
+            description=f"Linh Thạch: **{int(state.get('spirit_stones', 0)):,}**",
             color=discord.Color.blurple(),
         )
+        embed.add_field(name="Đang mặc", value="\n".join(gear_lines), inline=False)
         embed.add_field(
             name="Trang bị sở hữu",
             value="\n".join(owned) if owned else "Chưa có trang bị.",
             inline=False,
         )
         embed.add_field(name="Nguyên liệu", value="\n".join(materials), inline=False)
+        if include_recipes:
+            recipes = []
+            owned_keys = set(state.get("owned_items", []))
+            for recipe in rules.RECIPES.values():
+                item = rules.ITEMS[recipe.result_item]
+                marker = " ✅" if item.key in owned_keys else ""
+                recipes.append(
+                    f"`{recipe.key}` · {item.name} · "
+                    f"{rules.recipe_cost_text(recipe, state)}{marker}"
+                )
+            embed.add_field(
+                name="Công thức luyện",
+                value="\n".join(recipes),
+                inline=False,
+            )
         return embed
 
     def crafting_embed(self, state: Mapping[str, object]) -> discord.Embed:
@@ -1012,17 +1102,27 @@ class CultivationCog(commands.Cog):
     def talent_embed(self, member: discord.abc.User, state: Mapping[str, object]) -> discord.Embed:
         path = state.get("path")
         embed = discord.Embed(
-            title=f"🌿 Thiên Phú của {member.display_name}",
+            title=f"🌿 Phái & Thiên phú của {member.display_name}",
             description=(
                 f"Phái: **{rules.PATH_NAMES.get(path, 'Chưa chọn')}** · "
-                f"Còn **{int(state.get('talent_points', 0))}** điểm"
+                f"Còn **{int(state.get('talent_points', 0))}** điểm · "
+                f"**{int(state.get('spirit_stones', 0)):,} Linh Thạch**"
             ),
             color=discord.Color.green(),
         )
         if not path:
+            for key, name in rules.PATH_NAMES.items():
+                embed.add_field(
+                    name=name,
+                    value=f"`{key}` · {rules.PATH_DESCRIPTIONS[key]}",
+                    inline=False,
+                )
             embed.add_field(
                 name="Chưa chọn phái",
-                value="Dùng `tutien phai <kiem|the|dan>` sau khi đạt Luyện Khí 1.",
+                value=(
+                    "Chọn phái trên bảng sau khi đạt Luyện Khí 1, "
+                    "hoặc dùng `tutien phai <kiem|the|dan>`."
+                ),
                 inline=False,
             )
             return embed
@@ -1035,6 +1135,36 @@ class CultivationCog(commands.Cog):
                 value=f"`{definition.key}` · {definition.description}",
                 inline=False,
             )
+        reset_cost = rules.path_reset_cost(state)
+        reset_at = state.get("path_reset_at")
+        reset_line = f"Phí tẩy tủy: **{reset_cost:,} Linh Thạch** · cooldown 7 ngày"
+        if isinstance(reset_at, datetime):
+            reset_line += f"\nCó thể tẩy tủy lại <t:{_naive_timestamp(reset_at)}:R>"
+        embed.add_field(name="Tẩy tủy", value=reset_line, inline=False)
+        return embed
+
+    def dashboard_embed(
+        self,
+        member: discord.abc.User,
+        state: Mapping[str, object],
+        now: datetime,
+        panel: str,
+        *,
+        notice: str | None = None,
+        notice_name: str = "Kết quả",
+    ) -> discord.Embed:
+        if panel == PANEL_PATH:
+            embed = self.talent_embed(member, state)
+        elif panel == PANEL_MARKET:
+            embed = self.market_embed(state, now)
+        elif panel == PANEL_INVENTORY:
+            embed = self.inventory_embed(member, state, include_recipes=True)
+        elif panel == PANEL_PVE:
+            embed = self.pve_embed(state, now)
+        else:
+            embed = self.realm_embed(member, state, now)
+        if notice:
+            embed.insert_field_at(0, name=notice_name, value=notice, inline=False)
         return embed
 
     def expedition_embed(self, state: Mapping[str, object], now: datetime) -> discord.Embed:
@@ -1114,18 +1244,81 @@ class CultivationCog(commands.Cog):
             return
         await self._reply(ctx, result.summary)
 
-    async def _open_dashboard(self, ctx: commands.Context) -> None:
+    async def _open_dashboard(
+        self,
+        ctx: commands.Context,
+        panel: str = PANEL_REALM,
+        *,
+        notice: str | None = None,
+        notice_name: str = "Kết quả",
+    ) -> None:
+        now = _utcnow()
         try:
-            account, state = self._profile_account(ctx.author.id, _utcnow())
+            _, state = self._profile_account(ctx.author.id, now)
         except Exception as exc:
             await self._send_error(ctx, exc)
             return
-        view = CultivationView(self, ctx.author.id)
+        chosen = panel if is_dashboard_panel(panel) else PANEL_REALM
+        view = CultivationView(self, ctx.author.id, panel=chosen, state=state)
         view.message = await self._reply(
             ctx,
-            embed=self.profile_embed(ctx.author, state, _utcnow(), owner_view=True),
+            embed=self.dashboard_embed(
+                ctx.author,
+                state,
+                now,
+                view.panel,
+                notice=notice,
+                notice_name=notice_name,
+            ),
             view=view,
         )
+
+    def _dashboard_mutate(
+        self,
+        user_id: int,
+        request_id: str,
+        now: datetime,
+        action: str,
+        value: str | None,
+    ) -> MutationResult:
+        if action == "claim":
+            return self.claim(user_id, request_id, now)
+        if action == "breakthrough":
+            return self.breakthrough(user_id, request_id, now)
+        if action == "cave":
+            return self.upgrade_cave(user_id, request_id, now)
+        if action == "trial":
+            return self.clear_trial(user_id, None, request_id, now)
+        if action == "focus" and value is not None:
+            return self.set_focus(user_id, value, request_id, now)
+        if action == "path" and value is not None:
+            return self.choose_path(user_id, value, request_id, now)
+        if action == "talent" and value is not None:
+            return self.add_talent(user_id, value, 1, request_id, now)
+        if action == "reset_path":
+            return self.reset_path(user_id, request_id, now)
+        if action == "buy" and value is not None:
+            return self.buy(user_id, value, request_id, now)
+        if action == "equip" and value is not None:
+            return self.equip(user_id, value, request_id, now)
+        if action == "salvage" and value is not None:
+            return self.salvage(user_id, value, request_id, now)
+        if action == "craft" and value is not None:
+            return self.craft(user_id, value, request_id, now)
+        if action == "expedition_start" and value is not None:
+            zone, separator, hours_text = value.partition(":")
+            if not separator:
+                raise rules.RuleError("Hãy chọn Bí Cảnh và thời lượng.")
+            try:
+                hours = int(hours_text)
+            except (TypeError, ValueError) as exc:
+                raise rules.RuleError("Thời lượng Bí Cảnh không hợp lệ.") from exc
+            return self.start_expedition(user_id, zone, hours, request_id, now)
+        if action == "expedition_claim":
+            return self.claim(user_id, request_id, now, expedition_only=True)
+        if action == "expedition_cancel":
+            return self.cancel_expedition(user_id, request_id, now)
+        raise rules.RuleError("Hành động bảng Tiên Lộ không hợp lệ.")
 
     async def handle_dashboard_action(
         self,
@@ -1133,22 +1326,38 @@ class CultivationCog(commands.Cog):
         view: CultivationView,
         action: str,
         value: str | None,
+        *,
+        notice: str | None = None,
+        notice_name: str = "Kết quả",
     ) -> None:
-        request_id = self._request_id(interaction, action, interaction.user.id)
         now = _utcnow()
         try:
-            if action == "claim":
-                result = self.claim(interaction.user.id, request_id, now)
-            elif action == "breakthrough":
-                result = self.breakthrough(interaction.user.id, request_id, now)
-            elif action == "cave":
-                result = self.upgrade_cave(interaction.user.id, request_id, now)
-            elif action == "trial":
-                result = self.clear_trial(interaction.user.id, None, request_id, now)
-            elif action == "focus" and value is not None:
-                result = self.set_focus(interaction.user.id, value, request_id, now)
+            if action == "navigate":
+                if not is_dashboard_panel(value):
+                    raise rules.RuleError("Bảng Tiên Lộ không hợp lệ.")
+                view.panel = str(value)
+                view.confirming = None
+                _, state = self._profile_account(interaction.user.id, now)
+            elif action == "select":
+                if not value or not view.apply_selection(value):
+                    raise rules.RuleError("Lựa chọn không hợp lệ.")
+                view.confirming = None
+                _, state = self._profile_account(interaction.user.id, now)
+            elif action == "refresh":
+                _, state = self._profile_account(interaction.user.id, now)
             else:
-                raise rules.RuleError("Hành động bảng Tiên Lộ không hợp lệ.")
+                request_id = self._request_id(
+                    interaction,
+                    f"{action}:{value or ''}",
+                    interaction.user.id,
+                )
+                result = self._dashboard_mutate(
+                    interaction.user.id, request_id, now, action, value
+                )
+                view.remember_success(action)
+                state = result.state
+                notice = result.summary
+                notice_name = "Kết quả"
         except (rules.RuleError, CultivationUnavailable) as exc:
             await interaction.response.send_message(f"❌ {exc}", ephemeral=True)
             return
@@ -1159,8 +1368,15 @@ class CultivationCog(commands.Cog):
                 ephemeral=True,
             )
             return
-        embed = self.profile_embed(interaction.user, result.state, now, owner_view=True)
-        embed.insert_field_at(0, name="Kết quả", value=result.summary, inline=False)
+        view.rebuild(state)
+        embed = self.dashboard_embed(
+            interaction.user,
+            state,
+            now,
+            view.panel,
+            notice=notice,
+            notice_name=notice_name,
+        )
         await interaction.response.edit_message(embed=embed, view=view)
 
     @commands.group(
@@ -1185,15 +1401,19 @@ class CultivationCog(commands.Cog):
         if not created:
             await self._reply(ctx, "Bạn đã nhập Tiên Lộ. Dùng `tutien` để mở bảng.")
             return
-        view = CultivationView(self, ctx.author.id)
-        embed = self.profile_embed(ctx.author, state, now, owner_view=True)
-        embed.insert_field_at(
-            0,
-            name="🌸 Nhập môn",
-            value="Bạn đã bắt đầu Bế Quan theo hướng Cân Bằng.",
-            inline=False,
+        view = CultivationView(self, ctx.author.id, state=state)
+        view.message = await self._reply(
+            ctx,
+            embed=self.dashboard_embed(
+                ctx.author,
+                state,
+                now,
+                view.panel,
+                notice="Bạn đã bắt đầu Bế Quan theo hướng Cân Bằng.",
+                notice_name="🌸 Nhập môn",
+            ),
+            view=view,
         )
-        view.message = await self._reply(ctx, embed=embed, view=view)
 
     @tutien.command(name="thucong", help="Nhận tài nguyên Bế Quan/Bí Cảnh.")
     @commands.cooldown(2, 5, commands.BucketType.user)
@@ -1235,17 +1455,7 @@ class CultivationCog(commands.Cog):
         self, ctx: commands.Context, path: str | None = None
     ) -> None:
         if path is None:
-            try:
-                _, state = self._profile_account(ctx.author.id, _utcnow())
-            except Exception as exc:
-                await self._send_error(ctx, exc)
-                return
-            chosen = rules.PATH_NAMES.get(state.get("path"), "Chưa chọn")
-            await self._reply(
-                ctx,
-                f"Phái hiện tại: **{chosen}**. Chọn: `tutien phai <kiem|the|dan>`. "
-                "Mỗi phái có ba Thiên Phú, tối đa năm bậc.",
-            )
+            await self._open_dashboard(ctx, PANEL_PATH)
             return
         await self._send_mutation(
             ctx,
@@ -1269,12 +1479,7 @@ class CultivationCog(commands.Cog):
         help="Xem cây Thiên Phú.",
     )
     async def cultivation_talents(self, ctx: commands.Context) -> None:
-        try:
-            _, state = self._profile_account(ctx.author.id, _utcnow())
-        except Exception as exc:
-            await self._send_error(ctx, exc)
-            return
-        await self._reply(ctx, embed=self.talent_embed(ctx.author, state))
+        await self._open_dashboard(ctx, PANEL_PATH)
 
     @cultivation_talents.command(name="tang", help="Cộng điểm Thiên Phú.")
     async def cultivation_talent_add(
@@ -1333,12 +1538,7 @@ class CultivationCog(commands.Cog):
 
     @tutien.command(name="choden", help="Xem Chợ Đen Tiên Lộ.")
     async def cultivation_market(self, ctx: commands.Context) -> None:
-        try:
-            _, state = self._profile_account(ctx.author.id, _utcnow())
-        except Exception as exc:
-            await self._send_error(ctx, exc)
-            return
-        await self._reply(ctx, embed=self.market_embed(state, _utcnow()))
+        await self._open_dashboard(ctx, PANEL_MARKET)
 
     @tutien.command(name="mua", help="Mua trang bị Chợ Đen.")
     async def cultivation_buy(self, ctx: commands.Context, item_id: str) -> None:
@@ -1352,12 +1552,7 @@ class CultivationCog(commands.Cog):
 
     @tutien.command(name="kho", help="Xem kho Tiên Lộ.")
     async def cultivation_inventory(self, ctx: commands.Context) -> None:
-        try:
-            _, state = self._profile_account(ctx.author.id, _utcnow())
-        except Exception as exc:
-            await self._send_error(ctx, exc)
-            return
-        await self._reply(ctx, embed=self.inventory_embed(ctx.author, state))
+        await self._open_dashboard(ctx, PANEL_INVENTORY)
 
     @tutien.command(name="trangbi", help="Trang bị vật phẩm.")
     async def cultivation_equip(self, ctx: commands.Context, item_id: str) -> None:
@@ -1420,12 +1615,7 @@ class CultivationCog(commands.Cog):
         help="Xem Bí Cảnh.",
     )
     async def cultivation_expedition(self, ctx: commands.Context) -> None:
-        try:
-            _, state = self._profile_account(ctx.author.id, _utcnow())
-        except Exception as exc:
-            await self._send_error(ctx, exc)
-            return
-        await self._reply(ctx, embed=self.expedition_embed(state, _utcnow()))
+        await self._open_dashboard(ctx, PANEL_PVE)
 
     @cultivation_expedition.command(name="start", help="Bắt đầu Bí Cảnh.")
     async def cultivation_expedition_start(

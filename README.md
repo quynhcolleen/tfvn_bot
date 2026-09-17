@@ -328,6 +328,10 @@ Start a persistent profile and open its private dashboard with:
 !tf tutien
 ```
 
+The dashboard is limited to the member who opened it and has panels for Cảnh giới,
+Phái & Thiên phú, Chợ, Kho & Trang bị, and Tháp Thí Luyện & Bí Cảnh. Prefix
+subcommands remain available as fallbacks.
+
 Tiên Lộ calculates Bế Quan rewards from timestamps, so AFK progress survives bot
 restarts without a scheduler. Players choose Cân Bằng, Tĩnh Tu, or Khai Khoáng;
 advance from Phàm Nhân through Kim Đan; select Kiếm Tu, Thể Tu, or Đan Tu; allocate
