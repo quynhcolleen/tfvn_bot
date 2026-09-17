@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 
-from cogs.funny_things._birthday_ui import (
+from cogs.funny_things.birthday._birthday_ui import (
     BirthdayView,
     days_in_month,
     is_valid_birthday,

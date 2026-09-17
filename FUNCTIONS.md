@@ -358,7 +358,7 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `birthday` | — | Open the interactive month and day picker |
 | `birthday set <day> <month>` | — | Register a birthday directly (announced by scheduled task) |
 
-**Module:** `cogs.funny_things.*`
+**Module:** `cogs.funny_things.meters.*`, `cogs.funny_things.cards.femboy_card`, `cogs.funny_things.birthday.birthday`
 
 ---
 

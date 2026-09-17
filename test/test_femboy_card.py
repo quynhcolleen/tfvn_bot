@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import discord
 
 from cogs._hash_verification import VERIFICATION_COLLECTION
-from cogs.funny_things.femboy_card import FemboyCardCog
+from cogs.funny_things.cards.femboy_card import FemboyCardCog
 from cogs.interaction.marriage import MARRIAGES_COLLECTION
 
 
@@ -56,15 +56,15 @@ class TestFemboyCardMarriage(unittest.IsolatedAsyncioTestCase):
     async def _issue_card(self, bot, ctx) -> discord.Embed:
         with (
             patch(
-                "cogs.funny_things.femboy_card.verification_keyring_from_bot",
+                "cogs.funny_things.cards.femboy_card.verification_keyring_from_bot",
                 return_value=object(),
             ),
             patch(
-                "cogs.funny_things.femboy_card.issue_verification_async",
+                "cogs.funny_things.cards.femboy_card.issue_verification_async",
                 new=AsyncMock(return_value="token"),
             ),
             patch(
-                "cogs.funny_things.femboy_card.verification_reference_from_token",
+                "cogs.funny_things.cards.femboy_card.verification_reference_from_token",
                 return_value="tfp1_testproof",
             ),
             patch(

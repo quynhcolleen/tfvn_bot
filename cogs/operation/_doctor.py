@@ -28,7 +28,7 @@ CORE_ENVIRONMENT_VARIABLES = (
     "DISCORD_TOKEN", "DB_METHOD", "DB_USERNAME", "DB_PASSWORD", "DB_HOST",
 )
 PROOF_MODULES = frozenset({
-    "cogs.utils.quote", "cogs.funny_things.femboy_card", "cogs.utils.hash_verify",
+    "cogs.utils.quote", "cogs.funny_things.cards.femboy_card", "cogs.utils.hash_verify",
     "cogs.utils.softotp",
 })
 BOORU_ENVIRONMENT = {
@@ -57,7 +57,7 @@ CHANNEL_REQUIREMENTS = (
     ChannelRequirement("RULE_CHANNEL", ("cogs.announcement.welcome",), (), "reference"),
     ChannelRequirement("ROLE_CHANNEL", ("cogs.announcement.welcome",), (), "reference"),
     ChannelRequirement("BYE_CHANNEL", ("cogs.announcement.goodbye",)),
-    ChannelRequirement("BIRTHDAY_CHANNEL", ("cogs.funny_things.birthday",)),
+    ChannelRequirement("BIRTHDAY_CHANNEL", ("cogs.funny_things.birthday.birthday",)),
     ChannelRequirement(
         "HIGHLIGHT_CHANNEL", ("cogs.utils.highlight",),
         MESSAGE_PERMISSIONS + ("attach_files",),
@@ -228,7 +228,7 @@ def _check_runtime(bot: commands.Bot, modules: set[str]) -> list[SetupCheck]:
     required_intents = {"guilds", "guild_messages", "message_content"}
     if _enabled(modules, (
         "cogs.announcement.welcome", "cogs.announcement.goodbye",
-        "cogs.funny_things.birthday", "cogs.booster.janitor_unboosted",
+        "cogs.funny_things.birthday.birthday", "cogs.booster.janitor_unboosted",
         "cogs.operation.operation_dashboard",
     )):
         required_intents.add("members")

@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import discord
 from discord.ext.commands.view import StringView
 
-from cogs.funny_things._birthday_ui import (
+from cogs.funny_things.birthday._birthday_ui import (
     BIRTHDAY_UI_TIMEOUT_SECONDS,
     BirthdayView,
     days_in_month,
     is_valid_birthday,
 )
-from cogs.funny_things.birthday import BirthdayCog
+from cogs.funny_things.birthday.birthday import BirthdayCog
 
 
 def make_interaction(user_id: int = 42) -> SimpleNamespace:
@@ -380,7 +380,7 @@ class TestBirthdayView(unittest.IsolatedAsyncioTestCase):
 
         failed = make_interaction()
         with self.assertLogs(
-            "cogs.funny_things._birthday_ui",
+            "cogs.funny_things.birthday._birthday_ui",
             level="ERROR",
         ):
             await view.confirm_button.callback(failed)

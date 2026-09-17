@@ -3,7 +3,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from cogs.funny_things import titansize
+from cogs.funny_things.meters import titansize
 
 
 def make_member(user_id: int = 42) -> SimpleNamespace:

@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from cogs.funny_things._meter_helper import (
+from cogs.funny_things.meters._meter_helper import (
     fake_loading,
     get_daily_percentage,
     build_meter_embed,

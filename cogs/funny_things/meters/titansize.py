@@ -4,7 +4,7 @@ import random
 import discord
 from discord.ext import commands
 
-from cogs.funny_things._meter_helper import create_progress_bar, fake_loading
+from cogs.funny_things.meters._meter_helper import create_progress_bar, fake_loading
 
 
 CUP_SIZES = ("A", "B", "C", "D", "DD", "E", "F", "G", "H")

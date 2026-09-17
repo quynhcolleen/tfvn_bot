@@ -11,9 +11,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HELPER_PATH = ROOT / "cogs" / "funny_things" / "_meter_helper.py"
-AURA_PATH = ROOT / "cogs" / "funny_things" / "aura.py"
-REDFLAG_PATH = ROOT / "cogs" / "funny_things" / "redflag.py"
+HELPER_PATH = ROOT / "cogs" / "funny_things" / "meters" / "_meter_helper.py"
+AURA_PATH = ROOT / "cogs" / "funny_things" / "meters" / "aura.py"
+REDFLAG_PATH = ROOT / "cogs" / "funny_things" / "meters" / "redflag.py"
 
 
 def _load_module(name, path):
@@ -168,8 +168,8 @@ class TestShippedWrappersUseCountMatch(unittest.TestCase):
         if str(ROOT) not in sys.path:
             sys.path.insert(0, str(ROOT))
 
-        from cogs.funny_things.aura import create_aura_icon_bar, AURA_ICON_POS, AURA_ICON_NEG
-        from cogs.funny_things.redflag import (
+        from cogs.funny_things.meters.aura import create_aura_icon_bar, AURA_ICON_POS, AURA_ICON_NEG
+        from cogs.funny_things.meters.redflag import (
             create_flag_icon_bar,
             RED_FLAG_ICON,
             GREEN_FLAG_ICON,
