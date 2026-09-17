@@ -244,11 +244,15 @@ HELP_TOPICS = (
                             ),
                         ),
                         (
-                            "Không đối số mở hướng dẫn; tạo giveaway 10 giây–30 ngày, "
-                            "1–20 người thắng "
-                            "(Admin/Manage Server/Manage Messages)."
+                            "Không đối số mở biểu mẫu Discord kèm chọn role; "
+                            "lệnh chữ 10 giây–30 ngày, 1–20 người thắng (mod)."
                         ),
                         aliases=("ga",),
+                    ),
+                    _entry(
+                        "giveaway settings",
+                        "Chọn role cấm join và role tăng tỉ lệ x2–x20 cho giveaway mới.",
+                        aliases=("giveaway setting",),
                     ),
                     _entry(
                         "giveaway list",
@@ -267,18 +271,12 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "giveaway end",
-                        (
-                            "Host hoặc Admin/Manage Server/Manage Messages kết thúc sớm "
-                            "bằng ID hay reply."
-                        ),
+                        "Host hoặc mod kết thúc sớm bằng ID hay reply.",
                         "giveaway end [message_id]",
                     ),
                     _entry(
                         "giveaway reroll",
-                        (
-                            "Host hoặc Admin/Manage Server/Manage Messages chọn lại "
-                            "1–20 người thắng bằng ID hay reply."
-                        ),
+                        "Host hoặc mod chọn lại 1–20 người thắng bằng ID hay reply.",
                         "giveaway reroll [message_id] [số người thắng]",
                         aliases=("giveaway rr",),
                     ),

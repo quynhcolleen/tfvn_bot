@@ -531,13 +531,17 @@ listener uses an in-memory cache and does not query MongoDB for each message.
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
-| `giveaway <duration> [winners] <prize>` | `ga` | Administrator / Manage Guild / Manage Messages | Start giveaway (e.g. `1h30m`, `2d`); persistent join/leave buttons |
+| `giveaway` | `ga` | Administrator / Manage Guild / Manage Messages | Open Discord create form (prize, duration, 1–20 winners, blacklist/bonus roles) in the current channel |
+| `giveaway <duration> [winners] <prize>` | `ga` | Administrator / Manage Guild / Manage Messages | CLI shortcut to start a giveaway (e.g. `1h30m`, `2d`); uses guild role settings; persistent join/leave buttons |
+| `giveaway settings` | `setting` | Administrator / Manage Guild / Manage Messages | Discord panel to set blacklist roles and bonus-win roles (x2–x20) for new giveaways |
 | `giveaway list` | `ls`, `active` | Everyone (guild) | List active giveaways |
 | `giveaway entries [message_id]` | `entrants`, `joined`, `who` | Everyone (guild) | Who joined a giveaway |
 | `giveaway end [message_id]` | — | Host or Administrator / Manage Guild / Manage Messages | End early and pick winners; accepts an ID or replied giveaway message |
 | `giveaway reroll [message_id] [winner_count]` | `rr` | Host or Administrator / Manage Guild / Manage Messages | Reroll 1–20 winners; accepts an ID or replied ended giveaway message |
 
-Duration range: 10 seconds–30 days; max 20 winners.
+Duration range: 10 seconds–30 days; max 20 winners. Empty `giveaway` opens a Discord modal; the public giveaway posts in the same channel. Guild role settings snapshot onto each giveaway at create: blacklist roles cannot join, bonus roles get `n` times the tickets when winners are drawn.
+
+**Module:** `cogs.utils.giveaway`, `cogs.utils._giveaway_helpers`, `cogs.utils._giveaway_ui`
 
 ### Votes
 
@@ -770,7 +774,7 @@ locknsfw, unlocknsfw, verified, unverified
 custom_role, update_custom_role, custom_room
 jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
-giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
+giveaway, giveaway settings, giveaway list, giveaway entries, giveaway end, giveaway reroll
 vote, highlight, quote, hash_verify, softotp, softotp get, softotp verify, big_speaker, random_member, lunch, save_image
 kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn, scam_check
 nickchange, roleroll, roleunroll, rolecopy
