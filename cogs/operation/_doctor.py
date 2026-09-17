@@ -233,7 +233,7 @@ def _check_runtime(bot: commands.Bot, modules: set[str]) -> list[SetupCheck]:
     )):
         required_intents.add("members")
     if _enabled(modules, (
-        "cogs.utils.highlight", "cogs.utils.vote", "cogs.minigames.sicbo.sicbo",
+        "cogs.utils.highlight", "cogs.utils.vote",
     )):
         required_intents.add("guild_reactions")
     for name in sorted(required_intents):

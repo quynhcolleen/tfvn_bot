@@ -168,6 +168,7 @@ tfvn_bot/
     ├── minigames/
     │   ├── _playing_cards.py           Shared validated deck and card formatting
     │   ├── _card_game_economy.py       Atomic TC wagers, payouts, refunds, and audit logs
+    │   ├── _casino_ui.py               PNG felt tables for Blackjack, Poker, slots, and Sic Bo
     │   ├── _word_game_leaderboard.py   All-time vtv/noitu win ranks from transaction_logs
     │   ├── blackjack/
     │   │   ├── _blackjack_helpers.py   Pure Blackjack scoring and round state
@@ -176,9 +177,12 @@ tfvn_bot/
     │   │   ├── _poker_helpers.py       Five-card hand ranking, dealer draw, round state
     │   │   └── poker.py                Button-driven solo five-card draw against the dealer
     │   ├── flip_coin/flip_coin.py     Coin betting against user balances
-    │   ├── slot_machine/slot_machine.py
-    │   │                                 Slot betting, payouts, and transaction logs
-    │   ├── sicbo/sicbo.py             Reaction-based Sic Bo rounds
+    │   ├── slot_machine/
+    │   │   ├── _slot_helpers.py        Reel symbols and pair/jackpot payouts
+    │   │   └── slot_machine.py        Button-driven slot cabinet and Trap Coin settlement
+    │   ├── sicbo/
+    │   │   ├── _sicbo_helpers.py       Tài/Xỉu/Bộ ba resolution and payouts
+    │   │   └── sicbo.py               Button-driven solo Sic Bo against Trap Coin wagers
     │   ├── crocodile_dentist/
     │   │   ├── _crocodile_helpers.py  Pure challenge parsing and game-state transitions
     │   │   └── crocodile.py           Persistent invitations, tooth UI, expiry, and commands
@@ -324,13 +328,15 @@ MongoDB collections are created lazily. Major groups are:
   from `operation_logs` and is excluded from guild audit browsing, CSV export,
   and pruning
 - Shared sequence counters: `feature_counters`
-- Games and boosters: card-game wagers and word-game win rewards use
-  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`.
+- Games and boosters: card-game wagers, slot spins, Sic Bo bets, and word-game win
+  rewards use `user_accounts` plus `transaction_logs` through
+  `_card_game_economy.CardGameBank`. Blackjack, Poker, slots, and Sic Bo attach a
+  PNG felt table from `_casino_ui.py` to the live Discord panel.
   `vtv top` and `noitu top` rank `vietnamese_king_win` / `word_connect_win` credits
   in that same audit collection. Crocodile Dentist uses `crocodile_games` plus
   guild-scoped IDs from
   `feature_counters` keys named `crocodile_game:<guild_id>`; other state uses
-  `context`, `sicbo_active_games`, `booster_custom_roles`, and `booster_custom_rooms`
+  `context`, `booster_custom_roles`, and `booster_custom_rooms`
 
 Discord tokens, database credentials, and external API credentials belong in
 environment variables. Runtime database selection uses `DB_NAME`.

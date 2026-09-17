@@ -11,6 +11,14 @@ import discord
 from discord.ext import commands
 from pymongo.errors import PyMongoError
 
+from cogs.minigames._casino_ui import (
+    BANNER_IDLE,
+    BANNER_LOSS,
+    BANNER_PUSH,
+    BANNER_WIN,
+    attach_table_image,
+    render_blackjack_table,
+)
 from cogs.minigames.blackjack._blackjack_helpers import (
     BlackjackGame,
     BlackjackOutcome,
@@ -19,7 +27,10 @@ from cogs.minigames.blackjack._blackjack_helpers import (
 )
 from cogs.minigames._card_game_economy import (
     DEFAULT_BET,
+    MAX_BET,
+    MIN_BET,
     CardGameBank,
+    parse_wager_input,
     validate_wager,
 )
 from cogs.minigames._playing_cards import create_deck, format_hand
@@ -28,7 +39,52 @@ from cogs.minigames._playing_cards import create_deck, format_hand
 logger = logging.getLogger(__name__)
 
 BLACKJACK_TIMEOUT_SECONDS = 120
+BLACKJACK_TABLE_FILENAME = "blackjack.png"
 NO_MENTIONS = discord.AllowedMentions.none()
+BANNER_LABELS = {
+    BlackjackOutcome.PLAYER_BLACKJACK: "Blackjack!",
+    BlackjackOutcome.PLAYER_WIN: "Bạn thắng nhà cái!",
+    BlackjackOutcome.DEALER_WIN: "Nhà cái thắng",
+    BlackjackOutcome.PUSH: "Hòa — hoàn cược",
+}
+
+
+class BlackjackBetModal(discord.ui.Modal, title="Đặt mức cược"):
+    """Collect the next-hand wager without charging until Chơi lại."""
+
+    def __init__(self, table: "BlackjackView") -> None:
+        super().__init__(timeout=BLACKJACK_TIMEOUT_SECONDS)
+        self.table = table
+        self.amount = discord.ui.TextInput(
+            label="Mức cược (Trap Coin)",
+            placeholder=f"Từ {MIN_BET:,} đến {MAX_BET:,}",
+            default=f"{table.bet:,}".replace(",", ""),
+            required=True,
+            min_length=1,
+            max_length=15,
+        )
+        self.add_item(self.amount)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not await self.table.interaction_check(interaction):
+            return
+        try:
+            bet = parse_wager_input(str(self.amount))
+        except ValueError as error:
+            try:
+                await interaction.response.send_message(
+                    str(error),
+                    ephemeral=True,
+                    allowed_mentions=NO_MENTIONS,
+                )
+            except discord.HTTPException:
+                logger.debug(
+                    "Could not reject Blackjack bet modal session=%s",
+                    self.table.session_id,
+                    exc_info=True,
+                )
+            return
+        await self.table.apply_bet(interaction, bet)
 
 
 class BlackjackView(discord.ui.View):
@@ -61,6 +117,7 @@ class BlackjackView(discord.ui.View):
         self._closed = False
         self._terminal_note: str | None = None
         self._action_lock = asyncio.Lock()
+        self._refresh_controls()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id == self.user_id:
@@ -79,9 +136,28 @@ class BlackjackView(discord.ui.View):
             )
         return False
 
+    def _refresh_controls(self) -> None:
+        playing = not self._closed and not self.game.finished
+        retry_settle = (
+            not self._closed and self.game.finished and not self._settled
+        )
+        between_hands = (
+            not self._closed and self.game.finished and self._settled
+        )
+        self.hit_button.disabled = not (playing or retry_settle)
+        self.stand_button.disabled = not (playing or retry_settle)
+        self.play_again_button.disabled = not between_hands
+        self.bet_button.disabled = not between_hands
+
     def _disable_controls(self) -> None:
         for item in self.children:
             item.disabled = True
+
+    def _close_table(self) -> None:
+        self._closed = True
+        self._disable_controls()
+        self.cog.unregister(self)
+        self.stop()
 
     def _outcome_text(self) -> str:
         labels = {
@@ -115,6 +191,8 @@ class BlackjackView(discord.ui.View):
                 status += f"\nNhận lại: **{self.return_amount:,} TC**."
             elif not self._settled:
                 status += "\n⏳ Đang thanh toán kết quả…"
+            if self._settled and not self._closed:
+                status += "\nNhấn **Chơi lại** hoặc **Đổi cược**."
         else:
             status = "Chọn **Rút bài** hoặc **Dừng**."
 
@@ -146,6 +224,81 @@ class BlackjackView(discord.ui.View):
         embed.set_footer(text=f"Số dư: {self.balance_after:,} TC")
         return embed
 
+    def _banner_status(self) -> tuple[str, tuple[int, int, int]]:
+        if self._terminal_note is not None:
+            note = self._terminal_note.split("\n")[0].replace("**", "")[:48]
+            return note, BANNER_IDLE
+        if self.game.finished and self.game.outcome is not None:
+            fill = BANNER_IDLE
+            if self.game.outcome in {
+                BlackjackOutcome.PLAYER_BLACKJACK,
+                BlackjackOutcome.PLAYER_WIN,
+            }:
+                fill = BANNER_WIN
+            elif self.game.outcome is BlackjackOutcome.DEALER_WIN:
+                fill = BANNER_LOSS
+            elif self.game.outcome is BlackjackOutcome.PUSH:
+                fill = BANNER_PUSH
+            return BANNER_LABELS[self.game.outcome], fill
+        return "Rút bài hoặc Dừng", BANNER_IDLE
+
+    def _render_table(self) -> bytes:
+        finished = bool(self.game.finished)
+        player_value = score_hand(self.game.player_hand).total
+        dealer_value = score_hand(self.game.dealer_hand).total if finished else None
+        status, fill = self._banner_status()
+        return render_blackjack_table(
+            player_hand=self.game.player_hand,
+            dealer_hand=self.game.dealer_hand,
+            player_total=player_value,
+            dealer_total=dealer_value,
+            reveal_dealer=finished,
+            bet=self.bet,
+            balance=self.balance_after,
+            status=status,
+            banner_fill=fill,
+        )
+
+    async def _table_png(self) -> bytes | None:
+        try:
+            return await asyncio.to_thread(self._render_table)
+        except Exception:
+            logger.exception(
+                "Could not render Blackjack table session=%s",
+                self.session_id,
+            )
+            return None
+
+    async def _send_kwargs(self) -> dict:
+        embed = self.build_embed()
+        extra = attach_table_image(
+            embed,
+            await self._table_png(),
+            BLACKJACK_TABLE_FILENAME,
+            for_edit=False,
+        )
+        return {
+            "embed": embed,
+            "view": self,
+            "allowed_mentions": NO_MENTIONS,
+            **extra,
+        }
+
+    async def _edit_kwargs(self) -> dict:
+        embed = self.build_embed()
+        extra = attach_table_image(
+            embed,
+            await self._table_png(),
+            BLACKJACK_TABLE_FILENAME,
+            for_edit=True,
+        )
+        return {
+            "embed": embed,
+            "view": self,
+            "allowed_mentions": NO_MENTIONS,
+            **extra,
+        }
+
     def _settle_finished_game(self) -> None:
         """Settle a resolved hand. Caller must hold ``_action_lock``."""
 
@@ -168,17 +321,12 @@ class BlackjackView(discord.ui.View):
             )
         self.return_amount = amount
         self._settled = True
-        self._closed = True
 
     async def _safe_interaction_edit(
         self, interaction: discord.Interaction
     ) -> None:
         try:
-            await interaction.response.edit_message(
-                embed=self.build_embed(),
-                view=self,
-                allowed_mentions=NO_MENTIONS,
-            )
+            await interaction.response.edit_message(**await self._edit_kwargs())
         except discord.HTTPException:
             logger.exception(
                 "Could not update Blackjack interaction session=%s",
@@ -189,11 +337,7 @@ class BlackjackView(discord.ui.View):
         if self.message is None:
             return
         try:
-            await self.message.edit(
-                embed=self.build_embed(),
-                view=self,
-                allowed_mentions=NO_MENTIONS,
-            )
+            await self.message.edit(**await self._edit_kwargs())
         except discord.HTTPException:
             logger.exception(
                 "Could not edit Blackjack message session=%s",
@@ -220,9 +364,7 @@ class BlackjackView(discord.ui.View):
                 return
 
             self._terminal_note = None
-            self._disable_controls()
-            self.cog.unregister(self)
-            self.stop()
+            self._refresh_controls()
             await self._safe_message_edit()
 
     async def _busy_reply(self, interaction: discord.Interaction) -> None:
@@ -247,10 +389,20 @@ class BlackjackView(discord.ui.View):
             return
 
         async with self._action_lock:
-            if self._settled or self._closed:
+            if self._closed:
                 try:
                     await interaction.response.send_message(
-                        "Ván Blackjack này đã kết thúc.",
+                        "Bàn Blackjack này đã đóng.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            if self._settled:
+                try:
+                    await interaction.response.send_message(
+                        "Ván này đã kết thúc. Hãy chọn **Chơi lại** hoặc **Đổi cược**.",
                         ephemeral=True,
                         allowed_mentions=NO_MENTIONS,
                     )
@@ -287,45 +439,39 @@ class BlackjackView(discord.ui.View):
                 return
 
             self._terminal_note = None
-            self._disable_controls()
-            self.cog.unregister(self)
-            self.stop()
+            self._refresh_controls()
             await self._safe_interaction_edit(interaction)
 
     async def _refund_open_wager(self, note: str, *, edit: bool) -> None:
         """Refund an abandoned hand once, even if lifecycle hooks race."""
 
         async with self._action_lock:
-            if self._settled or self._closed:
+            if self._closed:
                 return
-            try:
-                self.balance_after = self.cog.bank.credit(
-                    self.user_id,
-                    self.guild_id,
-                    "blackjack",
-                    self.bet,
-                    self.session_id,
-                    "refund",
-                )
-                self.return_amount = self.bet
+            if not self._settled:
+                try:
+                    self.balance_after = self.cog.bank.credit(
+                        self.user_id,
+                        self.guild_id,
+                        "blackjack",
+                        self.bet,
+                        self.session_id,
+                        "refund",
+                    )
+                    self.return_amount = self.bet
+                    self._terminal_note = f"{note} Đã hoàn **{self.bet:,} TC**."
+                except PyMongoError:
+                    logger.exception(
+                        "Could not refund Blackjack wager session=%s user=%s",
+                        self.session_id,
+                        self.user_id,
+                    )
+                    self._terminal_note = (
+                        f"{note} Không thể hoàn tiền tự động; quản trị viên hãy "
+                        f"kiểm tra mã ván `{self.session_id}`."
+                    )
                 self._settled = True
-                self._terminal_note = f"{note} Đã hoàn **{self.bet:,} TC**."
-            except PyMongoError:
-                logger.exception(
-                    "Could not refund Blackjack wager session=%s user=%s",
-                    self.session_id,
-                    self.user_id,
-                )
-                self._terminal_note = (
-                    f"{note} Không thể hoàn tiền tự động; quản trị viên hãy "
-                    f"kiểm tra mã ván `{self.session_id}`."
-                )
-            finally:
-                self._closed = True
-                self._disable_controls()
-                self.cog.unregister(self)
-                self.stop()
-
+            self._close_table()
             if edit:
                 await self._safe_message_edit()
 
@@ -347,10 +493,112 @@ class BlackjackView(discord.ui.View):
             edit=True,
         )
 
+    async def apply_bet(self, interaction: discord.Interaction, bet: int) -> None:
+        if self._action_lock.locked():
+            await self._busy_reply(interaction)
+            return
+        async with self._action_lock:
+            if self._closed:
+                try:
+                    await interaction.response.send_message(
+                        "Bàn Blackjack này đã đóng.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            if not self._settled:
+                try:
+                    await interaction.response.send_message(
+                        "Không thể đổi cược khi đang chơi ván này.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            self.bet = int(bet)
+            self._terminal_note = None
+            await self._safe_interaction_edit(interaction)
+
+    async def _begin_new_hand(self, interaction: discord.Interaction) -> None:
+        session_id = uuid.uuid4().hex
+        try:
+            dealt = self.cog.deal_hand(
+                user_id=self.user_id,
+                guild_id=self.guild_id,
+                bet=self.bet,
+                session_id=session_id,
+            )
+        except PyMongoError:
+            logger.exception(
+                "Could not reserve Blackjack replay session=%s user=%s",
+                session_id,
+                self.user_id,
+            )
+            try:
+                await interaction.response.send_message(
+                    "Không thể trừ tiền cược lúc này. Vui lòng thử lại.",
+                    ephemeral=True,
+                    allowed_mentions=NO_MENTIONS,
+                )
+            except discord.HTTPException:
+                pass
+            return
+        except Exception:
+            logger.exception(
+                "Could not create Blackjack replay session=%s user=%s",
+                session_id,
+                self.user_id,
+            )
+            try:
+                await interaction.response.send_message(
+                    "Không thể tạo ván Blackjack. Tiền cược đã được hoàn.",
+                    ephemeral=True,
+                    allowed_mentions=NO_MENTIONS,
+                )
+            except discord.HTTPException:
+                pass
+            return
+
+        if dealt is None:
+            try:
+                await interaction.response.send_message(
+                    f"Bạn không có đủ **{self.bet:,} TC** để chơi lại.",
+                    ephemeral=True,
+                    allowed_mentions=NO_MENTIONS,
+                )
+            except discord.HTTPException:
+                pass
+            return
+
+        game, balance_after = dealt
+        self.session_id = session_id
+        self.game = game
+        self.balance_after = balance_after
+        self.return_amount = 0
+        self._settled = False
+        self._terminal_note = None
+        if game.finished:
+            try:
+                self._settle_finished_game()
+            except PyMongoError:
+                logger.exception(
+                    "Could not settle opening Blackjack replay session=%s",
+                    session_id,
+                )
+                self._terminal_note = (
+                    "⚠️ Chưa thể thanh toán. Hãy bấm một nút để thử lại."
+                )
+        self._refresh_controls()
+        await self._safe_interaction_edit(interaction)
+
     @discord.ui.button(
         label="Rút bài",
         emoji="🃏",
         style=discord.ButtonStyle.primary,
+        row=0,
     )
     async def hit_button(
         self,
@@ -363,6 +611,7 @@ class BlackjackView(discord.ui.View):
         label="Dừng",
         emoji="✋",
         style=discord.ButtonStyle.secondary,
+        row=0,
     )
     async def stand_button(
         self,
@@ -370,6 +619,88 @@ class BlackjackView(discord.ui.View):
         button: discord.ui.Button,
     ) -> None:
         await self.handle_action(interaction, "stand")
+
+    @discord.ui.button(
+        label="Chơi lại",
+        emoji="🔁",
+        style=discord.ButtonStyle.success,
+        row=1,
+        disabled=True,
+    )
+    async def play_again_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ) -> None:
+        if self._action_lock.locked():
+            await self._busy_reply(interaction)
+            return
+        async with self._action_lock:
+            if self._closed:
+                try:
+                    await interaction.response.send_message(
+                        "Bàn Blackjack này đã đóng.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            if not self._settled:
+                try:
+                    await interaction.response.send_message(
+                        "Hãy kết thúc ván hiện tại trước khi chơi lại.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            await self._begin_new_hand(interaction)
+
+    @discord.ui.button(
+        label="Đổi cược",
+        emoji="💰",
+        style=discord.ButtonStyle.secondary,
+        row=1,
+        disabled=True,
+    )
+    async def bet_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ) -> None:
+        if self._action_lock.locked():
+            await self._busy_reply(interaction)
+            return
+        async with self._action_lock:
+            if self._closed:
+                try:
+                    await interaction.response.send_message(
+                        "Bàn Blackjack này đã đóng.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            if not self._settled:
+                try:
+                    await interaction.response.send_message(
+                        "Không thể đổi cược khi đang chơi ván này.",
+                        ephemeral=True,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                except discord.HTTPException:
+                    pass
+                return
+            try:
+                await interaction.response.send_modal(BlackjackBetModal(self))
+            except discord.HTTPException:
+                logger.exception(
+                    "Could not open Blackjack bet modal session=%s",
+                    self.session_id,
+                )
 
 
 class BlackjackCog(commands.Cog):
@@ -407,7 +738,42 @@ class BlackjackCog(commands.Cog):
     async def _send_plain(self, ctx: commands.Context, content: str) -> None:
         await ctx.send(content, allowed_mentions=NO_MENTIONS)
 
-    async def _refund_setup_failure(
+    def deal_hand(
+        self,
+        *,
+        user_id: int,
+        guild_id: int | None,
+        bet: int,
+        session_id: str,
+    ) -> tuple[BlackjackGame, int] | None:
+        """Reserve ``bet`` and deal a new hand. ``None`` means insufficient funds."""
+
+        balance_after = self.bank.reserve_wager(
+            user_id,
+            guild_id,
+            "blackjack",
+            bet,
+            session_id,
+        )
+        if balance_after is None:
+            return None
+        try:
+            return BlackjackGame(create_deck()), balance_after
+        except Exception:
+            logger.exception(
+                "Could not create Blackjack hand session=%s user=%s",
+                session_id,
+                user_id,
+            )
+            self._refund_setup_failure(
+                user_id=user_id,
+                guild_id=guild_id,
+                bet=bet,
+                session_id=session_id,
+            )
+            raise
+
+    def _refund_setup_failure(
         self,
         *,
         user_id: int,
@@ -456,8 +822,8 @@ class BlackjackCog(commands.Cog):
         if user_id in self._starting_users or user_id in self.active_sessions:
             await self._send_plain(
                 ctx,
-                "Bạn đang có một ván bài chưa kết thúc. "
-                "Hãy chơi xong ván đó trước.",
+                "Bạn đang có một bàn Blackjack đang mở. "
+                "Hãy chơi tiếp trên bàn đó hoặc đợi bàn đóng.",
             )
             return
 
@@ -465,12 +831,11 @@ class BlackjackCog(commands.Cog):
         session_id = uuid.uuid4().hex
         try:
             try:
-                balance_after = self.bank.reserve_wager(
-                    user_id,
-                    guild_id,
-                    "blackjack",
-                    bet,
-                    session_id,
+                dealt = self.deal_hand(
+                    user_id=user_id,
+                    guild_id=guild_id,
+                    bet=bet,
+                    session_id=session_id,
                 )
             except PyMongoError:
                 logger.exception(
@@ -482,16 +847,21 @@ class BlackjackCog(commands.Cog):
                     ctx, "Không thể trừ tiền cược lúc này. Vui lòng thử lại."
                 )
                 return
+            except Exception:
+                await self._send_plain(
+                    ctx, "Không thể tạo ván Blackjack. Tiền cược đã được hoàn."
+                )
+                return
 
-            if balance_after is None:
+            if dealt is None:
                 await self._send_plain(
                     ctx,
                     f"Bạn không có đủ **{bet:,} TC** để chơi Blackjack.",
                 )
                 return
 
+            game, balance_after = dealt
             try:
-                game = BlackjackGame(create_deck())
                 view = BlackjackView(
                     self,
                     game=game,
@@ -504,11 +874,11 @@ class BlackjackCog(commands.Cog):
                 )
             except Exception:
                 logger.exception(
-                    "Could not create Blackjack hand session=%s user=%s",
+                    "Could not initialize Blackjack table session=%s user=%s",
                     session_id,
                     user_id,
                 )
-                await self._refund_setup_failure(
+                self._refund_setup_failure(
                     user_id=user_id,
                     guild_id=guild_id,
                     bet=bet,
@@ -527,11 +897,7 @@ class BlackjackCog(commands.Cog):
             self._starting_users.discard(user_id)
 
         try:
-            view.message = await ctx.send(
-                embed=view.build_embed(),
-                view=view,
-                allowed_mentions=NO_MENTIONS,
-            )
+            view.message = await ctx.send(**await view._send_kwargs())
         except discord.HTTPException:
             logger.exception(
                 "Could not send Blackjack table session=%s user=%s",

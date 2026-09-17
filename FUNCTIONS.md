@@ -278,11 +278,11 @@ account write.
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `blackjack [n]` | Everyone | Solo Blackjack against the dealer; wagers `n` TC (default 5, range 5–1,000,000), wins pay 1:1, natural profit pays 3:2 rounded down to whole TC, and pushes/timeouts return the stake |
-| `poker [n]` | Everyone | Solo five-card draw against the dealer; wagers `n` TC (default 5, range 5–1,000,000), allows one draw of up to three cards, wins pay 1:1, and ties/timeouts return the stake |
-| `slot` | Everyone | Slot machine; costs **5** Trap Coins; logs debit transaction |
+| `blackjack [n]` | Everyone | Solo Blackjack against the dealer on a rendered table; wagers `n` TC (default 5, range 5–1,000,000), wins pay 1:1, natural profit pays 3:2 rounded down to whole TC, and pushes/timeouts return the stake. After a hand the same panel offers **Chơi lại** and **Đổi cược** (5–1,000,000 TC) without opening a new table |
+| `poker [n]` | Everyone | Solo five-card draw against the dealer on a rendered table; wagers `n` TC (default 5, range 5–1,000,000), allows one draw of up to three cards, wins pay 1:1, and ties/timeouts return the stake. After a hand the same panel offers **Chơi lại** and **Đổi cược** (5–1,000,000 TC) without opening a new table |
+| `slot` | Everyone | Slot machine with a rendered cabinet and replay button; costs **5** Trap Coins; three matching symbols credit **100** TC and a pair credits **10** TC |
 | `flip_coin <head\|tail> <n>` | Everyone | Coin flip bet of `n` Trap Coins (needs ≥5 TC to play); win pays 2× stake |
-| `sicbo_start` | Everyone | Reaction-based Sic Bo round (Big / Small / Triple); payout wiring is incomplete |
+| `sicbo [n]` | Everyone | Solo Sic Bo (Tài/Xỉu/Bộ ba) on a rendered board; wagers `n` TC (default 5, range 5–1,000,000); Tài/Xỉu pay 1:1, Bộ ba pays 30:1 including the stake, triples lose Tài/Xỉu, and timeouts return the stake. After a round the same panel offers **Chơi lại** and **Đổi cược** (5–1,000,000 TC) without opening a new table |
 | `crocodile` | Everyone (guild only) | Show the caller's newest 10 pending or active Crocodile Dentist games in the current server |
 | `crocodile challenge [teeth] @user1 [@user2 @user3 @user4]` | Everyone (guild only) | Create a 2–5 player challenge; `teeth` must precede the mentions, defaults to 13, and accepts 2–25 |
 | `crocodile fire <game_id>` | Host (guild only) | Recreate the authoritative invitation or gameplay panel for an open game in the current channel without resetting its state or deadlines |
@@ -317,9 +317,11 @@ credits all-time and bot-wide. Order is win count, then total TC, then the
 earlier most-recent win, then user ID. They reuse `transaction_logs`, do not ping
 mentions, and stay silent outside a configured game channel.
 
-**Module:** `cogs.minigames.*`; the interactive card-game cogs are
-`cogs.minigames.blackjack.blackjack` and `cogs.minigames.poker.poker`; persistent
-Crocodile Dentist lives in `cogs.minigames.crocodile_dentist.crocodile`.
+**Module:** `cogs.minigames.*`; the interactive casino cogs are
+`cogs.minigames.blackjack.blackjack`, `cogs.minigames.poker.poker`,
+`cogs.minigames.slot_machine.slot_machine`, and `cogs.minigames.sicbo.sicbo`;
+persistent Crocodile Dentist lives in `cogs.minigames.crocodile_dentist.crocodile`.
+`sicbo_start` remains an alias of `sicbo`.
 
 ---
 
@@ -752,7 +754,7 @@ tutien trangbi, tutien phanra, tutien luyen, tutien thiluyen,
 tutien bicanh, tutien bicanh start, tutien bicanh claim, tutien bicanh cancel,
 tutien doido, tutien doido mua, tutien doido ban,
 tutien profile, tutien top, tutien riengtu
-blackjack, poker, slot, flip_coin, sicbo_start
+blackjack, poker, slot, flip_coin, sicbo
 crocodile, crocodile challenge, crocodile fire
 noitu, noitu status, noitu top, noitu hint, noitu end, noitu analyze
 vtv, vtv status, vtv top, vtv next, vtv hint

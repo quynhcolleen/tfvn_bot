@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import discord
@@ -26,6 +27,9 @@ TRANSACTIONS_COLLECTION = "transaction_logs"
 VALID_CREDIT_REASONS = frozenset({"win", "push", "refund"})
 
 
+_GROUPED_INTEGER = re.compile(r"^\d{1,3}(?:[.,]\d{3})+$")
+
+
 def validate_wager(bet: int) -> str | None:
     """Return a Vietnamese validation error, or ``None`` for a valid bet."""
 
@@ -37,6 +41,22 @@ def validate_wager(bet: int) -> str | None:
             f"**{MAX_BET:,} TC**."
         )
     return None
+
+
+def parse_wager_input(raw: object) -> int:
+    """Parse a typed wager, accepting optional thousands separators."""
+
+    if not isinstance(raw, str):
+        raise ValueError("Mức cược phải là một số nguyên.")
+    text = raw.strip().replace("_", "").replace(" ", "")
+    if _GROUPED_INTEGER.fullmatch(text):
+        text = re.sub(r"[.,]", "", text)
+    if not text.isdigit():
+        raise ValueError("Mức cược phải là một số nguyên.")
+    error = validate_wager(int(text))
+    if error is not None:
+        raise ValueError(error)
+    return int(text)
 
 
 class CardGameBank:

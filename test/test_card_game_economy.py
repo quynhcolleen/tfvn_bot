@@ -7,6 +7,7 @@ from cogs.minigames._card_game_economy import (
     MAX_BET,
     MIN_BET,
     CardGameBank,
+    parse_wager_input,
     validate_wager,
 )
 
@@ -89,6 +90,19 @@ class TestCardGameEconomy(unittest.TestCase):
         self.assertIsNotNone(validate_wager(MIN_BET - 1))
         self.assertIsNotNone(validate_wager(MAX_BET + 1))
         self.assertIsNotNone(validate_wager(True))
+
+    def test_wager_text_accepts_grouped_integers(self) -> None:
+        self.assertEqual(parse_wager_input("50"), 50)
+        self.assertEqual(parse_wager_input(" 1,000 "), 1000)
+        self.assertEqual(parse_wager_input("1.000"), 1000)
+        with self.assertRaises(ValueError):
+            parse_wager_input("5.5")
+        with self.assertRaises(ValueError):
+            parse_wager_input("abc")
+        with self.assertRaises(ValueError):
+            parse_wager_input("1")
+        with self.assertRaises(ValueError):
+            parse_wager_input(5)
 
     def test_reserve_is_conditional_and_audited(self):
         bank, accounts, transactions = self.make_bank(balance=20)

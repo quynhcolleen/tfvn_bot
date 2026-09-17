@@ -533,27 +533,36 @@ HELP_TOPICS = (
                     _entry(
                         "blackjack",
                         (
-                            "Đánh Blackjack với nhà cái; cược 5–1.000.000 TC, "
-                            "xì dách trả 3:2 (lẻ làm tròn xuống) và hòa hoàn tiền."
+                            "Đánh Blackjack với nhà cái trên bàn bài hình; "
+                            "cược 5–1.000.000 TC, xì dách trả 3:2 "
+                            "(lẻ làm tròn xuống), hòa hoàn tiền; sau ván có "
+                            "Chơi lại và Đổi cược."
                         ),
                         "blackjack [số TC]",
                     ),
                     _entry(
                         "poker",
                         (
-                            "Đấu Poker 5 lá một lượt đổi bài với nhà cái; "
-                            "cược 5–1.000.000 TC."
+                            "Đấu Poker 5 lá một lượt đổi bài với nhà cái "
+                            "trên bàn bài hình; cược 5–1.000.000 TC; sau ván "
+                            "có Chơi lại và Đổi cược."
                         ),
                         "poker [số TC]",
                     ),
-                    _entry("slot", "Quay máy slot; mỗi lượt tốn 5 Trap Coin."),
+                    _entry(
+                        "slot",
+                        "Quay máy slot trên bàn hình; 5 TC mỗi lượt, ba giống 100 TC, hai giống 10 TC.",
+                    ),
                     _entry("flip_coin", "Đặt cược mặt đồng xu.", "flip_coin <head|tail> <số TC>"),
                     _entry(
-                        "sicbo_start",
+                        "sicbo",
                         (
-                            "Bắt đầu vòng chọn Tài/Xỉu/Bộ ba bằng reaction; "
-                            "hiện không đặt cược hoặc trả Trap Coin."
+                            "Cược Tài/Xỉu/Bộ ba trên bàn hình; Tài/Xỉu 1:1, "
+                            "Bộ ba 30:1, triple làm Tài/Xỉu thua; sau ván có "
+                            "Chơi lại và Đổi cược."
                         ),
+                        "sicbo [số TC]",
+                        aliases=("sicbo_start",),
                     ),
                 ),
             ),
