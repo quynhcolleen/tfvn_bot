@@ -179,18 +179,21 @@ No user commands. Event listeners only:
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
-| `shop` | `store` | Everyone | List enabled catalog items |
+| `shop` | `store` | Everyone | Open an owner-locked interactive catalog to buy, use, and inspect inventory |
 | `shop buy <item_id>` | — | Everyone | Purchase a catalog item; 2 calls per 5 seconds per user |
 | `shop inventory [@member]` | `inv` | Everyone | View owned shop items |
-| `shop use <item_id>` | — | Everyone | Equip badge or apply purchased role |
+| `shop use <item_id>` | — | Everyone | Equip a badge, apply a purchased role, or open the custom-role designer |
 | `shop unequip` | — | Everyone | Clear active badge |
 | `shop add_role <id> <price> @role [description]` | — | Manage Guild | Add/update a sellable role priced 1–1,000,000,000 TC |
 | `shop add_badge <id> <price> <display name>` | — | Manage Guild | Add/update a badge item priced 1–1,000,000,000 TC |
+| `shop add_custom_role <price> [description]` | — | Manage Guild | Add/update the guild `custom_role` listing priced 1–1,000,000,000 TC |
 | `shop remove <item_id>` | `disable` | Manage Guild | Hide an item from the shop |
 
-Shop item IDs are 1–32 lowercase letters, digits, `_`, or `-`, and must start with a letter or digit.
+Shop item IDs are 1–32 lowercase letters, digits, `_`, or `-`, and must start with a letter or digit. The ID `custom_role` is reserved for the paid personal-role product.
 
-**Module:** `cogs.daily_reward.*`, `cogs.economy.shop`
+Buying a custom role charges Trap Coin once. `shop use custom_role` then opens the color/name designer. Members may have one personal custom role: a booster role or a shop role, not both. Leaving the guild deletes the shop-created Discord role but keeps the paid inventory so they can recreate it after rejoining.
+
+**Module:** `cogs.daily_reward.*`, `cogs.economy.shop`, `cogs.economy.shop_custom_role`
 
 ---
 
@@ -755,7 +758,7 @@ triggerreply, triggerreply add, triggerreply update, triggerreply list, triggerr
 afk, afk dynamic, afk time, afk clear, afk check
 random_femboy
 daily, user_balance, user_transactions, add_tc, remove_tc, set_tc, check_tc
-shop, shop buy, shop inventory, shop use, shop unequip, shop add_role, shop add_badge, shop remove
+shop, shop buy, shop inventory, shop use, shop unequip, shop add_role, shop add_badge, shop add_custom_role, shop remove
 tutien, tutien batdau, tutien thucong, tutien huong, tutien dotpha,
 tutien phai, tutien phai reset, tutien thienphu, tutien thienphu tang,
 tutien dongphu, tutien dongphu nangcap, tutien choden, tutien mua, tutien kho,

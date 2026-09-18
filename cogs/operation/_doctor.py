@@ -87,7 +87,11 @@ CHANNEL_REQUIREMENTS = (
 # The final value determines whether the bot must be able to assign/manage the role.
 ROLE_REQUIREMENTS = (
     ("FALLEN_FEMBOY_ROLE_ID", ("cogs.mod.verified",), True),
-    ("BOOSTER_CUSTOM_ROLE_ANCHOR_ID", ("cogs.booster.create_custom_role",), True),
+    (
+        "BOOSTER_CUSTOM_ROLE_ANCHOR_ID",
+        ("cogs.booster.create_custom_role", "cogs.economy.shop_custom_role"),
+        True,
+    ),
     ("KING_ROLE_ID", ("cogs.interaction.nsfw_interaction", "cogs.interaction.nsfw_super_user"), False),
     ("QUEEN_ROLE_ID", ("cogs.interaction.nsfw_interaction", "cogs.interaction.nsfw_super_user"), False),
 )
@@ -95,6 +99,7 @@ GUILD_PERMISSION_MODULES = {
     "manage_roles": (
         "cogs.mod.role", "cogs.mod.mute", "cogs.mod.softban", "cogs.mod.verified",
         "cogs.onboarding.role_exam", "cogs.economy.shop",
+        "cogs.economy.shop_custom_role",
         "cogs.booster.create_custom_role", "cogs.booster.update_custom_role",
         "cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted",
     ),

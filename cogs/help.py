@@ -341,7 +341,11 @@ HELP_TOPICS = (
             HelpSection(
                 name="Cửa hàng",
                 entries=(
-                    _entry("shop", "Xem vật phẩm đang bán.", aliases=("store",)),
+                    _entry(
+                        "shop",
+                        "Mở cửa hàng tương tác để mua, dùng và xem kho.",
+                        aliases=("store",),
+                    ),
                     _entry(
                         "shop buy",
                         "Mua một vật phẩm; tối đa 2 lần mỗi 5 giây/người.",
@@ -353,7 +357,11 @@ HELP_TOPICS = (
                         "shop inventory [@user]",
                         aliases=("shop inv",),
                     ),
-                    _entry("shop use", "Dùng badge hoặc role đã mua.", "shop use <item_id>"),
+                    _entry(
+                        "shop use",
+                        "Dùng badge, role, hoặc thiết kế custom role đã mua.",
+                        "shop use <item_id>",
+                    ),
                     _entry("shop unequip", "Gỡ badge đang trang bị."),
                 ),
                 note="Các lệnh quản lý số dư và danh mục shop nằm trong chủ đề Quản trị.",
@@ -1330,7 +1338,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "remove_tc",
-                        "Trừ 1–1.000.000.000 TC nếu đủ số dư — Administrator.",
+                        "Trừ TC nếu đủ số dư — Administrator.",
                         "remove_tc @user <số> [lý do]",
                         aliases=("sub_tc", "subtract_tc", "take_tc"),
                     ),
@@ -1348,25 +1356,27 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "shop add_role",
-                        "Thêm role giá 1–1.000.000.000 TC vào shop — cần Manage Server.",
+                        "Thêm role vào shop — Manage Server.",
                         "shop add_role <id> <giá> @role [mô tả]",
                     ),
                     _entry(
                         "shop add_badge",
-                        "Thêm badge giá 1–1.000.000.000 TC — cần Manage Server.",
+                        "Thêm badge vào shop — Manage Server.",
                         "shop add_badge <id> <giá> <tên nhiều từ>",
                     ),
                     _entry(
+                        "shop add_custom_role",
+                        "Thêm custom role vào shop — Manage Server.",
+                        "shop add_custom_role <giá> [mô tả]",
+                    ),
+                    _entry(
                         "shop remove",
-                        "Ẩn vật phẩm khỏi shop — cần Manage Server.",
+                        "Ẩn vật phẩm khỏi shop — Manage Server.",
                         "shop remove <item_id>",
                         aliases=("shop disable",),
                     ),
                 ),
-                note=(
-                    "Bốn lệnh số dư không nhận bot. Item ID dài 1–32 ký tự, bắt đầu bằng "
-                    "chữ/số và chỉ gồm chữ thường, số, `_`, `-`."
-                ),
+                note="Không cộng/trừ bot. Shop 1–1.000.000.000 TC. ID 1–32.",
             ),
             HelpSection(
                 name="Triggered replies",

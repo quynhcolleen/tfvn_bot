@@ -20,6 +20,7 @@ class BoosterCustomRoleCog(commands.Cog):
         self.bot = bot
         self.db = bot.db
         self.collection = self.db["booster_custom_roles"]
+        self.shop_roles = self.db["shop_custom_roles"]
         self._member_locks: dict[tuple[int, int], asyncio.Lock] = {}
 
     def _is_booster(self, member: discord.Member) -> bool:
@@ -118,6 +119,24 @@ class BoosterCustomRoleCog(commands.Cog):
                 return (
                     "Bạn đã có custom role. Hãy dùng lệnh "
                     "`update_custom_role` để cập nhật."
+                )
+        try:
+            shop_record = self.shop_roles.find_one(
+                {"guild_id": guild.id, "user_id": member.id}
+            )
+        except Exception:
+            logger.exception(
+                "Could not read shop custom role for guild %s user %s.",
+                guild.id,
+                member.id,
+            )
+            return "Không thể kiểm tra custom role lúc này. Vui lòng thử lại."
+        if shop_record:
+            shop_role_id = shop_record.get("role_id")
+            if guild.get_role(shop_role_id) is not None:
+                return (
+                    "Bạn đã có custom role từ cửa hàng. "
+                    "Hãy dùng `shop use custom_role` để cập nhật."
                 )
         return None
 

@@ -17,8 +17,12 @@ from cogs._beta_function import (
 )
 from cogs._feature_flags import cog_disabled
 from cogs.economy._shop_helpers import (
+    CUSTOM_ROLE_ITEM_ID,
+    ITEM_TYPE_CUSTOM_ROLE,
     clean_display_text,
     format_price,
+    is_reserved_item_id,
+    item_icon,
     normalize_item_id,
     validate_price,
 )
@@ -168,6 +172,10 @@ class TestShopHelpers(unittest.TestCase):
         self.assertEqual(clean_display_text("  Pink   Role ", fallback="x", limit=20), "Pink Role")
         self.assertEqual(format_price(1234567), "1,234,567 TC")
 
+    def test_custom_role_reserved_id_and_icon(self):
+        self.assertTrue(is_reserved_item_id(CUSTOM_ROLE_ITEM_ID))
+        self.assertEqual(item_icon(ITEM_TYPE_CUSTOM_ROLE), "🎨")
+
 
 class TestModerationCaseHelpers(unittest.TestCase):
     def test_clean_reason(self):
@@ -222,6 +230,7 @@ class TestLoadableFeatureModules(unittest.TestCase):
     def test_every_public_feature_module_has_async_setup(self):
         paths = [
             "cogs/economy/shop.py",
+            "cogs/economy/shop_custom_role.py",
             "cogs/mod/cases.py",
             "cogs/operation/setup_check.py",
         ]

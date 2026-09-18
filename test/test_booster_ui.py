@@ -54,10 +54,13 @@ def make_context():
 
 
 def make_bot():
+    shop_roles = Mock()
+    shop_roles.find_one.return_value = None
     return SimpleNamespace(
         db={
             "booster_custom_roles": Mock(),
             "booster_custom_rooms": Mock(),
+            "shop_custom_roles": shop_roles,
         },
         user=SimpleNamespace(id=999),
         global_vars={},

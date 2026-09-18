@@ -109,8 +109,13 @@ class FakeVoiceChannel:
 
 
 def make_bot(collection_name: str, collection: MagicMock) -> SimpleNamespace:
+    shop_roles = MagicMock()
+    shop_roles.find_one.return_value = None
     return SimpleNamespace(
-        db={collection_name: collection},
+        db={
+            collection_name: collection,
+            "shop_custom_roles": shop_roles,
+        },
         user=SimpleNamespace(id=BOT_ID),
         global_vars={},
     )
@@ -229,6 +234,31 @@ class TestBoosterRoleServices(unittest.IsolatedAsyncioTestCase):
         self.assertIn("đã có custom role", duplicate.message)
         guild.fetch_roles.assert_awaited_once_with()
         self.assertEqual(guild.create_role.await_count, 1)
+
+    async def test_shop_custom_role_blocks_booster_create(self) -> None:
+        collection = MagicMock()
+        collection.find_one.return_value = None
+        bot, guild, _bot_member, booster, _existing_role = make_role_fixture(
+            collection
+        )
+        shop_role = FakeRole(guild, 80, "Shop Pink", 6)
+        guild._roles[shop_role.id] = shop_role
+        bot.db["shop_custom_roles"].find_one.return_value = {
+            "guild_id": guild.id,
+            "user_id": booster.id,
+            "role_id": shop_role.id,
+        }
+        cog = BoosterCustomRoleCog(bot)
+        result = await cog._create_custom_role(
+            guild=guild,
+            member=booster,
+            color_spec=RoleColorSpec(discord.Color(0xFF66B3)),
+            role_name="Booster Pink",
+            icon_attachment=None,
+        )
+        self.assertFalse(result.completed)
+        self.assertIn("cửa hàng", result.message)
+        guild.create_role.assert_not_awaited()
 
     async def test_update_custom_role_edits_existing_role_and_record(self) -> None:
         collection = MagicMock()

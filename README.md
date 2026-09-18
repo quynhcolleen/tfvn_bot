@@ -14,7 +14,7 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 - **Community management:** welcome and differentiated leave/kick/ban announcements, verification, AFK tracking, birthdays, scheduled bedtime reminders, votes, and giveaways.
 - **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, the Area 51 guard workflow, and a MrBeast photo-dump raid filter (3rd dump in two minutes: 30-second confirm button or 24-hour timeout; 5th dump: timeout immediately plus a private staff decision panel).
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
-- **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
+- **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, an interactive role/badge/custom-role shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
 - **Social and fun commands:** member interactions, pair streaks (mention, reply, or shared voice), rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
 - **Operations:** an Administrator dashboard for bot/server health, private Doctor diagnostics, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
 - **Optional age-restricted features:** NSFW interactions and Rule34/Gelbooru searches, guarded by Discord's NSFW channel setting.
@@ -239,7 +239,7 @@ commands rather than `setting set_variable`:
 | --- | --- |
 | Moderation cases | `!tf case log_channel #mod-log` |
 | MrBeast photo-dump alerts | `!tf setting set_variable MRBEAST_SCAM_ALERT_CHANNEL` (falls back to the case log channel) |
-| Shop | Add a role or badge item; no separate setup command is required |
+| Shop | Add a role, badge, or custom-role listing; no separate setup command is required |
 
 The role exam uses the repository file `data/role_exam.json` instead of MongoDB.
 Use JSON `null` for `role_id` to leave the reward unconfigured. After replacing
@@ -382,17 +382,24 @@ press; firing a panel does not extend that deadline.
 
 ### Trap Coin shop
 
-Administrators can add permanent role or badge ownership to the guild catalog:
+`!tf shop` opens an owner-locked interactive catalog. Members select an item,
+confirm **Mua**, then **Dùng** to equip a badge, apply a purchased role, or
+design a paid custom role. Prefix subcommands remain as shortcuts.
+
+Administrators add listings to the guild catalog:
 
 ```text
 !tf shop add_role pink 100 @Pink A cosmetic pink role
 !tf shop add_badge helper 250 Community Helper
+!tf shop add_custom_role 5000 Role tùy chỉnh với tên và màu riêng
 ```
 
-Members use `shop`, `shop buy <item_id>`, `shop inventory`, and
-`shop use <item_id>`. Purchases deduct balances atomically, reject duplicate
-ownership, and write to `transaction_logs`. A badge remains owned when it is
-unequipped.
+The ID `custom_role` is reserved for the personal-role product. Members may
+have one personal custom role from boosting or from the shop, not both.
+Purchases deduct balances atomically, reject duplicate ownership, and write to
+`transaction_logs`. A badge remains owned when it is unequipped. Leaving the
+guild deletes a shop-created Discord role; the paid inventory entry remains so
+the member can recreate it after rejoining.
 
 ### Moderation cases
 
@@ -546,7 +553,7 @@ tfvn_bot/
 │   ├── _hash_verification.py # Signed content-proof issuance and validation
 │   ├── bedtime_remind/     # Persistent UTC+7 bedtime schedules, admin UI, and chat reminders
 │   ├── settings/           # Mongo-backed runtime variables
-│   ├── economy/            # Trap Coin shop, inventory, badges, and role items
+│   ├── economy/            # Trap Coin shop hub, catalog products, and custom roles
 │   ├── cultivation/        # Tiên Lộ progression, AFK calculations, PvE, and economy
 │   ├── mod/                # Moderation and verification
 │   ├── operation/          # Health/audit UI, owner controls, and lifecycle events

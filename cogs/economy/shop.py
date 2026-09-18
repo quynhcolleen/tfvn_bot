@@ -1,217 +1,264 @@
+"""Interactive Trap Coin shop hub: catalog, inventory, and purchases."""
+
+from __future__ import annotations
+
+import asyncio
 import logging
 
 import discord
 from discord.ext import commands
-from pymongo import ASCENDING, DESCENDING, ReturnDocument
-from pymongo.errors import DuplicateKeyError, PyMongoError
 
+from cogs.economy._shop_catalog import CatalogProduct
 from cogs.economy._shop_helpers import (
-    clean_display_text,
+    CUSTOM_ROLE_ITEM_ID,
+    ITEM_TYPE_BADGE,
+    ITEM_TYPE_CUSTOM_ROLE,
+    ITEM_TYPE_ROLE,
+    MAX_CATALOG_ITEMS,
     format_price,
+    is_reserved_item_id,
     normalize_item_id,
     validate_price,
+)
+from cogs.economy._shop_products import (
+    get_shop_product,
+    register_shop_product,
+    unregister_shop_product,
+)
+from cogs.economy._shop_store import ShopStore
+from cogs.economy._shop_ui import (
+    NO_MENTIONS,
+    PANEL_INVENTORY,
+    PANEL_STORE,
+    ShopView,
+    send_private,
 )
 from cogs.roles._role_safety import dangerous_permission_names
 
 
 logger = logging.getLogger(__name__)
 
-SHOP_ITEMS_COLLECTION = "shop_items"
-SHOP_INVENTORY_COLLECTION = "shop_inventory"
-ACCOUNTS_COLLECTION = "user_accounts"
-TRANSACTIONS_COLLECTION = "transaction_logs"
-MAX_CATALOG_ITEMS = 25
-
 
 class ShopCog(commands.Cog):
-    """Guild-specific Trap Coin catalog and member inventory."""
+    """Guild-specific Trap Coin catalog, inventory, and interactive shop."""
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.db = bot.db
-        self.items = self.db[SHOP_ITEMS_COLLECTION]
-        self.inventory = self.db[SHOP_INVENTORY_COLLECTION]
-        self.accounts = self.db[ACCOUNTS_COLLECTION]
-        self.transactions = self.db[TRANSACTIONS_COLLECTION]
-        self._ensure_indexes()
-
-    def _ensure_indexes(self) -> None:
-        try:
-            self.items.create_index(
-                [("guild_id", ASCENDING), ("item_id", ASCENDING)],
-                unique=True,
-                name="guild_item_unique",
-            )
-            self.items.create_index(
-                [("guild_id", ASCENDING), ("enabled", ASCENDING)],
-                name="guild_enabled_items",
-            )
-            self.inventory.create_index(
-                [
-                    ("guild_id", ASCENDING),
-                    ("user_id", ASCENDING),
-                    ("item_id", ASCENDING),
-                ],
-                unique=True,
-                name="guild_user_item_unique",
-            )
-            self.transactions.create_index(
-                [("user_id", ASCENDING), ("timestamp", DESCENDING)],
-                name="user_transactions_recent",
-            )
-        except PyMongoError:
-            logger.exception("Failed to create shop indexes")
-
-    def _find_item(self, guild_id: int, item_id: str) -> dict | None:
-        return self.items.find_one(
-            {"guild_id": guild_id, "item_id": item_id, "enabled": True}
+        self.store = ShopStore(bot.db)
+        self._views: set[ShopView] = set()
+        self._unloading = False
+        self._purchase_locks: dict[tuple[int, int], asyncio.Lock] = {}
+        self._catalog_products = (
+            CatalogProduct(ITEM_TYPE_ROLE, self.store),
+            CatalogProduct(ITEM_TYPE_BADGE, self.store),
         )
+        for product in self._catalog_products:
+            register_shop_product(product)
+
+    def cog_unload(self) -> None:
+        self._unloading = True
+        for view in tuple(self._views):
+            view.stop()
+        self._views.clear()
+        for product in self._catalog_products:
+            unregister_shop_product(product.item_type)
+
+    def _purchase_lock(self, guild_id: int, user_id: int) -> asyncio.Lock:
+        return self._purchase_locks.setdefault((guild_id, user_id), asyncio.Lock())
+
+    def shop_snapshot(self, guild_id: int, user_id: int) -> dict:
+        return {
+            "catalog": self.store.list_enabled(guild_id),
+            "inventory": self.store.list_inventory(guild_id, user_id),
+            "balance": self.store.get_balance(user_id),
+            "active_badge": self.store.get_active_badge(user_id, guild_id),
+        }
 
     @staticmethod
-    def _member_can_manage_role(member: discord.Member, role: discord.Role) -> bool:
+    def _member_can_manage_role(
+        member: discord.Member, role: discord.Role
+    ) -> bool:
         return member == member.guild.owner or member.top_role > role
+
+    async def _open_shop(self, ctx: commands.Context) -> None:
+        assert ctx.guild is not None
+        view = ShopView(
+            self,
+            guild_id=ctx.guild.id,
+            author_id=ctx.author.id,
+            prefix=ctx.clean_prefix,
+        )
+        self._views.add(view)
+        view.message = await ctx.reply(
+            embed=view.build_embed(),
+            view=view,
+            mention_author=False,
+            allowed_mentions=NO_MENTIONS,
+        )
+
+    def _unavailable_product_message(self) -> str:
+        return "Vật phẩm này tạm không khả dụng."
+
+    async def _purchase_item(
+        self,
+        *,
+        guild: discord.Guild,
+        member: discord.Member,
+        item_id: str,
+    ) -> tuple[bool, str]:
+        try:
+            normalized_id = normalize_item_id(item_id)
+        except ValueError:
+            return False, "Item ID không hợp lệ."
+
+        item = self.store.find_enabled(guild.id, normalized_id)
+        if item is None:
+            return False, "Không tìm thấy vật phẩm đang bán với ID đó."
+
+        product = get_shop_product(str(item.get("item_type", "")))
+        if product is None:
+            return False, self._unavailable_product_message()
+        denial = product.buy_denial(guild, member, item)
+        if denial:
+            return False, denial
+
+        lock = self._purchase_lock(guild.id, member.id)
+        if lock.locked():
+            return False, "Đang xử lý giao dịch. Vui lòng chờ một chút."
+        async with lock:
+            result = self.store.purchase(
+                guild_id=guild.id,
+                user_id=member.id,
+                item=item,
+            )
+        return result.success, result.message
+
+    async def _use_item(
+        self,
+        *,
+        guild: discord.Guild,
+        member: discord.Member,
+        item_id: str,
+        source: discord.Interaction | commands.Context,
+    ) -> str | None:
+        try:
+            normalized_id = normalize_item_id(item_id)
+        except ValueError:
+            return "Item ID không hợp lệ."
+
+        owned = self.store.owned_record(guild.id, member.id, normalized_id)
+        if owned is None:
+            return "Bạn chưa sở hữu vật phẩm này."
+
+        item = self.store.find_item(guild.id, normalized_id)
+        if item is None:
+            return "Vật phẩm này không còn tồn tại trong catalog."
+
+        product = get_shop_product(str(item.get("item_type", "")))
+        if product is None:
+            return self._unavailable_product_message()
+        return await product.use_item(
+            guild=guild,
+            member=member,
+            item=item,
+            source=source,
+        )
+
+    async def handle_shop_action(
+        self,
+        interaction: discord.Interaction,
+        view: ShopView,
+        action: str,
+    ) -> None:
+        if interaction.guild is None:
+            await send_private(interaction, "Cửa hàng chỉ dùng trong server.")
+            return
+        member = interaction.guild.get_member(interaction.user.id)
+        if member is None:
+            member = interaction.user
+        if getattr(member, "id", None) is None:
+            await send_private(interaction, "Cửa hàng chỉ dùng trong server.")
+            return
+
+        if action == "close":
+            await view.close_panel(interaction)
+            return
+        if action == "store":
+            view.panel = PANEL_STORE
+            view.confirming = None
+            await view.refresh(interaction)
+            return
+        if action == "inventory":
+            view.panel = PANEL_INVENTORY
+            view.confirming = None
+            await view.refresh(interaction)
+            return
+        if action == "unequip":
+            self.store.clear_active_badge(member.id)
+            await view.refresh(interaction)
+            await send_private(interaction, "Đã gỡ badge đang trang bị.")
+            return
+
+        item = view.selected_item
+        if item is None:
+            await send_private(interaction, "Hãy chọn một vật phẩm trước.")
+            return
+        item_id = str(item["item_id"])
+
+        if action == "buy":
+            if view.owns_selected():
+                await send_private(interaction, "Bạn đã sở hữu vật phẩm này.")
+                return
+            token = ("buy", item_id)
+            if view.confirming != token:
+                view.confirming = token
+                await view.refresh(interaction)
+                return
+            view.confirming = None
+            success, message = await self._purchase_item(
+                guild=interaction.guild,
+                member=member,
+                item_id=item_id,
+            )
+            await view.refresh(interaction)
+            await send_private(interaction, message)
+            return
+
+        if action == "use":
+            notice = await self._use_item(
+                guild=interaction.guild,
+                member=member,
+                item_id=item_id,
+                source=interaction,
+            )
+            if notice is None:
+                view.stop()
+                return
+            await view.refresh(interaction)
+            await send_private(interaction, notice)
 
     @commands.group(
         name="shop",
         aliases=["store"],
         invoke_without_command=True,
-        help="Xem cửa hàng Trap Coin.",
+        help="Mở cửa hàng Trap Coin tương tác.",
     )
     @commands.guild_only()
     async def shop(self, ctx: commands.Context) -> None:
-        catalog = list(
-            self.items.find({"guild_id": ctx.guild.id, "enabled": True})
-            .sort([("price", ASCENDING), ("item_id", ASCENDING)])
-            .limit(MAX_CATALOG_ITEMS)
-        )
-        if not catalog:
-            await ctx.send("Cửa hàng chưa có vật phẩm nào.")
-            return
-
-        embed = discord.Embed(
-            title="🛍️ Cửa hàng Trap Coin",
-            description=(
-                f"Mua: {self.bot.command_prefix}shop buy <item_id> · "
-                f"Sử dụng: {self.bot.command_prefix}shop use <item_id>"
-            ),
-            color=discord.Color.gold(),
-        )
-        for item in catalog:
-            icon = "🎭" if item["item_type"] == "role" else "🏷️"
-            embed.add_field(
-                name=f"{icon} {item['name']} — {format_price(item['price'])}",
-                value=(
-                    f"ID: {item['item_id']} · "
-                    f"{item.get('description', 'Không có mô tả')}"
-                )[:1024],
-                inline=False,
-            )
-        await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+        await self._open_shop(ctx)
 
     @shop.command(name="buy", help="Mua một vật phẩm trong shop.")
     @commands.guild_only()
     @commands.cooldown(2, 5, commands.BucketType.user)
     async def shop_buy(self, ctx: commands.Context, item_id: str) -> None:
-        try:
-            normalized_id = normalize_item_id(item_id)
-        except ValueError:
-            await ctx.send("Item ID không hợp lệ.")
-            return
-
-        item = self._find_item(ctx.guild.id, normalized_id)
-        if item is None:
-            await ctx.send("Không tìm thấy vật phẩm đang bán với ID đó.")
-            return
-        if item["item_type"] == "role":
-            role = ctx.guild.get_role(int(item.get("role_id", 0)))
-            bot_member = ctx.guild.me
-            if (
-                role is None
-                or role.is_default()
-                or role.managed
-                or dangerous_permission_names(role.permissions)
-                or bot_member is None
-                or role >= bot_member.top_role
-            ):
-                await ctx.send(
-                    "Role của vật phẩm này hiện không an toàn hoặc bot không thể gán. "
-                    "Bạn chưa bị trừ Trap Coin."
-                )
-                return
-            if role in ctx.author.roles:
-                await ctx.send("Bạn đã có role của vật phẩm này.")
-                return
-
-        ownership_filter = {
-            "guild_id": ctx.guild.id,
-            "user_id": ctx.author.id,
-            "item_id": normalized_id,
-        }
-        if self.inventory.find_one(ownership_filter):
-            await ctx.send("Bạn đã sở hữu vật phẩm này.")
-            return
-
-        price = int(item["price"])
-        self.accounts.update_one(
-            {"user_id": ctx.author.id},
-            {"$setOnInsert": {"balance": 0}},
-            upsert=True,
+        assert ctx.guild is not None
+        _, message = await self._purchase_item(
+            guild=ctx.guild,
+            member=ctx.author,
+            item_id=item_id,
         )
-        account = self.accounts.find_one_and_update(
-            {"user_id": ctx.author.id, "balance": {"$gte": price}},
-            {"$inc": {"balance": -price}},
-            return_document=ReturnDocument.AFTER,
-        )
-        if account is None:
-            await ctx.send(
-                f"Bạn không có đủ Trap Coin. Vật phẩm này giá {format_price(price)}."
-            )
-            return
-
-        now = discord.utils.utcnow()
-        try:
-            self.inventory.insert_one(
-                {
-                    **ownership_filter,
-                    "item_type": item["item_type"],
-                    "name": item["name"],
-                    "purchased_at": now,
-                }
-            )
-        except DuplicateKeyError:
-            self.accounts.update_one(
-                {"user_id": ctx.author.id}, {"$inc": {"balance": price}}
-            )
-            await ctx.send("Bạn đã sở hữu vật phẩm này.")
-            return
-        except PyMongoError:
-            self.accounts.update_one(
-                {"user_id": ctx.author.id}, {"$inc": {"balance": price}}
-            )
-            logger.exception("Failed to save shop purchase; refunded user")
-            await ctx.send("Không thể hoàn tất giao dịch. Trap Coin đã được hoàn lại.")
-            return
-
-        try:
-            self.transactions.insert_one(
-                {
-                    "guild_id": ctx.guild.id,
-                    "user_id": ctx.author.id,
-                    "type": "shop_purchase",
-                    "transaction_type": "debit",
-                    "amount": price,
-                    "item_id": normalized_id,
-                    "timestamp": now,
-                }
-            )
-        except PyMongoError:
-            logger.exception("Failed to write shop transaction log")
-
-        await ctx.send(
-            f"Đã mua **{item['name']}** với {format_price(price)}. "
-            f"Số dư còn lại: **{account.get('balance', 0):,} TC**.",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
+        await ctx.send(message, allowed_mentions=NO_MENTIONS)
 
     @shop.command(name="inventory", aliases=["inv"], help="Xem kho vật phẩm.")
     @commands.guild_only()
@@ -220,24 +267,22 @@ class ShopCog(commands.Cog):
         ctx: commands.Context,
         member: discord.Member | None = None,
     ) -> None:
+        assert ctx.guild is not None
         target = member or ctx.author
-        owned = list(
-            self.inventory.find(
-                {"guild_id": ctx.guild.id, "user_id": target.id}
-            ).sort("purchased_at", ASCENDING)
-        )
+        owned = self.store.list_inventory(ctx.guild.id, target.id)
         if not owned:
-            await ctx.send(f"{target.mention} chưa sở hữu vật phẩm nào trong shop.")
+            await ctx.send(
+                f"{target.mention} chưa sở hữu vật phẩm nào trong shop.",
+                allowed_mentions=NO_MENTIONS,
+            )
             return
 
-        account = self.accounts.find_one({"user_id": target.id}) or {}
-        active_badge = account.get("active_badge") or {}
+        active_badge = self.store.get_active_badge(target.id, ctx.guild.id)
         lines = []
         for record in owned[:MAX_CATALOG_ITEMS]:
             marker = (
                 " · đang dùng"
-                if active_badge.get("guild_id") == ctx.guild.id
-                and active_badge.get("item_id") == record["item_id"]
+                if active_badge and active_badge.get("item_id") == record["item_id"]
                 else ""
             )
             lines.append(f"• {record['item_id']} — {record['name']}{marker}")
@@ -247,90 +292,25 @@ class ShopCog(commands.Cog):
             description="\n".join(lines),
             color=discord.Color.blurple(),
         )
-        await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+        await ctx.send(embed=embed, allowed_mentions=NO_MENTIONS)
 
-    @shop.command(name="use", help="Dùng role hoặc trang bị badge đã mua.")
+    @shop.command(name="use", help="Dùng role, badge, hoặc custom role đã mua.")
     @commands.guild_only()
     async def shop_use(self, ctx: commands.Context, item_id: str) -> None:
-        try:
-            normalized_id = normalize_item_id(item_id)
-        except ValueError:
-            await ctx.send("Item ID không hợp lệ.")
-            return
-
-        owned = self.inventory.find_one(
-            {
-                "guild_id": ctx.guild.id,
-                "user_id": ctx.author.id,
-                "item_id": normalized_id,
-            }
+        assert ctx.guild is not None
+        notice = await self._use_item(
+            guild=ctx.guild,
+            member=ctx.author,
+            item_id=item_id,
+            source=ctx,
         )
-        if owned is None:
-            await ctx.send("Bạn chưa sở hữu vật phẩm này.")
-            return
-
-        item = self.items.find_one(
-            {"guild_id": ctx.guild.id, "item_id": normalized_id}
-        )
-        if item is None:
-            await ctx.send("Vật phẩm này không còn tồn tại trong catalog.")
-            return
-
-        if item["item_type"] == "badge":
-            self.accounts.update_one(
-                {"user_id": ctx.author.id},
-                {
-                    "$set": {
-                        "active_badge": {
-                            "guild_id": ctx.guild.id,
-                            "item_id": item["item_id"],
-                            "name": item["name"],
-                        }
-                    },
-                    "$setOnInsert": {"balance": 0},
-                },
-                upsert=True,
-            )
-            await ctx.send(
-                f"Đã trang bị badge **{item['name']}**.",
-                allowed_mentions=discord.AllowedMentions.none(),
-            )
-            return
-
-        role = ctx.guild.get_role(int(item.get("role_id", 0)))
-        bot_member = ctx.guild.me
-        if role is None:
-            await ctx.send("Role của vật phẩm này không còn tồn tại.")
-            return
-        if dangerous_permission_names(role.permissions):
-            await ctx.send("Role này có quyền quản trị và không thể dùng qua shop.")
-            return
-        if role.managed or role >= bot_member.top_role:
-            await ctx.send("Bot không thể gán role này do thứ bậc hoặc role được quản lý.")
-            return
-        if role in ctx.author.roles:
-            await ctx.send(f"Bạn đang có role {role.mention} rồi.")
-            return
-
-        try:
-            await ctx.author.add_roles(role, reason="Use purchased shop role")
-        except discord.Forbidden:
-            await ctx.send("Bot không có quyền gán role này.")
-            return
-        except discord.HTTPException:
-            await ctx.send("Discord từ chối cập nhật role. Vui lòng thử lại.")
-            return
-        await ctx.send(
-            f"Đã kích hoạt role {role.mention}.",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
+        if notice:
+            await ctx.send(notice, allowed_mentions=NO_MENTIONS)
 
     @shop.command(name="unequip", help="Gỡ badge đang trang bị.")
     @commands.guild_only()
     async def shop_unequip(self, ctx: commands.Context) -> None:
-        self.accounts.update_one(
-            {"user_id": ctx.author.id}, {"$unset": {"active_badge": ""}}
-        )
+        self.store.clear_active_badge(ctx.author.id)
         await ctx.send("Đã gỡ badge đang trang bị.")
 
     @shop.command(name="add_role", help="Thêm role vào shop.")
@@ -345,15 +325,24 @@ class ShopCog(commands.Cog):
         *,
         description: str = "",
     ) -> None:
+        assert ctx.guild is not None
         try:
             normalized_id = normalize_item_id(item_id)
             valid_price = validate_price(price)
         except ValueError as exc:
             await ctx.send(str(exc))
             return
+        if is_reserved_item_id(normalized_id):
+            await ctx.send(
+                f"ID `{CUSTOM_ROLE_ITEM_ID}` dành riêng cho custom role. "
+                f"Dùng `{ctx.clean_prefix}shop add_custom_role`."
+            )
+            return
 
         if role.is_default() or role.managed:
-            await ctx.send("Không thể bán role mặc định hoặc role được integration quản lý.")
+            await ctx.send(
+                "Không thể bán role mặc định hoặc role được integration quản lý."
+            )
             return
         dangerous = dangerous_permission_names(role.permissions)
         if dangerous:
@@ -362,20 +351,28 @@ class ShopCog(commands.Cog):
             )
             return
         if not self._member_can_manage_role(ctx.author, role):
-            await ctx.send("Bạn chỉ có thể thêm role thấp hơn role cao nhất của mình.")
+            await ctx.send(
+                "Bạn chỉ có thể thêm role thấp hơn role cao nhất của mình."
+            )
             return
         if role >= ctx.guild.me.top_role:
             await ctx.send("Role này phải thấp hơn role cao nhất của bot.")
             return
 
-        await self._save_admin_item(
-            ctx,
+        document = self.store.upsert_item(
+            guild_id=ctx.guild.id,
             item_id=normalized_id,
             name=role.name,
             description=description or f"Role {role.name}",
             price=valid_price,
-            item_type="role",
+            item_type=ITEM_TYPE_ROLE,
+            updated_by=ctx.author.id,
             role_id=role.id,
+        )
+        await ctx.send(
+            f"Đã lưu **{document['name']}** ({normalized_id}) với giá "
+            f"{format_price(valid_price)}.",
+            allowed_mentions=NO_MENTIONS,
         )
 
     @shop.command(name="add_badge", help="Thêm badge vào shop.")
@@ -389,74 +386,81 @@ class ShopCog(commands.Cog):
         *,
         display_name: str,
     ) -> None:
+        assert ctx.guild is not None
         try:
             normalized_id = normalize_item_id(item_id)
             valid_price = validate_price(price)
         except ValueError as exc:
             await ctx.send(str(exc))
             return
+        if is_reserved_item_id(normalized_id):
+            await ctx.send(
+                f"ID `{CUSTOM_ROLE_ITEM_ID}` dành riêng cho custom role. "
+                f"Dùng `{ctx.clean_prefix}shop add_custom_role`."
+            )
+            return
 
-        await self._save_admin_item(
-            ctx,
+        document = self.store.upsert_item(
+            guild_id=ctx.guild.id,
             item_id=normalized_id,
             name=display_name,
             description=f"Badge {display_name}",
             price=valid_price,
-            item_type="badge",
-        )
-
-    async def _save_admin_item(
-        self,
-        ctx: commands.Context,
-        *,
-        item_id: str,
-        name: str,
-        description: str,
-        price: int,
-        item_type: str,
-        role_id: int | None = None,
-    ) -> None:
-        now = discord.utils.utcnow()
-        document = {
-            "guild_id": ctx.guild.id,
-            "item_id": item_id,
-            "name": clean_display_text(name, fallback=item_id, limit=100),
-            "description": clean_display_text(
-                description, fallback="Không có mô tả", limit=300
-            ),
-            "price": price,
-            "item_type": item_type,
-            "enabled": True,
-            "updated_at": now,
-            "updated_by": ctx.author.id,
-        }
-        if role_id is not None:
-            document["role_id"] = role_id
-
-        self.items.update_one(
-            {"guild_id": ctx.guild.id, "item_id": item_id},
-            {"$set": document, "$setOnInsert": {"created_at": now}},
-            upsert=True,
+            item_type=ITEM_TYPE_BADGE,
+            updated_by=ctx.author.id,
         )
         await ctx.send(
-            f"Đã lưu **{document['name']}** ({item_id}) với giá {format_price(price)}.",
-            allowed_mentions=discord.AllowedMentions.none(),
+            f"Đã lưu **{document['name']}** ({normalized_id}) với giá "
+            f"{format_price(valid_price)}.",
+            allowed_mentions=NO_MENTIONS,
+        )
+
+    @shop.command(name="add_custom_role", help="Thêm custom role vào shop.")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def shop_add_custom_role(
+        self,
+        ctx: commands.Context,
+        price: int,
+        *,
+        description: str = "",
+    ) -> None:
+        assert ctx.guild is not None
+        try:
+            valid_price = validate_price(price)
+        except ValueError as exc:
+            await ctx.send(str(exc))
+            return
+
+        document = self.store.upsert_item(
+            guild_id=ctx.guild.id,
+            item_id=CUSTOM_ROLE_ITEM_ID,
+            name="Custom role",
+            description=(
+                description
+                or "Tạo một custom role riêng với tên và màu của bạn."
+            ),
+            price=valid_price,
+            item_type=ITEM_TYPE_CUSTOM_ROLE,
+            updated_by=ctx.author.id,
+        )
+        await ctx.send(
+            f"Đã lưu **{document['name']}** ({CUSTOM_ROLE_ITEM_ID}) với giá "
+            f"{format_price(valid_price)}.",
+            allowed_mentions=NO_MENTIONS,
         )
 
     @shop.command(name="remove", aliases=["disable"], help="Ẩn vật phẩm khỏi shop.")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def shop_remove(self, ctx: commands.Context, item_id: str) -> None:
+        assert ctx.guild is not None
         try:
             normalized_id = normalize_item_id(item_id)
         except ValueError:
             await ctx.send("Item ID không hợp lệ.")
             return
-        result = self.items.update_one(
-            {"guild_id": ctx.guild.id, "item_id": normalized_id},
-            {"$set": {"enabled": False, "updated_at": discord.utils.utcnow()}},
-        )
-        if result.matched_count == 0:
+        if not self.store.disable_item(ctx.guild.id, normalized_id):
             await ctx.send("Không tìm thấy vật phẩm đó.")
             return
         await ctx.send(f"Đã ẩn {normalized_id} khỏi shop.")
