@@ -15,10 +15,10 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 - **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, the Area 51 guard workflow, and a MrBeast photo-dump raid filter (3rd dump in two minutes: 30-second confirm button or 24-hour timeout; 5th dump: timeout immediately plus a private staff decision panel).
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
 - **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
-- **Social and fun commands:** member interactions, rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
+- **Social and fun commands:** member interactions, pair streaks (mention, reply, or shared voice), rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
 - **Operations:** an Administrator dashboard for bot/server health, private Doctor diagnostics, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
 - **Optional age-restricted features:** NSFW interactions and Rule34/Gelbooru searches, guarded by Discord's NSFW channel setting.
-- **Persistent state:** MongoDB-backed balances, cultivation profiles, interactions, Crocodile Dentist games, game context, reminders, settings, giveaways, booster resources, moderation data, signed content proofs, guild command audit logs, and append-only bot lifecycle events.
+- **Persistent state:** MongoDB-backed balances, cultivation profiles, interactions, pair streaks, Crocodile Dentist games, game context, reminders, settings, giveaways, booster resources, moderation data, signed content proofs, guild command audit logs, and append-only bot lifecycle events.
 
 ## How it works
 

@@ -83,6 +83,7 @@ tfvn_bot/
 │   ├── test_extension_loading.py   Selected extensions and safe startup-failure diagnostics
 │   ├── test_cultivation.py         Tiên Lộ calculations, dashboard panels, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
+│   ├── test_interact_streak.py     Pair-streak date/credit rules, listeners, and commands
 │   ├── test_legacy_case_slowmode.py Direct case updates and slowmode override regression tests
 │   ├── test_lunch.py               Lunch filter UI, owner checks, animation, and lifecycle tests
 │   ├── test_lunch_helpers.py       Lunch argument parsing, catalog validation, and selection tests
@@ -171,6 +172,8 @@ tfvn_bot/
     │   ├── user_interaction.py        Social actions, avatar display, and rankings
     │   ├── marriage.py                Propose/divorce/status, couple XP ranks
     │   ├── _marriage_helpers.py       Pure level/rank/XP helpers for marriage
+    │   ├── interact_streak.py         Pair streaks from mentions, replies, and shared voice
+    │   ├── _interact_streak_helpers.py Pure Vietnam-date, pair, and credit rules for streaks
     │   ├── triggered_reply.py          Persistent phrase-triggered replies
     │   ├── _trigger_reply_helpers.py   Rule parsing and matching helpers
     │   ├── nsfw_interaction.py        Age-gated interactions and rankings
@@ -314,7 +317,7 @@ MongoDB collections are created lazily. Major groups are:
 - Configuration: `global_variables`, `moderation_config`
 - Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`
 - Cultivation audit: append-only `cultivation_events`; TC exchanges also write `transaction_logs`
-- Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`
+- Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`, `interaction_streaks`. Pair streaks are unique per guild `(user_a, user_b)` with Vietnam calendar dates (UTC+7); a chain stays live if `last_active_date` is today or yesterday. Current counts of 3, 7, 30, or 100 ping both members in the channel that credited the day
 - Soft OTP issuances: `softotp_issuances` stores guild/member/challenge bindings for `tfotp1.<key-id>.<unix>.<code>` tokens. Lookup `_id` is a SHA-256 of guild, challenge, key ID, issue time, and code; the user ID stays out of the token. Verify authenticates only the active HMAC key and does not scan the guild. Unique `(guild_id, user_id, challenge)` prevents duplicate live codes per member
 - Content provenance: `hash_verifications` stores immutable, guild-scoped
   femboy-card and quote snapshots. New records use their signed 128-bit token ID

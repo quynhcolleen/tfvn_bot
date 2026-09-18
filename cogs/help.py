@@ -140,7 +140,7 @@ HELP_TOPICS = (
         key="community",
         label="Cộng đồng",
         emoji="🫂",
-        option_description="AFK, giờ ngủ, nhắc việc, sinh nhật và sự kiện",
+        option_description="AFK, giờ ngủ, nhắc việc, sinh nhật, chuỗi và sự kiện",
         title="Cộng đồng & sự kiện",
         description="Các tiện ích giúp thành viên theo dõi và tham gia hoạt động server.",
         color=0x5865F2,
@@ -280,6 +280,25 @@ HELP_TOPICS = (
                         "giveaway reroll [message_id] [số người thắng]",
                         aliases=("giveaway rr",),
                     ),
+                ),
+            ),
+            HelpSection(
+                name="Chuỗi tương tác",
+                entries=(
+                    _entry(
+                        "streak",
+                        "Xem chuỗi đang sống của bạn, hoặc với một member.",
+                        "streak [@user]",
+                    ),
+                    _entry(
+                        "streak top",
+                        "Top 10 chuỗi đang sống trong server.",
+                    ),
+                ),
+                note=(
+                    "Ngày theo UTC+7. Mention, trả lời, hoặc 5 phút voice chung. "
+                    "Bỏ một ngày thì chuỗi đứt. Mốc 3, 7, 30, 100 ngày ping cả hai "
+                    "trong kênh đó."
                 ),
             ),
             HelpSection(

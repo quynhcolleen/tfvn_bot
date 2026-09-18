@@ -399,12 +399,16 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `marriage help` | — | Everyone (guild) | Rules: XP, ranks, cooldowns |
 | `marriage top` | `lb`, `leaderboard`, `rank` | Everyone (guild) | Top 10 couples by XP |
 | `divorce` | — | Everyone (guild) | End active marriage after confirm buttons |
+| `streak [@user]` | — | Everyone (guild) | Show your live pair streaks, or the chain with `@user` (UTC+7; mention, reply, or 5 minutes in the same voice/stage channel) |
+| `streak top` | — | Everyone (guild) | Top 10 live pair streaks in the server |
 | `rank [r] [action]` | `ranking` | Everyone | All-time bot-wide interaction leaderboards (`r` = receivers); action can be kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap, tickle, pinch, wave, blush, highfive, feed, or wink |
 | `cat` | — | Everyone | Random cat image (external API) |
 | `dog` | — | Everyone | Random dog image (external API) |
 | `36` | — | Everyone | Static meme GIF reply |
 
-**Module:** `cogs.interaction.user_interaction`, `cat`, `dog`, `meme_interaction`
+**Module:** `cogs.interaction.user_interaction`, `cat`, `dog`, `meme_interaction`, `interact_streak`, `marriage`
+
+Pair streaks are guild-scoped: the first qualifying mention, reply, or 5-minute shared voice/stage overlap each Vietnam calendar day (UTC+7) continues the chain. Missing a day resets the current count to 1 on the next interaction; the longest count is kept. Hitting **3, 7, 30, or 100** days pings both members in that channel (the text channel for mention/reply, or the voice channel when it can receive messages). Bots, webhooks, DMs, self-targets, and the guild AFK channel do not count.
 
 All 25 SFW interactions require a non-bot target and have a 3-second per-command, per-user cooldown. Self-target is allowed only for `pat`, `slap`, `punch`, `hit`, `poke`, `bonk`, `smack`, `tickle`, and `blush`.
 
@@ -768,7 +772,7 @@ gyatt, ick, mainchar, npc, ohio, rizz, simp, skillissue, touchgrass, yapper,
 femboycard, tarot, birthday, birthday set
 kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap,
 tickle, pinch, wave, blush, highfive, feed, wink,
-avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, rank, cat, dog, 36
+avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, streak, streak top, rank, cat, dog, 36
 r34, gbr, nsfwrule, bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, gangbang, ride, fingering, facesit, ranknsfw, mrank
 locknsfw, unlocknsfw, verified, unverified
 custom_role, update_custom_role, custom_room
