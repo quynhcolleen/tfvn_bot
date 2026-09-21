@@ -348,7 +348,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "shop buy",
-                        "Mua một vật phẩm; tối đa 2 lần mỗi 5 giây/người.",
+                        "Mua vật phẩm/gia hạn custom role hoặc phòng thêm 30 ngày; 2 lần/5 giây.",
                         "shop buy <item_id>",
                     ),
                     _entry(
@@ -359,7 +359,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "shop use",
-                        "Dùng badge, role, hoặc thiết kế custom role đã mua.",
+                        "Dùng badge, role, hoặc thiết kế custom role/phòng còn hạn.",
                         "shop use <item_id>",
                     ),
                     _entry("shop unequip", "Gỡ badge đang trang bị."),
@@ -1356,27 +1356,32 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "shop add_role",
-                        "Thêm role vào shop — Manage Server.",
+                        "Thêm role vào shop.",
                         "shop add_role <id> <giá> @role [mô tả]",
                     ),
                     _entry(
                         "shop add_badge",
-                        "Thêm badge vào shop — Manage Server.",
+                        "Thêm badge vào shop.",
                         "shop add_badge <id> <giá> <tên nhiều từ>",
                     ),
                     _entry(
                         "shop add_custom_role",
-                        "Thêm custom role vào shop — Manage Server.",
+                        "Custom role thuê 30 ngày.",
                         "shop add_custom_role <giá> [mô tả]",
                     ),
                     _entry(
+                        "shop add_custom_room",
+                        "Phòng voice riêng thuê 30 ngày.",
+                        "shop add_custom_room <giá> [mô tả]",
+                    ),
+                    _entry(
                         "shop remove",
-                        "Ẩn vật phẩm khỏi shop — Manage Server.",
+                        "Ẩn vật phẩm khỏi shop.",
                         "shop remove <item_id>",
                         aliases=("shop disable",),
                     ),
                 ),
-                note="Không cộng/trừ bot. Shop 1–1.000.000.000 TC. ID 1–32.",
+                note="Không cộng/trừ bot. Shop: Manage Server; 1–1.000.000.000 TC; ID 1–32.",
             ),
             HelpSection(
                 name="Triggered replies",

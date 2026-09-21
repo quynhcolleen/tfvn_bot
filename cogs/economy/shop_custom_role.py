@@ -19,7 +19,9 @@ from cogs.booster._custom_resource_ui import (
 from cogs.booster._role_colors import RoleColorSpec
 from cogs.economy._shop_helpers import CUSTOM_ROLE_ITEM_ID, ITEM_TYPE_CUSTOM_ROLE
 from cogs.economy._shop_products import register_shop_product, unregister_shop_product
+from cogs.economy._shop_rentals import MIGRATION_DENIAL, RentalAccess
 from cogs.economy._shop_ui import NO_MENTIONS
+from cogs.roles._personal_roles import personal_role_lock, resolve_personal_role
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +31,23 @@ BOOSTER_CUSTOM_ROLES_COLLECTION = "booster_custom_roles"
 OWNER_DENIAL = "Chỉ người mở cửa hàng mới dùng được bảng thiết kế role."
 OWNER_MODAL_DENIAL = "Chỉ người mở cửa hàng mới chỉnh sửa thiết kế role."
 CANCEL_MESSAGE = "Đã hủy thiết kế custom role."
-FOOTER_NOTE = "Custom role đã mua từ cửa hàng Trap Coin."
+FOOTER_NOTE = "Custom role thuê 30 ngày. Gia hạn trong shop để giữ role."
+
+
+class ShopRoleEditorView(BoosterRoleEditorView):
+    """Release the cog's reference whenever the role editor finishes."""
+
+    def __init__(self, cog: ShopCustomRoleCog, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.cog = cog
+
+    def stop(self) -> None:
+        super().stop()
+        self.cog._views.discard(self)
+
+    async def on_timeout(self) -> None:
+        self.stop()
+        await super().on_timeout()
 
 
 class ShopCustomRoleCog(commands.Cog):
@@ -42,14 +60,18 @@ class ShopCustomRoleCog(commands.Cog):
         self.db = bot.db
         self.collection = self.db[SHOP_CUSTOM_ROLES_COLLECTION]
         self.booster_roles = self.db[BOOSTER_CUSTOM_ROLES_COLLECTION]
-        self._member_locks: dict[tuple[int, int], asyncio.Lock] = {}
         self._views: set[discord.ui.View] = set()
         self._unloading = False
+        self.rental = RentalAccess(bot, self.item_type, self._cleanup_member_role)
         self._ensure_indexes()
         register_shop_product(self)
 
+    async def cog_load(self) -> None:
+        self.rental.start()
+
     def cog_unload(self) -> None:
         self._unloading = True
+        self.rental.stop()
         unregister_shop_product(self.item_type)
         for view in tuple(self._views):
             view.stop()
@@ -66,7 +88,7 @@ class ShopCustomRoleCog(commands.Cog):
             logger.exception("Failed to create shop custom role indexes")
 
     def _get_member_lock(self, guild_id: int, user_id: int) -> asyncio.Lock:
-        return self._member_locks.setdefault((guild_id, user_id), asyncio.Lock())
+        return personal_role_lock(self.bot, guild_id, user_id)
 
     def _get_bot_member(self, guild: discord.Guild) -> discord.Member | None:
         if not self.bot.user:
@@ -85,6 +107,25 @@ class ShopCustomRoleCog(commands.Cog):
             return None
         return guild.get_role(role_id)
 
+    async def _booster_role_denial(
+        self, guild: discord.Guild, member: discord.Member
+    ) -> str | None:
+        try:
+            record = self.booster_roles.find_one(
+                {"guild_id": guild.id, "user_id": member.id}
+            )
+            role = await resolve_personal_role(guild, record)
+        except (PyMongoError, discord.HTTPException):
+            logger.exception(
+                "Could not verify booster role in guild %s for user %s.",
+                guild.id,
+                member.id,
+            )
+            return "Không thể xác minh custom role hiện tại. Vui lòng thử lại."
+        if role is not None:
+            return "Bạn đã có custom role từ Booster. Hãy dùng `update_custom_role`."
+        return None
+
     def _base_denial(
         self,
         guild: discord.Guild,
@@ -95,22 +136,7 @@ class ShopCustomRoleCog(commands.Cog):
             return "Bot đang thiếu quyền Manage Roles."
         return None
 
-    def _live_personal_role(
-        self,
-        guild: discord.Guild,
-        record: dict[str, Any] | None,
-    ) -> discord.Role | None:
-        if not record:
-            return None
-        role_id = record.get("role_id")
-        if not isinstance(role_id, int):
-            try:
-                role_id = int(role_id)
-            except (TypeError, ValueError):
-                return None
-        return guild.get_role(role_id)
-
-    def buy_denial(
+    async def buy_denial(
         self,
         guild: discord.Guild,
         member: discord.Member,
@@ -118,22 +144,12 @@ class ShopCustomRoleCog(commands.Cog):
     ) -> str | None:
         if str(item.get("item_id")) != CUSTOM_ROLE_ITEM_ID:
             return "Custom role trong shop phải dùng ID `custom_role`."
+        if not self.rental.ensure_ready():
+            return MIGRATION_DENIAL
         denial = self._base_denial(guild, member)
         if denial:
             return denial + " Bạn chưa bị trừ Trap Coin."
-        booster_record = self.booster_roles.find_one(
-            {"guild_id": guild.id, "user_id": member.id}
-        )
-        if self._live_personal_role(guild, booster_record) is not None:
-            return (
-                "Bạn đã có custom role từ Booster. Không cần mua thêm từ cửa hàng."
-            )
-        shop_record = self.collection.find_one(
-            {"guild_id": guild.id, "user_id": member.id}
-        )
-        if self._live_personal_role(guild, shop_record) is not None:
-            return "Bạn đã có custom role từ cửa hàng."
-        return None
+        return await self._booster_role_denial(guild, member)
 
     async def use_item(
         self,
@@ -146,10 +162,26 @@ class ShopCustomRoleCog(commands.Cog):
         denial = self._base_denial(guild, member)
         if denial:
             return denial
-        record = self.collection.find_one(
-            {"guild_id": guild.id, "user_id": member.id}
-        )
-        role = self._live_personal_role(guild, record)
+        denial = self.rental.denial(guild.id, member.id)
+        if denial:
+            return denial
+        if isinstance(source, discord.Interaction) and not source.response.is_done():
+            await source.response.defer()
+        denial = await self._booster_role_denial(guild, member)
+        if denial:
+            return denial
+        try:
+            record = self.collection.find_one(
+                {"guild_id": guild.id, "user_id": member.id}
+            )
+            role = await resolve_personal_role(guild, record)
+        except (PyMongoError, discord.HTTPException):
+            logger.exception(
+                "Could not verify shop role in guild %s for user %s.",
+                guild.id,
+                member.id,
+            )
+            return "Không thể xác minh custom role hiện tại. Vui lòng thử lại."
         updating = role is not None
         return await self._open_role_editor(
             source,
@@ -206,7 +238,8 @@ class ShopCustomRoleCog(commands.Cog):
                 role_name=draft.role_name,
             )
 
-        view = BoosterRoleEditorView(
+        view = ShopRoleEditorView(
+            self,
             author_id=member.id,
             command_name="update_custom_role" if updating else "shop_custom_role",
             submitter=submitter,
@@ -223,14 +256,12 @@ class ShopCustomRoleCog(commands.Cog):
         if isinstance(source, discord.Interaction):
             try:
                 if source.response.is_done():
-                    message = await source.followup.send(
+                    view.message = await source.edit_original_response(
+                        content=None,
                         embed=embed,
                         view=view,
-                        ephemeral=False,
                         allowed_mentions=NO_MENTIONS,
                     )
-                    if isinstance(message, discord.Message):
-                        view.message = message
                 else:
                     await source.response.edit_message(
                         content=None,
@@ -242,7 +273,6 @@ class ShopCustomRoleCog(commands.Cog):
             except discord.HTTPException:
                 logger.exception("Could not open shop custom role editor")
                 view.stop()
-                self._views.discard(view)
                 return "Không thể mở bảng thiết kế role. Vui lòng thử lại."
             return None
 
@@ -256,7 +286,6 @@ class ShopCustomRoleCog(commands.Cog):
         except discord.HTTPException:
             logger.exception("Could not send shop custom role editor")
             view.stop()
-            self._views.discard(view)
             return "Không thể mở bảng thiết kế role. Vui lòng thử lại."
         return None
 
@@ -341,20 +370,40 @@ class ShopCustomRoleCog(commands.Cog):
 
         lock = self._get_member_lock(guild.id, member.id)
         async with lock:
+            denial = self.rental.denial(guild.id, member.id)
+            if denial:
+                return BoosterActionResult(False, denial)
             denial = self._base_denial(guild, member)
             if denial:
                 return BoosterActionResult(False, denial)
 
-            existing = self.collection.find_one(
-                {"guild_id": guild.id, "user_id": member.id}
-            )
-            live_role = self._live_personal_role(guild, existing)
+            denial = await self._booster_role_denial(guild, member)
+            if denial:
+                return BoosterActionResult(False, denial)
+            try:
+                existing = self.collection.find_one(
+                    {"guild_id": guild.id, "user_id": member.id}
+                )
+                live_role = await resolve_personal_role(guild, existing)
+            except (PyMongoError, discord.HTTPException):
+                logger.exception(
+                    "Could not verify shop role in guild %s for user %s.",
+                    guild.id,
+                    member.id,
+                )
+                return BoosterActionResult(
+                    False,
+                    "Không thể xác minh custom role hiện tại. Vui lòng thử lại.",
+                )
             if live_role is not None:
                 return BoosterActionResult(
                     False,
                     "Bạn đã có custom role. Hãy dùng lại nút Dùng để cập nhật.",
                 )
 
+            denial = self.rental.denial(guild.id, member.id)
+            if denial:
+                return BoosterActionResult(False, denial)
             try:
                 role = await guild.create_role(
                     name=role_name,
@@ -464,9 +513,21 @@ class ShopCustomRoleCog(commands.Cog):
 
         lock = self._get_member_lock(guild.id, member.id)
         async with lock:
+            denial = self.rental.denial(guild.id, member.id)
+            if denial:
+                return BoosterActionResult(False, denial)
             denial = self._base_denial(guild, member)
             if denial:
                 return BoosterActionResult(False, denial)
+            try:
+                record = self.collection.find_one({"guild_id": guild.id, "user_id": member.id})
+                current = await resolve_personal_role(guild, record)
+            except (PyMongoError, discord.HTTPException):
+                logger.exception("Could not verify role before editing")
+                return BoosterActionResult(False, "Không thể xác minh role. Vui lòng thử lại.")
+            if current is None or current.id != role.id:
+                return BoosterActionResult(False, "Role đã thay đổi. Hãy mở lại shop.")
+            role = current
             if role.is_default() or role.managed:
                 return BoosterActionResult(
                     False,
@@ -479,6 +540,9 @@ class ShopCustomRoleCog(commands.Cog):
                     "Bot không thể chỉnh sửa role này vì thứ bậc cao hơn bot.",
                 )
 
+            denial = self.rental.denial(guild.id, member.id)
+            if denial:
+                return BoosterActionResult(False, denial)
             try:
                 await role.edit(
                     name=role_name,
@@ -556,47 +620,62 @@ class ShopCustomRoleCog(commands.Cog):
         *,
         reason: str,
     ) -> None:
+        lock = self._get_member_lock(guild.id, user_id)
+        async with lock:
+            await self._cleanup_member_role(guild, user_id, reason=reason)
+
+    async def _cleanup_member_role(
+        self,
+        guild: discord.Guild,
+        user_id: int,
+        *,
+        reason: str,
+    ) -> bool:
         try:
             record = self.collection.find_one(
                 {"guild_id": guild.id, "user_id": user_id}
             )
-        except PyMongoError:
+            role = await resolve_personal_role(guild, record)
+        except (PyMongoError, discord.HTTPException):
             logger.exception(
-                "Could not read shop custom role for guild %s user %s",
+                "Could not verify shop custom role for guild %s user %s",
                 guild.id,
                 user_id,
             )
-            return
+            return False
         if not record:
-            return
-        role = self._live_personal_role(guild, record)
+            return True
         if role is not None:
             try:
                 await role.delete(reason=reason)
+            except discord.NotFound:
+                pass
             except discord.Forbidden:
                 logger.warning(
                     "Missing permission to delete shop role %s in guild %s",
                     role.id,
                     guild.id,
                 )
-                return
+                return False
             except discord.HTTPException:
                 logger.warning(
                     "Failed to delete shop role %s in guild %s",
                     role.id,
                     guild.id,
                 )
-                return
+                return False
         try:
             self.collection.delete_one(
                 {"guild_id": guild.id, "user_id": user_id}
             )
+            return True
         except PyMongoError:
             logger.exception(
                 "Could not delete shop custom role record for guild %s user %s",
                 guild.id,
                 user_id,
             )
+            return False
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member) -> None:

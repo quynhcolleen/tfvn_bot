@@ -384,7 +384,7 @@ press; firing a panel does not extend that deadline.
 
 `!tf shop` opens an owner-locked interactive catalog. Members select an item,
 confirm **Mua**, then **Dùng** to equip a badge, apply a purchased role, or
-design a paid custom role. Prefix subcommands remain as shortcuts.
+design a paid custom role or private voice room. Prefix subcommands remain as shortcuts.
 
 Administrators add listings to the guild catalog:
 
@@ -392,14 +392,36 @@ Administrators add listings to the guild catalog:
 !tf shop add_role pink 100 @Pink A cosmetic pink role
 !tf shop add_badge helper 250 Community Helper
 !tf shop add_custom_role 5000 Role tùy chỉnh với tên và màu riêng
+!tf shop add_custom_room 5000 Phòng voice riêng trong 30 ngày
 ```
 
-The ID `custom_role` is reserved for the personal-role product. Members may
-have one personal custom role from boosting or from the shop, not both.
-Purchases deduct balances atomically, reject duplicate ownership, and write to
-`transaction_logs`. A badge remains owned when it is unequipped. Leaving the
-guild deletes a shop-created Discord role; the paid inventory entry remains so
-the member can recreate it after rejoining.
+The IDs `custom_role` and `custom_room` are reserved for 30-day rentals. Use
+`shop buy <id>` to buy or renew and `shop use <id>` to create or edit the resource.
+Payment starts the clock even before creation. Each renewal adds 30 days to the
+remaining time, or starts 30 days from payment if already expired. Prices are
+charged per purchase; there is no automatic renewal.
+
+Members may have one personal role and one private room across booster and shop
+perks. Paid time reserves that resource before creation. Rooms use
+`BOOSTER_CUSTOM_VOICE_CATEGORY_ID` and require Manage Channels and Manage Roles
+in the guild and category. They start private; editing preserves sharing settings.
+
+The rental cogs delete expired resources on startup and every 60 seconds, retrying
+failed Discord deletions. They must remain loaded for automatic cleanup. Leaving
+deletes the Discord resource but keeps remaining paid time for recreation after
+rejoining. Ordinary catalog roles, badges, and booster expiry rules stay unchanged.
+
+Existing shop custom-role inventory without expiry receives one automatic 30-day
+grace period on upgrade. The persisted `shop_migrations` marker prevents restarts
+from extending it. Migration failures pause rental purchase/use and expiry cleanup
+until a retry succeeds. Purchases use atomic balance debits, conditional renewal
+updates, compensating refunds, and `transaction_logs` including the new expiry.
+
+For development, load `cogs.economy.shop`, `cogs.economy.shop_custom_role`, and
+`cogs.economy.shop_custom_room` with the settings cog. To verify expiry live, use a
+disposable test member/resource and set only that test inventory row's `expires_at`
+to a past UTC time with `expiry_cleanup_pending=true`; within a minute the resource
+should be deleted, inventory retained, and another purchase should permit recreation.
 
 ### Moderation cases
 

@@ -180,20 +180,34 @@ No user commands. Event listeners only:
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
 | `shop` | `store` | Everyone | Open an owner-locked interactive catalog to buy, use, and inspect inventory |
-| `shop buy <item_id>` | — | Everyone | Purchase a catalog item; 2 calls per 5 seconds per user |
+| `shop buy <item_id>` | — | Everyone | Purchase a catalog item or renew custom role/room for 30 days; 2 calls per 5 seconds per user |
 | `shop inventory [@member]` | `inv` | Everyone | View owned shop items |
-| `shop use <item_id>` | — | Everyone | Equip a badge, apply a purchased role, or open the custom-role designer |
+| `shop use <item_id>` | — | Everyone | Equip a badge, apply a purchased role, or create/edit a custom role/room with active paid time |
 | `shop unequip` | — | Everyone | Clear active badge |
 | `shop add_role <id> <price> @role [description]` | — | Manage Guild | Add/update a sellable role priced 1–1,000,000,000 TC |
 | `shop add_badge <id> <price> <display name>` | — | Manage Guild | Add/update a badge item priced 1–1,000,000,000 TC |
 | `shop add_custom_role <price> [description]` | — | Manage Guild | Add/update the guild `custom_role` listing priced 1–1,000,000,000 TC |
+| `shop add_custom_room <price> [description]` | — | Manage Guild | Add/update the guild `custom_room` listing priced 1–1,000,000,000 TC per 30 days |
 | `shop remove <item_id>` | `disable` | Manage Guild | Hide an item from the shop |
 
-Shop item IDs are 1–32 lowercase letters, digits, `_`, or `-`, and must start with a letter or digit. The ID `custom_role` is reserved for the paid personal-role product.
+Shop item IDs are 1–32 lowercase letters, digits, `_`, or `-`, and must start with a letter or digit. The IDs `custom_role` and `custom_room` are reserved for paid personal resources.
 
-Buying a custom role charges Trap Coin once. `shop use custom_role` then opens the color/name designer. Members may have one personal custom role: a booster role or a shop role, not both. Leaving the guild deletes the shop-created Discord role but keeps the paid inventory so they can recreate it after rejoining.
+Each custom-role/room purchase adds 30 days from payment or the remaining expiry,
+whichever is later. `shop use custom_role` opens the color/name designer;
+`shop use custom_room` opens the private-room name/member-limit editor. Rooms share
+the configured booster category. Members may have one personal role and one room
+across booster/shop, including active paid time before creation. Leaving deletes
+the resource but retains paid time, which continues elapsing. Expired resources are
+deleted on startup and every minute; failed deletions retry. Existing permanent
+shop custom-role purchases receive one 30-day migration grace period. Ordinary
+catalog roles, badges, and booster perks retain their current rules.
 
-**Module:** `cogs.daily_reward.*`, `cogs.economy.shop`, `cogs.economy.shop_custom_role`
+Both creation paths recheck saved roles before creating one and serialize requests
+for the same member. If a saved role is missing from the bot's cache, Discord must
+confirm its absence before it can be recreated; a failed lookup asks the member
+to retry. Finished or expired shop panels and role editors release their UI state.
+
+**Module:** `cogs.daily_reward.*`, `cogs.economy.shop`, `cogs.economy.shop_custom_role`, `cogs.economy.shop_custom_room`
 
 ---
 
@@ -758,7 +772,7 @@ triggerreply, triggerreply add, triggerreply update, triggerreply list, triggerr
 afk, afk dynamic, afk time, afk clear, afk check
 random_femboy
 daily, user_balance, user_transactions, add_tc, remove_tc, set_tc, check_tc
-shop, shop buy, shop inventory, shop use, shop unequip, shop add_role, shop add_badge, shop add_custom_role, shop remove
+shop, shop buy, shop inventory, shop use, shop unequip, shop add_role, shop add_badge, shop add_custom_role, shop add_custom_room, shop remove
 tutien, tutien batdau, tutien thucong, tutien huong, tutien dotpha,
 tutien phai, tutien phai reset, tutien thienphu, tutien thienphu tang,
 tutien dongphu, tutien dongphu nangcap, tutien choden, tutien mua, tutien kho,

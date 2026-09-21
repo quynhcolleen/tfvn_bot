@@ -80,7 +80,8 @@ CHANNEL_REQUIREMENTS = (
         GAME_PERMISSIONS, array=True,
     ),
     ChannelRequirement(
-        "BOOSTER_CUSTOM_VOICE_CATEGORY_ID", ("cogs.booster.create_custom_room",),
+        "BOOSTER_CUSTOM_VOICE_CATEGORY_ID",
+        ("cogs.booster.create_custom_room", "cogs.economy.shop_custom_room"),
         ("manage_channels", "manage_roles"), "category",
     ),
 )
@@ -100,10 +101,14 @@ GUILD_PERMISSION_MODULES = {
         "cogs.mod.role", "cogs.mod.mute", "cogs.mod.softban", "cogs.mod.verified",
         "cogs.onboarding.role_exam", "cogs.economy.shop",
         "cogs.economy.shop_custom_role",
+        "cogs.economy.shop_custom_room",
         "cogs.booster.create_custom_role", "cogs.booster.update_custom_role",
         "cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted",
     ),
-    "manage_channels": ("cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted"),
+    "manage_channels": (
+        "cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted",
+        "cogs.economy.shop_custom_room",
+    ),
     "kick_members": ("cogs.mod.kick",),
     "ban_members": (
         "cogs.mod.ban", "cogs.mod.unban", "cogs.mod.area_51_guard",

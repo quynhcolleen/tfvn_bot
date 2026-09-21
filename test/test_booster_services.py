@@ -8,6 +8,7 @@ from cogs.booster._role_colors import RoleColorSpec
 from cogs.booster.create_custom_role import BoosterCustomRoleCog
 from cogs.booster.create_custom_room import BoosterCustomRoomCog
 from cogs.booster.update_custom_role import BoosterCustomRoleUpdateCog
+from test_shop import FakeCollection
 
 
 BOT_ID = 9000
@@ -115,6 +116,9 @@ def make_bot(collection_name: str, collection: MagicMock) -> SimpleNamespace:
         db={
             collection_name: collection,
             "shop_custom_roles": shop_roles,
+            "shop_custom_rooms": FakeCollection(),
+            "shop_inventory": FakeCollection(),
+            "shop_migrations": FakeCollection(),
         },
         user=SimpleNamespace(id=BOT_ID),
         global_vars={},

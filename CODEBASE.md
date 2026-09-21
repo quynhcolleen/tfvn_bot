@@ -79,6 +79,8 @@ tfvn_bot/
 │   ├── test_community_features.py  Pure validation/time/helper regression tests
 │   ├── test_shop.py                Shop store, catalog products, and interactive panel
 │   ├── test_shop_custom_role.py    Paid custom-role product, designer, and leave cleanup
+│   ├── test_shop_custom_room.py    Private room rentals, editor, conflicts, and cleanup
+│   ├── test_shop_rentals.py        Renewal accounting, migration, expiry worker, and UI
 │   ├── test_giveaway.py            Giveaway duration/prize parsing, role weights, and persistence
 │   ├── test_giveaway_ui.py         Giveaway create panel, role settings, modal, and permission checks
 │   ├── test_doctor.py              Environment, feature, permission, and runtime diagnostics
@@ -126,6 +128,7 @@ tfvn_bot/
     ├── booster/
     │   ├── _custom_resource_ui.py Guided booster role/room views, selects, and modals
     │   ├── _role_colors.py         Solid/gradient role-color parsing helper
+    │   ├── _room_helpers.py        Shared category validation and private room overwrites
     │   ├── create_custom_role.py   Booster-owned custom role creation
     │   ├── update_custom_role.py   Booster custom role edits
     │   ├── create_custom_room.py   Booster private voice-room creation
@@ -142,12 +145,15 @@ tfvn_bot/
     ├── economy/
     │   ├── _shop_helpers.py        Catalog ID, price, listing, and reserved-ID helpers
     │   ├── _shop_store.py          Atomic catalog, inventory, and Trap Coin purchases
+    │   ├── _shop_rentals.py        UTC entitlement checks, grace migration, and expiry workers
     │   ├── _shop_products.py       Item-type registry for catalog and extra shop cogs
     │   ├── _shop_catalog.py        Built-in sellable Discord role and badge products
     │   ├── _shop_ui.py             Owner-locked interactive shop and inventory panel
     │   ├── shop.py                 Shop hub: interactive catalog, inventory, and admin listings
-    │   └── shop_custom_role.py     Paid personal custom-role product, designer, and leave cleanup
+    │   ├── shop_custom_role.py     Renewable custom roles, designer, expiry and leave cleanup
+    │   └── shop_custom_room.py     Renewable private rooms, editor, expiry and leave cleanup
     ├── roles/
+    │   ├── _personal_roles.py      Shared resource locks and verified Discord role/room lookup
     │   └── _role_safety.py         Privileged-permission denylist for roles the bot may assign
     ├── discipline/discipline.py    Banned-word listener, logging, warning, and deletion
     ├── funny_things/
@@ -324,7 +330,7 @@ files without downloading.
 MongoDB collections are created lazily. Major groups are:
 
 - Configuration: `global_variables`, `moderation_config`
-- Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`, `shop_custom_roles`
+- Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`, `shop_custom_roles`, `shop_custom_rooms`, `shop_migrations`
 - Cultivation audit: append-only `cultivation_events`; TC exchanges also write `transaction_logs`
 - Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`, `interaction_streaks`. Pair streaks are unique per guild `(user_a, user_b)` with Vietnam calendar dates (UTC+7); a chain stays live if `last_active_date` is today or yesterday. Current counts of 3, 7, 30, or 100 ping both members in the channel that credited the day
 - Soft OTP issuances: `softotp_issuances` stores guild/member/challenge bindings for `tfotp1.<key-id>.<unix>.<code>` tokens. Lookup `_id` is a SHA-256 of guild, challenge, key ID, issue time, and code; the user ID stays out of the token. Verify authenticates only the active HMAC key and does not scan the guild. Unique `(guild_id, user_id, challenge)` prevents duplicate live codes per member
@@ -426,6 +432,10 @@ before container termination.
 - Keep the Trap Coin shop hub in `cogs/economy/shop.py`, catalog products in
   `_shop_catalog.py`, and extra paid products such as custom roles in their own
   shop cogs that register through `_shop_products.py`.
+- Rental expiry lives in `shop_inventory.expires_at`; the indexed
+  `expiry_cleanup_pending` flag tracks deletions needing retry. Each rental cog
+  runs a readiness-gated 60-second worker. `_shop_rentals.py` owns the idempotent
+  `monthly_custom_roles_v1` grace-period migration and UTC normalization.
 - Put reusable feature helpers in a leading-underscore module beside their consumers.
 - Put shared static media in `assets/`; put runtime-editable media in Mongo settings.
 - Treat large game datasets as generated outputs and update their preparation script with them.

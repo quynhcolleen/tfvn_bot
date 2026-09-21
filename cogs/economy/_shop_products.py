@@ -14,7 +14,7 @@ class ShopProduct(Protocol):
 
     item_type: str
 
-    def buy_denial(
+    async def buy_denial(
         self,
         guild: discord.Guild,
         member: discord.Member,

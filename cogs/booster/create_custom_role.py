@@ -10,6 +10,8 @@ from cogs.booster._custom_resource_ui import (
     RoleDesignDraft,
 )
 from cogs.booster._role_colors import RoleColorSpec, parse_role_color_args
+from cogs.roles._personal_roles import personal_role_lock, resolve_personal_role
+from cogs.economy._shop_rentals import paid_resource_denial
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,6 @@ class BoosterCustomRoleCog(commands.Cog):
         self.db = bot.db
         self.collection = self.db["booster_custom_roles"]
         self.shop_roles = self.db["shop_custom_roles"]
-        self._member_locks: dict[tuple[int, int], asyncio.Lock] = {}
 
     def _is_booster(self, member: discord.Member) -> bool:
         return member.premium_since is not None
@@ -32,7 +33,7 @@ class BoosterCustomRoleCog(commands.Cog):
         return guild.get_member(self.bot.user.id)
 
     def _get_member_lock(self, guild_id: int, user_id: int) -> asyncio.Lock:
-        return self._member_locks.setdefault((guild_id, user_id), asyncio.Lock())
+        return personal_role_lock(self.bot, guild_id, user_id)
 
     def _get_png_attachment(
         self,
@@ -102,28 +103,28 @@ class BoosterCustomRoleCog(commands.Cog):
             )
             return "Không thể kiểm tra custom role lúc này. Vui lòng thử lại."
         if record:
-            role_id = record.get("role_id")
-            role_exists = guild.get_role(role_id) is not None
-            if not role_exists and isinstance(role_id, int):
-                try:
-                    fetched_roles = await guild.fetch_roles()
-                except discord.HTTPException:
-                    logger.exception(
-                        "Could not verify stale booster role %s in guild %s.",
-                        role_id,
-                        guild.id,
-                    )
-                    return "Không thể xác minh custom role hiện tại. Vui lòng thử lại."
-                role_exists = any(role.id == role_id for role in fetched_roles)
-            if role_exists:
+            try:
+                role = await resolve_personal_role(guild, record)
+            except discord.HTTPException:
+                logger.exception(
+                    "Could not verify booster role in guild %s for user %s.",
+                    guild.id,
+                    member.id,
+                )
+                return "Không thể xác minh custom role hiện tại. Vui lòng thử lại."
+            if role is not None:
                 return (
                     "Bạn đã có custom role. Hãy dùng lệnh "
                     "`update_custom_role` để cập nhật."
                 )
         try:
+            denial = paid_resource_denial(self.db, guild.id, member.id, "custom_role")
+            if denial:
+                return denial
             shop_record = self.shop_roles.find_one(
                 {"guild_id": guild.id, "user_id": member.id}
             )
+            shop_role = await resolve_personal_role(guild, shop_record)
         except Exception:
             logger.exception(
                 "Could not read shop custom role for guild %s user %s.",
@@ -131,13 +132,11 @@ class BoosterCustomRoleCog(commands.Cog):
                 member.id,
             )
             return "Không thể kiểm tra custom role lúc này. Vui lòng thử lại."
-        if shop_record:
-            shop_role_id = shop_record.get("role_id")
-            if guild.get_role(shop_role_id) is not None:
-                return (
-                    "Bạn đã có custom role từ cửa hàng. "
-                    "Hãy dùng `shop use custom_role` để cập nhật."
-                )
+        if shop_role is not None:
+            return (
+                "Bạn đã có custom role từ cửa hàng. "
+                "Hãy dùng `shop use custom_role` để cập nhật."
+            )
         return None
 
     async def _read_icon(

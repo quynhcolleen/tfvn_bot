@@ -11,10 +11,13 @@ from discord.ext import commands
 from cogs.economy._shop_catalog import CatalogProduct
 from cogs.economy._shop_helpers import (
     CUSTOM_ROLE_ITEM_ID,
+    CUSTOM_ROOM_ITEM_ID,
     ITEM_TYPE_BADGE,
     ITEM_TYPE_CUSTOM_ROLE,
+    ITEM_TYPE_CUSTOM_ROOM,
     ITEM_TYPE_ROLE,
     MAX_CATALOG_ITEMS,
+    RENTAL_ITEM_TYPES,
     format_price,
     is_reserved_item_id,
     normalize_item_id,
@@ -26,6 +29,7 @@ from cogs.economy._shop_products import (
     unregister_shop_product,
 )
 from cogs.economy._shop_store import ShopStore
+from cogs.economy._shop_rentals import ensure_rental_migration, rental_status
 from cogs.economy._shop_ui import (
     NO_MENTIONS,
     PANEL_INVENTORY,
@@ -34,6 +38,7 @@ from cogs.economy._shop_ui import (
     send_private,
 )
 from cogs.roles._role_safety import dangerous_permission_names
+from cogs.roles._personal_roles import personal_resource_lock
 
 
 logger = logging.getLogger(__name__)
@@ -68,6 +73,7 @@ class ShopCog(commands.Cog):
         return self._purchase_locks.setdefault((guild_id, user_id), asyncio.Lock())
 
     def shop_snapshot(self, guild_id: int, user_id: int) -> dict:
+        ensure_rental_migration(self.db)
         return {
             "catalog": self.store.list_enabled(guild_id),
             "inventory": self.store.list_inventory(guild_id, user_id),
@@ -106,6 +112,7 @@ class ShopCog(commands.Cog):
         guild: discord.Guild,
         member: discord.Member,
         item_id: str,
+        expected_price: int | None = None,
     ) -> tuple[bool, str]:
         try:
             normalized_id = normalize_item_id(item_id)
@@ -119,14 +126,23 @@ class ShopCog(commands.Cog):
         product = get_shop_product(str(item.get("item_type", "")))
         if product is None:
             return False, self._unavailable_product_message()
-        denial = product.buy_denial(guild, member, item)
-        if denial:
-            return False, denial
-
-        lock = self._purchase_lock(guild.id, member.id)
+        lock = (
+            personal_resource_lock(self.bot, guild.id, member.id, item["item_type"])
+            if item["item_type"] in RENTAL_ITEM_TYPES
+            else self._purchase_lock(guild.id, member.id)
+        )
         if lock.locked():
             return False, "Đang xử lý giao dịch. Vui lòng chờ một chút."
         async with lock:
+            if expected_price is not None and item["price"] != expected_price:
+                return False, "Giá đã thay đổi. Hãy xác nhận lại giao dịch."
+            denial = await product.buy_denial(guild, member, item)
+            if denial:
+                return False, denial
+            # Discord verification may yield while staff change the listing.
+            latest = self.store.find_enabled(guild.id, normalized_id)
+            if latest is None or latest != item:
+                return False, "Vật phẩm đã thay đổi. Hãy mở lại shop để mua."
             result = self.store.purchase(
                 guild_id=guild.id,
                 user_id=member.id,
@@ -207,19 +223,22 @@ class ShopCog(commands.Cog):
         item_id = str(item["item_id"])
 
         if action == "buy":
-            if view.owns_selected():
+            if view.owns_selected() and item["item_type"] not in RENTAL_ITEM_TYPES:
                 await send_private(interaction, "Bạn đã sở hữu vật phẩm này.")
                 return
-            token = ("buy", item_id)
+            token = ("buy", item_id, int(item["price"]))
             if view.confirming != token:
                 view.confirming = token
                 await view.refresh(interaction)
                 return
             view.confirming = None
+            if not interaction.response.is_done():
+                await interaction.response.defer()
             success, message = await self._purchase_item(
                 guild=interaction.guild,
                 member=member,
                 item_id=item_id,
+                expected_price=int(item["price"]),
             )
             await view.refresh(interaction)
             await send_private(interaction, message)
@@ -269,6 +288,7 @@ class ShopCog(commands.Cog):
     ) -> None:
         assert ctx.guild is not None
         target = member or ctx.author
+        ensure_rental_migration(self.db)
         owned = self.store.list_inventory(ctx.guild.id, target.id)
         if not owned:
             await ctx.send(
@@ -286,6 +306,8 @@ class ShopCog(commands.Cog):
                 else ""
             )
             lines.append(f"• {record['item_id']} — {record['name']}{marker}")
+            if record.get("item_type") in RENTAL_ITEM_TYPES:
+                lines.append(rental_status(record))
 
         embed = discord.Embed(
             title=f"🎒 Kho đồ của {target.display_name}",
@@ -294,7 +316,7 @@ class ShopCog(commands.Cog):
         )
         await ctx.send(embed=embed, allowed_mentions=NO_MENTIONS)
 
-    @shop.command(name="use", help="Dùng role, badge, hoặc custom role đã mua.")
+    @shop.command(name="use", help="Dùng role, badge, custom role hoặc phòng còn hạn.")
     @commands.guild_only()
     async def shop_use(self, ctx: commands.Context, item_id: str) -> None:
         assert ctx.guild is not None
@@ -334,8 +356,8 @@ class ShopCog(commands.Cog):
             return
         if is_reserved_item_id(normalized_id):
             await ctx.send(
-                f"ID `{CUSTOM_ROLE_ITEM_ID}` dành riêng cho custom role. "
-                f"Dùng `{ctx.clean_prefix}shop add_custom_role`."
+                f"ID `{normalized_id}` dành riêng cho vật phẩm cá nhân. "
+                f"Dùng `{ctx.clean_prefix}shop add_{normalized_id}`."
             )
             return
 
@@ -395,8 +417,8 @@ class ShopCog(commands.Cog):
             return
         if is_reserved_item_id(normalized_id):
             await ctx.send(
-                f"ID `{CUSTOM_ROLE_ITEM_ID}` dành riêng cho custom role. "
-                f"Dùng `{ctx.clean_prefix}shop add_custom_role`."
+                f"ID `{normalized_id}` dành riêng cho vật phẩm cá nhân. "
+                f"Dùng `{ctx.clean_prefix}shop add_{normalized_id}`."
             )
             return
 
@@ -438,7 +460,7 @@ class ShopCog(commands.Cog):
             name="Custom role",
             description=(
                 description
-                or "Tạo một custom role riêng với tên và màu của bạn."
+                or "Thuê custom role 30 ngày với tên và màu của bạn. Có thể gia hạn."
             ),
             price=valid_price,
             item_type=ITEM_TYPE_CUSTOM_ROLE,
@@ -447,6 +469,33 @@ class ShopCog(commands.Cog):
         await ctx.send(
             f"Đã lưu **{document['name']}** ({CUSTOM_ROLE_ITEM_ID}) với giá "
             f"{format_price(valid_price)}.",
+            allowed_mentions=NO_MENTIONS,
+        )
+
+    @shop.command(name="add_custom_room", help="Thêm custom room 30 ngày vào shop.")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def shop_add_custom_room(
+        self, ctx: commands.Context, price: int, *, description: str = ""
+    ) -> None:
+        assert ctx.guild is not None
+        try:
+            valid_price = validate_price(price)
+        except ValueError as exc:
+            await ctx.send(str(exc))
+            return
+        document = self.store.upsert_item(
+            guild_id=ctx.guild.id,
+            item_id=CUSTOM_ROOM_ITEM_ID,
+            name="Custom room",
+            description=description or "Thuê phòng voice riêng 30 ngày. Có thể gia hạn.",
+            price=valid_price,
+            item_type=ITEM_TYPE_CUSTOM_ROOM,
+            updated_by=ctx.author.id,
+        )
+        await ctx.send(
+            f"Đã lưu **{document['name']}** ({CUSTOM_ROOM_ITEM_ID}) với giá "
+            f"{format_price(valid_price)} / 30 ngày.",
             allowed_mentions=NO_MENTIONS,
         )
 

@@ -46,7 +46,7 @@ class CatalogProduct:
         self.item_type = item_type
         self.store = store
 
-    def buy_denial(
+    async def buy_denial(
         self,
         guild: discord.Guild,
         member: discord.Member,

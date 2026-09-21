@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import discord
@@ -12,8 +13,15 @@ from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from cogs.economy._shop_helpers import (
     MAX_CATALOG_ITEMS,
+    RENTAL_ITEM_TYPES,
     clean_display_text,
     format_price,
+)
+from cogs.economy._shop_rentals import (
+    MIGRATION_DENIAL,
+    RENTAL_DURATION,
+    ensure_rental_migration,
+    utc_datetime,
 )
 
 
@@ -32,12 +40,14 @@ class PurchaseResult:
     item: dict[str, Any] | None = None
     balance: int | None = None
     already_owned: bool = False
+    expires_at: datetime | None = None
 
 
 class ShopStore:
     """Guild catalog and member inventory backed by ``bot.db``."""
 
     def __init__(self, database: Any) -> None:
+        self.database = database
         self.items = database[SHOP_ITEMS_COLLECTION]
         self.inventory = database[SHOP_INVENTORY_COLLECTION]
         self.accounts = database[ACCOUNTS_COLLECTION]
@@ -67,6 +77,11 @@ class ShopStore:
             self.transactions.create_index(
                 [("user_id", ASCENDING), ("timestamp", DESCENDING)],
                 name="user_transactions_recent",
+            )
+            self.inventory.create_index(
+                [("item_type", ASCENDING), ("expiry_cleanup_pending", ASCENDING),
+                 ("expires_at", ASCENDING)],
+                name="rental_expiry_cleanup",
             )
         except PyMongoError:
             logger.exception("Failed to create shop indexes")
@@ -146,14 +161,16 @@ class ShopStore:
             {"$unset": {"active_badge": ""}},
         )
 
-    def _refund(self, user_id: int, amount: int) -> None:
+    def _refund(self, user_id: int, amount: int) -> bool:
         try:
-            self.accounts.update_one(
+            result = self.accounts.update_one(
                 {"user_id": user_id},
                 {"$inc": {"balance": amount}},
             )
+            return result.matched_count == 1
         except PyMongoError:
             logger.exception("Failed to refund shop purchase for user %s", user_id)
+            return False
 
     def purchase(
         self,
@@ -163,18 +180,25 @@ class ShopStore:
         item: dict[str, Any],
     ) -> PurchaseResult:
         item_id = str(item["item_id"])
+        rental = item["item_type"] in RENTAL_ITEM_TYPES
+        if rental and not ensure_rental_migration(self.database):
+            return PurchaseResult(False, MIGRATION_DENIAL, item=item)
         ownership_filter = {
             "guild_id": guild_id,
             "user_id": user_id,
             "item_id": item_id,
         }
-        if self.inventory.find_one(ownership_filter):
+        owned = self.inventory.find_one(ownership_filter)
+        if owned and not rental:
             return PurchaseResult(
                 False,
                 "Bạn đã sở hữu vật phẩm này.",
                 item=item,
                 already_owned=True,
             )
+        previous_expiry = utc_datetime((owned or {}).get("expires_at"))
+        if rental and owned and previous_expiry is None:
+            return PurchaseResult(False, MIGRATION_DENIAL, item=item)
 
         price = int(item["price"])
         try:
@@ -204,31 +228,46 @@ class ShopStore:
             )
 
         now = discord.utils.utcnow()
+        expires_at = max(now, previous_expiry or now) + RENTAL_DURATION if rental else None
         balance = int(account.get("balance", 0))
+        rental_fields = (
+            {"expires_at": expires_at, "expiry_cleanup_pending": True,
+             "last_purchased_at": now} if rental else {}
+        )
         try:
-            self.inventory.insert_one(
-                {
+            if owned:
+                result = self.inventory.update_one(
+                    {**ownership_filter, "expires_at": owned["expires_at"]},
+                    {"$set": rental_fields},
+                )
+                if result.matched_count != 1:
+                    raise DuplicateKeyError("Rental changed during purchase")
+            else:
+                self.inventory.insert_one({
                     **ownership_filter,
                     "item_type": item["item_type"],
                     "name": item["name"],
                     "purchased_at": now,
-                }
-            )
+                    **rental_fields,
+                })
         except DuplicateKeyError:
-            self._refund(user_id, price)
+            refunded = self._refund(user_id, price)
             return PurchaseResult(
                 False,
-                "Bạn đã sở hữu vật phẩm này.",
+                ("Giao dịch đã thay đổi. Trap Coin đã được hoàn lại; hãy thử lại."
+                 if rental else "Bạn đã sở hữu vật phẩm này.") if refunded else
+                "Không thể hoàn tiền tự động. Hãy báo staff kiểm tra giao dịch.",
                 item=item,
-                already_owned=True,
+                already_owned=not rental,
                 balance=self.get_balance(user_id),
             )
         except PyMongoError:
-            self._refund(user_id, price)
-            logger.exception("Failed to save shop purchase; refunded user")
+            refunded = self._refund(user_id, price)
+            logger.exception("Failed to save shop purchase; refund success=%s", refunded)
             return PurchaseResult(
                 False,
-                "Không thể hoàn tất giao dịch. Trap Coin đã được hoàn lại.",
+                ("Không thể hoàn tất giao dịch. Trap Coin đã được hoàn lại."
+                 if refunded else "Không thể hoàn tiền tự động. Hãy báo staff kiểm tra giao dịch."),
                 item=item,
             )
 
@@ -243,6 +282,7 @@ class ShopStore:
                     "item_id": item_id,
                     "balance_after": balance,
                     "timestamp": now,
+                    **({"expires_at": expires_at} if rental else {}),
                 }
             )
         except PyMongoError:
@@ -253,9 +293,12 @@ class ShopStore:
             (
                 f"Đã mua **{item['name']}** với {format_price(price)}. "
                 f"Số dư còn lại: **{balance:,} TC**."
+                + (f"\nĐã thêm 30 ngày. Hết hạn: <t:{int(expires_at.timestamp())}:f>."
+                   if expires_at else "")
             ),
             item=item,
             balance=balance,
+            expires_at=expires_at,
         )
 
     def upsert_item(

@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from pymongo.errors import PyMongoError
+import discord
+from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from cogs.economy._shop_catalog import CatalogProduct
 from cogs.economy._shop_helpers import (
@@ -115,11 +116,20 @@ class FakeCollection:
             None,
         )
         if document is None:
-            return None
+            if not kwargs.get("upsert"):
+                return None
+            self.update_one(query, update, upsert=True)
+            return self.find_one(query)
         document.update(deepcopy(update.get("$set", {})))
         for key, amount in update.get("$inc", {}).items():
             document[key] = int(document.get(key, 0)) + int(amount)
         return deepcopy(document)
+
+    def update_many(self, query: dict, update: dict) -> SimpleNamespace:
+        matched = [deepcopy(row) for row in self.documents if self._matches(row, query)]
+        for row in matched:
+            self.update_one(row, update)
+        return SimpleNamespace(matched_count=len(matched), modified_count=len(matched))
 
     def insert_one(self, document: dict) -> SimpleNamespace:
         for fields in self.unique_indexes:
@@ -141,9 +151,22 @@ class FakeCollection:
     def _matches(document: dict, query: dict) -> bool:
         for key, expected in query.items():
             actual = document.get(key)
-            if isinstance(expected, dict) and "$gte" in expected:
-                if int(actual or 0) < int(expected["$gte"]):
-                    return False
+            if isinstance(expected, dict):
+                for operator, operand in expected.items():
+                    if operator == "$exists":
+                        if (key in document) != operand:
+                            return False
+                        continue
+                    left, right = actual, operand
+                    if isinstance(left, datetime) and isinstance(right, datetime):
+                        left = left.replace(tzinfo=timezone.utc) if left.tzinfo is None else left
+                        right = right.replace(tzinfo=timezone.utc) if right.tzinfo is None else right
+                    if operator == "$gte" and (left is None or left < right):
+                        return False
+                    if operator == "$lte" and (left is None or left > right):
+                        return False
+                    if operator not in {"$gte", "$lte"}:
+                        raise AssertionError(f"Unsupported query operator: {operator}")
                 continue
             if actual != expected:
                 return False
@@ -432,12 +455,12 @@ class TestCatalogProduct(unittest.IsolatedAsyncioTestCase):
         self.product = CatalogProduct(ITEM_TYPE_ROLE, self.store)
         self.guild, self.member, self.role, _bot = make_guild()
 
-    def test_buy_denial_for_existing_and_dangerous_roles(self) -> None:
+    async def test_buy_denial_for_existing_and_dangerous_roles(self) -> None:
         item = role_item()
-        self.assertIsNone(self.product.buy_denial(self.guild, self.member, item))
+        self.assertIsNone(await self.product.buy_denial(self.guild, self.member, item))
         self.member.roles.append(self.role)
         self.assertEqual(
-            self.product.buy_denial(self.guild, self.member, item),
+            await self.product.buy_denial(self.guild, self.member, item),
             "Bạn đã có role của vật phẩm này.",
         )
 
@@ -448,7 +471,7 @@ class TestCatalogProduct(unittest.IsolatedAsyncioTestCase):
             permissions=SimpleNamespace(administrator=True),
         )
         self.guild.get_role = lambda role_id: dangerous if role_id == 56 else None
-        denial = self.product.buy_denial(self.guild, self.member, role_item(role_id=56))
+        denial = await self.product.buy_denial(self.guild, self.member, role_item(role_id=56))
         self.assertIsNotNone(denial)
         assert denial is not None
         self.assertIn("chưa bị trừ", denial)
@@ -546,6 +569,29 @@ class TestShopCogAndUI(unittest.IsolatedAsyncioTestCase):
         interaction.response.send_message.assert_awaited()
         self.assertTrue(interaction.response.send_message.await_args.kwargs["ephemeral"])
 
+    async def test_expired_panels_are_released_even_if_message_edit_fails(self) -> None:
+        for message_state in ("editable", "missing", "deleted"):
+            with self.subTest(message_state=message_state):
+                view = ShopView(
+                    self.cog,
+                    guild_id=GUILD_ID,
+                    author_id=USER_ID,
+                    prefix="!tf ",
+                )
+                self.cog._views.add(view)
+                if message_state != "missing":
+                    view.message = SimpleNamespace(edit=AsyncMock())
+                    if message_state == "deleted":
+                        view.message.edit.side_effect = discord.HTTPException(
+                            SimpleNamespace(status=404, reason="Not Found"), "gone"
+                        )
+
+                await view.on_timeout()
+
+                self.assertTrue(view.is_finished())
+                self.assertFalse(self.cog._views)
+                self.assertTrue(all(child.disabled for child in view.children))
+
     async def test_buy_requires_confirmation_then_charges(self) -> None:
         view = ShopView(
             self.cog,
@@ -558,7 +604,7 @@ class TestShopCogAndUI(unittest.IsolatedAsyncioTestCase):
         view.rebuild()
         first = make_interaction(user=self.member, guild=self.guild)
         await self.cog.handle_shop_action(first, view, "buy")
-        self.assertEqual(view.confirming, ("buy", "pink"))
+        self.assertEqual(view.confirming, ("buy", "pink", 100))
         self.assertEqual(self.store.get_balance(USER_ID), 400)
         self.assertFalse(self.store.owns(GUILD_ID, USER_ID, "pink"))
 

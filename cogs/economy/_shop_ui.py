@@ -8,12 +8,14 @@ from typing import TYPE_CHECKING, Any
 import discord
 
 from cogs.economy._shop_helpers import (
+    RENTAL_ITEM_TYPES,
     catalog_option_description,
     catalog_option_label,
     format_price,
     item_icon,
     item_type_label,
 )
+from cogs.economy._shop_rentals import rental_active, rental_status
 
 
 if TYPE_CHECKING:
@@ -133,7 +135,7 @@ class ShopView(discord.ui.View):
         self.panel = panel if panel in {PANEL_STORE, PANEL_INVENTORY} else PANEL_STORE
         self.message: discord.Message | None = None
         self.selected_id: str | None = None
-        self.confirming: tuple[str, str] | None = None
+        self.confirming: tuple[str, str, int] | None = None
         self.catalog: list[dict[str, Any]] = []
         self.inventory: list[dict[str, Any]] = []
         self.balance = 0
@@ -177,6 +179,7 @@ class ShopView(discord.ui.View):
                     or "",
                     "price": int((catalog_item or owned).get("price") or 0),
                     "description": (catalog_item or {}).get("description", ""),
+                    "expires_at": owned.get("expires_at"),
                 }
             )
         return listings
@@ -197,6 +200,17 @@ class ShopView(discord.ui.View):
             str(item["item_id"]) == self.selected_id for item in self.inventory
         )
 
+    def selected_rental(self) -> bool:
+        return (self.selected_item or {}).get("item_type") in RENTAL_ITEM_TYPES
+
+    def can_use_selected(self) -> bool:
+        if not self.selected_rental():
+            return self.owns_selected()
+        return rental_active(next(
+            (record for record in self.inventory if record["item_id"] == self.selected_id),
+            None,
+        ))
+
     def rebuild(self) -> None:
         self.clear_items()
         if self.panel_items:
@@ -206,7 +220,7 @@ class ShopView(discord.ui.View):
             ShopButton(
                 self,
                 action="buy",
-                label="Mua",
+                label="Gia hạn" if self.selected_rental() and self.owns_selected() else "Mua",
                 emoji="🛒",
                 style=discord.ButtonStyle.success,
                 custom_id=SHOP_BUY_CUSTOM_ID,
@@ -214,7 +228,7 @@ class ShopView(discord.ui.View):
                 disabled=(
                     not on_store
                     or self.selected_item is None
-                    or self.owns_selected()
+                    or (self.owns_selected() and not self.selected_rental())
                 ),
             )
         )
@@ -227,7 +241,7 @@ class ShopView(discord.ui.View):
                 style=discord.ButtonStyle.primary,
                 custom_id=SHOP_USE_CUSTOM_ID,
                 row=1,
-                disabled=self.selected_item is None or not self.owns_selected(),
+                disabled=self.selected_item is None or not self.can_use_selected(),
             )
         )
         self.add_item(
@@ -354,6 +368,8 @@ class ShopView(discord.ui.View):
                 lines.append(
                     f"• `{record['item_id']}` — {record['name']}{marker}"
                 )
+                if record.get("item_type") in RENTAL_ITEM_TYPES:
+                    lines.append(rental_status(record))
             embed.add_field(
                 name="Đã mua",
                 value="\n".join(lines)[:1024],
@@ -379,15 +395,20 @@ class ShopView(discord.ui.View):
             f"Loại: {item_type_label(str(item.get('item_type', '')))}",
             f"Giá: {format_price(int(item.get('price') or 0))}",
         ]
-        if owned:
+        if self.selected_rental():
+            parts.append("Mỗi lần mua thêm 30 ngày, tính từ lúc thanh toán hoặc hạn còn lại.")
+            record = next((row for row in self.inventory if row["item_id"] == self.selected_id), None)
+            if record:
+                parts.append(rental_status(record))
+        elif owned:
             parts.append("Bạn đã sở hữu vật phẩm này.")
         if (
             for_store
-            and self.confirming == ("buy", str(item["item_id"]))
-            and not owned
+            and self.confirming == ("buy", str(item["item_id"]), int(item["price"]))
+            and (not owned or self.selected_rental())
         ):
             parts.append(
-                f"Nhấn **Mua** lần nữa để xác nhận mua với "
+                f"Nhấn **{'Gia hạn' if owned else 'Mua'}** lần nữa để xác nhận với "
                 f"{format_price(int(item.get('price') or 0))}."
             )
         return "\n".join(parts)
@@ -446,6 +467,7 @@ class ShopView(discord.ui.View):
             logger.debug("Could not close shop panel", exc_info=True)
 
     async def on_timeout(self) -> None:
+        self.stop()
         self.disable_all()
         if self.message is None:
             return
