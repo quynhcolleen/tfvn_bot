@@ -550,7 +550,18 @@ The GitHub Actions workflow also builds and publishes container images to GitHub
 
 ## Tests
 
-Run the unit-test suite from the repository root:
+Install the development dependencies and run the full suite from the repository root:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m pytest
+```
+
+`pytest.ini` discovers `test/test_*.py`, including the existing `unittest` tests.
+The manual `test/word_stardardlize.py` data utility is excluded. Tests mock external
+services and do not need Discord tokens, MongoDB, or a `.env` file.
+
+The standard-library runner remains available:
 
 ```powershell
 python -m unittest discover -s test -p "test_*.py"
@@ -560,6 +571,27 @@ The automated tests cover cultivation calculations and state transitions, card-g
 rules and wagers, persistent Crocodile Dentist and bedtime-reminder behavior, the
 categorized help menu, meter formatting, quote-card rendering, cog flags, and
 validation helpers used by the shop, cases, and setup diagnostics.
+
+### Required PR check
+
+`.github/workflows/tests.yml` runs the full suite with Python 3.11 on every pull
+request, on pushes to `main`, `prod`, and `op/dockered`, and for merge queues. The
+`pytest` check fails if a test fails, collection fails, or no tests are collected.
+
+To block merging failing PRs, configure GitHub after pushing the workflow:
+
+1. Let the workflow run once so GitHub can list the `pytest` check.
+2. Open **Settings → Branches → Branch protection rules** and add or edit a rule
+   for each target branch you want to protect (for example, `main` and `prod`).
+3. Enable **Require a pull request before merging** and **Require status checks
+   to pass before merging**, then select `pytest` from GitHub Actions.
+4. Enable **Require branches to be up to date before merging** and **Do not allow
+   bypassing the above settings**, then save the rule.
+
+Branch protection is a GitHub repository setting; the workflow alone reports
+failures but does not prevent merging. With the required check enabled, failing
+PRs stay open and cannot merge until the check passes. See GitHub's
+[required status check documentation](https://docs.github.com/en/pull-requests/reference/status-checks).
 
 ## Project structure
 

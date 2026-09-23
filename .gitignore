@@ -3,6 +3,7 @@
 bot.log
 discord.log
 __pycache__/
+.pytest_cache/
 *.pyc
 venv/
 env/

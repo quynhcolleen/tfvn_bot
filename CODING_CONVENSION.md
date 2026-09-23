@@ -117,7 +117,7 @@ Validate user input before mutating Discord or MongoDB state. For multi-step com
 
 ## Testing Conventions
 
-Tests use `unittest` and live under `test/`:
+Tests use `unittest`, live under `test/`, and run through pytest in CI:
 
 - Files: `test_<feature>.py`
 - Classes: `TestBehavior`
@@ -125,10 +125,11 @@ Tests use `unittest` and live under `test/`:
 
 Extract parsing, scoring, formatting, and validation into pure helpers so they can be tested without Discord. Mock Discord, MongoDB, time, randomness, and HTTP boundaries; automated tests must not require production credentials or network access. Add a regression test for each fixed bug and cover both success and invalid-input paths.
 
-Run:
+Install development dependencies and run the same full suite as the PR check:
 
 ```powershell
-python -m unittest discover -s test -p "test_*.py"
+python -m pip install -r requirements-dev.txt
+python -m pytest
 ```
 
 `test/word_stardardlize.py` is a manual data utility and can write files; it is not part of normal test execution.

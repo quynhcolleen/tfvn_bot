@@ -11,7 +11,7 @@ from pymongo.errors import PyMongoError
 
 from cogs._hash_verification import VerificationKeyring
 from cogs.operation import _doctor as doctor
-from cogs.operation import setup_check as setup_module
+from cogs.operation import setup_check as setup_check_module
 
 
 HEALTHY_ENVIRONMENT = {
@@ -544,13 +544,13 @@ class TestSetupDoctorIntegration(DoctorFixtures, unittest.IsolatedAsyncioTestCas
     async def test_setup_uses_shared_collector_and_keeps_three_safe_summary_fields(self) -> None:
         channel = make_channel(self.guild)
         ctx = SimpleNamespace(guild=self.guild, channel=channel, send=AsyncMock())
-        cog = setup_module.SetupCheckCog(self.bot)
+        cog = setup_check_module.SetupCheckCog(self.bot)
         checks = [
             doctor.SetupCheck("ok", "Passed check", "Healthy"),
             doctor.SetupCheck("warning", "Warning check", "Needs review", "Review config"),
             doctor.SetupCheck("error", "Failed check", "Needs repair", "Repair config"),
         ]
-        with patch.object(setup_module, "collect_doctor_checks", new=AsyncMock(return_value=checks)) as collect:
+        with patch.object(setup_check_module, "collect_doctor_checks", new=AsyncMock(return_value=checks)) as collect:
             await cog.run_setup_check(ctx)
 
         collect.assert_awaited_once_with(self.bot, self.guild, channel)

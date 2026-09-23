@@ -18,6 +18,8 @@ tfvn_bot/
 ├── db.py                           MongoDB client and selected database
 ├── dataloader.py                   UTF-8 JSON/text/line/CSV loading helpers
 ├── requirements.txt                Pinned Python runtime dependencies
+├── requirements-dev.txt            Runtime dependencies plus the pinned pytest runner
+├── pytest.ini                      Test discovery under test/test_*.py
 ├── Dockerfile                      Python 3.11 multi-stage image
 ├── docker-compose.yml              Bot service and environment wiring; no Mongo service
 ├── .dockerignore                   Excludes secrets, tests, logs, and local artifacts
@@ -33,6 +35,7 @@ tfvn_bot/
 │
 ├── .github/workflows/
 │   ├── build_and_push.yml          Builds and publishes images to GHCR
+│   ├── tests.yml                   Full pytest suite for PRs, deploy branches, and merge queues
 │   └── notificate_to_discord.yml   Sends tag notifications to Discord
 │
 ├── assets/

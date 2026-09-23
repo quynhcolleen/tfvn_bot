@@ -14,8 +14,10 @@ Static media constants belong in `assets/`, maintenance utilities in `scripts/`,
 
 - `python -m venv venv` and `.\venv\Scripts\Activate.ps1`: create and activate the Windows development environment.
 - `python -m pip install -r requirements.txt`: install the pinned Python dependencies.
+- `python -m pip install -r requirements-dev.txt`: install runtime dependencies and pytest for development.
 - `python main.py`: run the bot from the repository root so relative data paths resolve.
-- `python -m unittest discover -s test -p "test_*.py"`: run the unit-test suite.
+- `python -m pytest`: run the full unit-test suite, matching the GitHub PR check.
+- `python -m unittest discover -s test -p "test_*.py"`: run the suite with the standard-library runner.
 - `docker compose up --build -d`: build and start the production-style container. MongoDB is external to this Compose file.
 
 For focused development, set `ENVIRONMENT=development` and list dotted cog paths such as `cogs.mod.*` in the ignored `dev_cogs.txt` file.
@@ -26,7 +28,7 @@ Target Python 3.11 and use four-space indentation. Follow existing conventions: 
 
 ## Testing Guidelines
 
-Tests use the standard `unittest` framework. Name discovered files `test_*.py`, classes `Test...`, and methods `test_...`. Keep unit tests deterministic and isolated from live Discord, MongoDB, and external APIs. There is no enforced coverage threshold; add focused regression tests for changed parsing, persistence, or game logic.
+Tests use the standard `unittest` framework and run through pytest in CI. Name discovered files `test_*.py`, classes `Test...`, and methods `test_...`. Keep unit tests deterministic and isolated from live Discord, MongoDB, and external APIs. There is no enforced coverage threshold; add focused regression tests for changed parsing, persistence, or game logic. The `pytest` PR check must be required in GitHub branch protection to block merges on failure; see README.md.
 
 ## Commit & Pull Request Guidelines
 
