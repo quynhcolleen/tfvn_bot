@@ -267,8 +267,8 @@ tfvn_bot/
         ├── _giveaway_helpers.py         Duration/prize parsing, blacklist/bonus weights, and weighted draws
         ├── _giveaway_ui.py              Create form, role selects, and guild settings panel
         ├── vote.py                      Persistent reaction polls and result scheduling
-        ├── highlight.py                 Requirements command, 💀 listener, media downloads, chat PNG, TV congrats reply
-        ├── _highlight_helpers.py        Skull/interval knobs, NSFW skip, channel helpers
+        ├── highlight.py                 Requirements command/button, startup/post prompts, 💀 listener, chat PNG, TV reply
+        ├── _highlight_helpers.py        Skull/interval/prompt-delay knobs, NSFW skip, channel helpers
         ├── _highlight_card.py           Discord dark-theme chat PNG, image gallery, and embed rendering
         ├── _highlight_font.py           Portable meter-block and rainbow-flag drawing with bundled fonts
         ├── _highlight_media.py          Bounded embed snapshots, mention names, and Discord media URLs

@@ -13,6 +13,7 @@ from pymongo.errors import DuplicateKeyError
 
 from cogs.utils._highlight_helpers import (
     HIGHLIGHT_MIN_INTERVAL_SECONDS,
+    HIGHLIGHT_PROMPT_DELAY_SECONDS,
     HIGHLIGHT_THRESHOLD,
     MAX_ATTACHMENT_BYTES,
     SKULL_EMOJI,
@@ -309,6 +310,7 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
             get_guild=Mock(return_value=self.guild),
             fetch_channel=AsyncMock(side_effect=discord.NotFound(Mock(), "missing")),
             is_ready=lambda: False,
+            add_view=Mock(),
         )
         self.cog = HighlightCog(self.bot)
         self.author = SimpleNamespace(
@@ -414,12 +416,154 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         tasks = [task for task in self.cog._flush_tasks.values() if task is not None]
+        tasks.extend(self.cog._prompt_tasks)
         self.cog.cog_unload()
         for task in tasks:
             try:
                 await task
             except (asyncio.CancelledError, Exception):
                 pass
+
+    async def test_startup_prompt_without_new_highlight_and_no_repeat_on_reconnect(self):
+        await self.cog.cog_load()
+        self.assertEqual(self.cog._prompt_tasks, set())
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock) as delay:
+            await self.cog.on_ready()
+            await asyncio.gather(*self.cog._prompt_tasks)
+            await self.cog.on_ready()
+
+        delay.assert_awaited_once_with(HIGHLIGHT_PROMPT_DELAY_SECONDS)
+        self.highlight_channel.send.assert_awaited_once()
+        self.assertEqual(
+            self.highlight_channel.send.await_args.args,
+            ("📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇",),
+        )
+        self.assertEqual(self.collection.docs, [])
+        self.assertEqual(self.cog._prompt_tasks, set())
+
+    async def test_startup_prompt_on_reload_when_bot_is_already_ready(self):
+        self.bot.is_ready = lambda: True
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog.cog_load()
+            await asyncio.gather(*self.cog._prompt_tasks)
+            await self.cog.on_ready()
+        self.highlight_channel.send.assert_awaited_once()
+        self.assertEqual(self.cog._prompt_tasks, set())
+
+    async def test_startup_prompt_can_retry_after_missing_configuration(self):
+        self.bot.global_vars.clear()
+        await self.cog.on_ready()
+        self.assertEqual(self.cog._prompt_tasks, set())
+        self.bot.global_vars["HIGHLIGHT_CHANNEL"] = str(HIGHLIGHT_CHANNEL_ID)
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog.on_ready()
+            await asyncio.gather(*self.cog._prompt_tasks)
+        self.highlight_channel.send.assert_awaited_once()
+
+    async def test_startup_prompt_skips_unavailable_channel(self):
+        with patch.object(self.cog, "_get_channel", new_callable=AsyncMock) as lookup:
+            lookup.return_value = None
+            with self.assertLogs("cogs.utils.highlight", level="WARNING"):
+                await self.cog.on_ready()
+        self.assertEqual(self.cog._prompt_tasks, set())
+        self.highlight_channel.send.assert_not_awaited()
+        self.assertFalse(self.cog._startup_prompt_scheduled)
+
+    async def test_concurrent_ready_events_schedule_only_one_startup_prompt(self):
+        lookup_started = asyncio.Event()
+        release_lookup = asyncio.Event()
+
+        async def lookup(guild, channel_id):
+            lookup_started.set()
+            await release_lookup.wait()
+            return self.highlight_channel
+
+        with patch.object(self.cog, "_get_channel", side_effect=lookup), patch(
+            "cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock,
+        ):
+            first = asyncio.create_task(self.cog.on_ready())
+            await lookup_started.wait()
+            await self.cog.on_ready()
+            release_lookup.set()
+            await first
+            await asyncio.gather(*self.cog._prompt_tasks)
+        self.highlight_channel.send.assert_awaited_once()
+
+    async def test_requirements_button_is_persistent_and_private(self):
+        await self.cog.cog_load()
+        view = self.bot.add_view.call_args.args[0]
+        self.assertTrue(view.is_persistent())
+        button = view.children[0]
+        self.assertEqual(button.label, "Click vào đây")
+        interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock()))
+        self.bot.global_vars["HIGHLIGHT_CHANNEL"] = "100"
+
+        await button.callback(interaction)
+
+        kwargs = interaction.response.send_message.await_args.kwargs
+        self.assertTrue(kwargs["ephemeral"])
+        self.assertEqual(kwargs["embed"].to_dict(), self.cog.requirements_embed().to_dict())
+        self.assertIn("<#100>", str(kwargs["embed"].to_dict()))
+        self.assertFalse(kwargs["allowed_mentions"].everyone)
+        self.cog.cog_unload()
+        self.assertTrue(view.is_finished())
+
+    async def test_prompt_waits_before_sending_only_hook_and_button(self):
+        await self.cog.cog_load()
+        delay_started = asyncio.Event()
+        release_delay = asyncio.Event()
+
+        async def delay(seconds):
+            self.assertEqual(seconds, HIGHLIGHT_PROMPT_DELAY_SECONDS)
+            delay_started.set()
+            await release_delay.wait()
+
+        with patch("cogs.utils.highlight.asyncio.sleep", side_effect=delay):
+            self.cog._schedule_requirements_prompt(self.highlight_channel)
+            task = next(iter(self.cog._prompt_tasks))
+            await delay_started.wait()
+            self.highlight_channel.send.assert_not_awaited()
+            release_delay.set()
+            await task
+
+        self.highlight_channel.send.assert_awaited_once()
+        args = self.highlight_channel.send.await_args
+        self.assertEqual(
+            args.args,
+            ("📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇",),
+        )
+        self.assertNotIn("embed", args.kwargs)
+        self.assertTrue(args.kwargs["view"].is_persistent())
+        self.assertTrue(args.kwargs["view"].is_finished())
+        self.assertFalse(self.cog._requirements_view.is_finished())
+        self.assertFalse(args.kwargs["allowed_mentions"].everyone)
+        self.assertEqual(self.cog._prompt_tasks, set())
+
+    async def test_prompt_skips_changed_or_removed_destination(self):
+        for destination in ("100", None):
+            self.bot.global_vars["HIGHLIGHT_CHANNEL"] = destination
+            with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+                await self.cog._send_requirements_prompt(self.highlight_channel)
+        self.highlight_channel.send.assert_not_awaited()
+
+    async def test_prompt_send_failure_is_logged(self):
+        self.highlight_channel.send.side_effect = discord.Forbidden(
+            Mock(status=403, reason="Forbidden"), "missing send permission",
+        )
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock), patch(
+            "cogs.utils.highlight.logger.warning",
+        ) as warning:
+            await self.cog._send_requirements_prompt(self.highlight_channel)
+        warning.assert_called_once()
+
+    async def test_unload_cancels_pending_prompt(self):
+        self.cog._schedule_requirements_prompt(self.highlight_channel)
+        task = next(iter(self.cog._prompt_tasks))
+        self.cog.cog_unload()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.highlight_channel.send.assert_not_awaited()
+        self.assertEqual(self.cog._prompt_tasks, set())
 
     async def test_four_skulls_do_not_post(self):
         self.cog._publish_highlight = AsyncMock()
@@ -678,6 +822,7 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
         self.assertIn("777", content)
         self.assertTrue(self.message.reply.await_args.kwargs["mention_author"])
         self.assertEqual(self.collection.docs[0]["status"], STATUS_POSTED)
+        self.assertEqual(len(self.cog._prompt_tasks), 1)
 
     async def test_congrats_reply_failure_still_marks_posted(self):
         self.message.reply = AsyncMock(

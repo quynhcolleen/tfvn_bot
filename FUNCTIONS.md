@@ -814,6 +814,15 @@ channel is configured. The command reads the threshold and spacing used by the
 automatic feature. Qualified messages wait for the guild's posting interval and
 must still have enough reactions when posted; each source message is posted once.
 
+Thirty seconds after startup (once Discord is ready), a cog reload, or each new
+highlight, the bot sends **Bạn muốn nổi tiếng? Bạn muốn lên TV? 📺** followed by
+**Hãy, click, vào, đây! 👇** with a **Click vào đây** button in the
+highlight channel. Reconnects do not repeat the startup prompt. No new highlight
+is needed for the startup prompt. Clicking it privately shows the
+same current requirements as `highlight`. Posted buttons survive bot restarts;
+pending 30-second prompts are cancelled on restart or cog reload. The delay is
+controlled by `HIGHLIGHT_PROMPT_DELAY_SECONDS` in `_highlight_helpers.py`.
+
 Highlight cards include message text, up to four gallery images, and up to four
 embeds with their titles, descriptions, authors, fields, footers, images, and
 thumbnails. Embed mentions resolve to cached member, role, and channel names;

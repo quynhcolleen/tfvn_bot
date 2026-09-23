@@ -14,6 +14,8 @@ SKULL_EMOJI = "\N{SKULL}"
 HIGHLIGHT_THRESHOLD = 5
 # Minimum seconds between highlight posts in the same guild.
 HIGHLIGHT_MIN_INTERVAL_SECONDS = 300
+# Delay before posting the requirements button after startup or a new highlight.
+HIGHLIGHT_PROMPT_DELAY_SECONDS = 30
 HIGHLIGHT_CHANNEL_VARIABLE = "HIGHLIGHT_CHANNEL"
 HIGHLIGHT_COLLECTION = "highlight_nominations"
 MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024
