@@ -65,6 +65,9 @@ CONGRATS_MENTIONS = discord.AllowedMentions(
 )
 TERMINAL_STATUSES = (STATUS_POSTED, STATUS_FAILED)
 MEDIA_TIMEOUT_SECONDS = 10
+PROMPT_CUSTOM_ID = "highlight:requirements"
+PROMPT_COLLECTION = "highlight_prompts"
+PROMPT_HISTORY_LIMIT = 100
 
 
 class HighlightRequirementsView(discord.ui.View):
@@ -77,7 +80,7 @@ class HighlightRequirementsView(discord.ui.View):
     @discord.ui.button(
         label="Click vào đây",
         style=discord.ButtonStyle.primary,
-        custom_id="highlight:requirements",
+        custom_id=PROMPT_CUSTOM_ID,
     )
     async def show_requirements(
         self,
@@ -100,6 +103,7 @@ class HighlightCog(commands.Cog):
         self._guild_locks: dict[int, asyncio.Lock] = {}
         self._flush_tasks: dict[int, asyncio.Task] = {}
         self._prompt_tasks: set[asyncio.Task] = set()
+        self._prompt_lock = asyncio.Lock()
         self._requirements_view: HighlightRequirementsView | None = None
         self._startup_prompt_scheduled = False
         self._restored = False
@@ -246,28 +250,73 @@ class HighlightCog(commands.Cog):
     ) -> None:
         await asyncio.sleep(HIGHLIGHT_PROMPT_DELAY_SECONDS)
         try:
-            # A changed destination must not leave a new prompt in the old channel.
-            if channel.id != self._highlight_channel_id():
-                return
-            view = HighlightRequirementsView(self)
-            try:
-                await channel.send(
-                    "📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇",
-                    view=view,
-                    allowed_mentions=NO_MENTIONS,
+            async with self._prompt_lock:
+                # A changed destination must not leave a new prompt in the old channel.
+                if channel.id != self._highlight_channel_id():
+                    return
+                await self._delete_previous_prompts(channel)
+                view = HighlightRequirementsView(self)
+                try:
+                    sent = await channel.send(
+                        "📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇",
+                        view=view,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                finally:
+                    # The globally registered handler serves every prompt.
+                    view.stop()
+                await asyncio.to_thread(
+                    self.db[PROMPT_COLLECTION].update_one,
+                    {"_id": channel.id},
+                    {"$set": {
+                        "guild_id": channel.guild.id,
+                        "message_id": sent.id,
+                    }},
+                    upsert=True,
                 )
-            finally:
-                # Use the globally registered handler, without retaining one
-                # message-specific view per prompt or stale handlers on reload.
-                view.stop()
         except HighlightConfigError:
             return
-        except discord.HTTPException:
+        except (discord.HTTPException, PyMongoError):
             logger.warning(
-                "Could not send highlight requirements prompt in channel %s",
+                "Could not replace highlight requirements prompt in channel %s",
                 channel.id,
                 exc_info=True,
             )
+
+    def _is_requirements_prompt(self, message: discord.Message) -> bool:
+        """Identify our notices independently of their display text."""
+        if message.author.id != getattr(self.bot.user, "id", None):
+            return False
+        return any(
+            getattr(component, "custom_id", None) == PROMPT_CUSTOM_ID
+            for row in message.components
+            for component in getattr(row, "children", ())
+        )
+
+    async def _delete_previous_prompts(self, channel: discord.abc.Messageable) -> None:
+        """Remove tracked and recent legacy notices before sending a replacement."""
+        saved = await asyncio.to_thread(
+            self.db[PROMPT_COLLECTION].find_one, {"_id": channel.id},
+        )
+        # Recover notices from older versions or a send whose database write failed.
+        previous = {
+            message.id: message
+            async for message in channel.history(limit=PROMPT_HISTORY_LIMIT)
+            if self._is_requirements_prompt(message)
+        }
+        if saved and saved["message_id"] not in previous:
+            try:
+                message = await channel.fetch_message(saved["message_id"])
+            except discord.NotFound:
+                pass
+            else:
+                if self._is_requirements_prompt(message):
+                    previous[message.id] = message
+        for message in previous.values():
+            try:
+                await message.delete()
+            except discord.NotFound:
+                pass
 
     def _global_var(self, name: str) -> object:
         return getattr(self.bot, "global_vars", {}).get(name)

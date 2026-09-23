@@ -31,6 +31,7 @@ tfvn_bot/
 ├── FUNCTIONS.md                    Full user-facing command and feature catalog
 ├── CULTIVATE_GAME_PLAN.md           Tiên Lộ gameplay, economy, and acceptance specification
 ├── CODING_CONVENSION.md            Detailed implementation conventions
+├── HOW_TO_IMPLEMENT_FEATURE.md     Feature workflow, focused development tests, final full-suite check
 ├── sample.dev_cogs.txt             Legacy development-cog sample; review paths before use
 │
 ├── .github/workflows/
@@ -270,7 +271,7 @@ tfvn_bot/
         ├── _giveaway_helpers.py         Duration/prize parsing, blacklist/bonus weights, and weighted draws
         ├── _giveaway_ui.py              Create form, role selects, and guild settings panel
         ├── vote.py                      Persistent reaction polls and result scheduling
-        ├── highlight.py                 Requirements command/button, startup/post prompts, 💀 listener, chat PNG, TV reply
+        ├── highlight.py                 Requirements button, replacing startup/post prompts, 💀 listener, chat PNG, TV reply
         ├── _highlight_helpers.py        Skull/interval/prompt-delay knobs, NSFW skip, channel helpers
         ├── _highlight_card.py           Discord dark-theme chat PNG, image gallery, and embed rendering
         ├── _highlight_font.py           Portable meter-block and rainbow-flag drawing with bundled fonts
@@ -355,6 +356,11 @@ MongoDB collections are created lazily. Major groups are:
   avatars, attachments, or embeds. Deployments must not share keyrings. Quote
   text and names stay out of the readable token and are returned only inside the
   exact source channel/thread; PyMongo reads/writes run in worker threads
+- Highlight notice state: `highlight_prompts` uses channel ID as `_id`, with
+  `guild_id` and `message_id` for the latest requirements prompt. Prompt replacement
+  is serialized within the cog; it deletes the saved notice and any matching bot
+  notices in the latest 100 channel messages before posting and saving a replacement.
+  Message ownership and the stable requirements button are checked before deletion.
 - Scheduling: `tasks`, `votes`, `giveaways`, `giveaway_settings`, `highlight_nominations`, `birthdays`, `birthday_announcements`,
   `bedtime_reminders`. Highlight rows are guild/source-message unique and created when a SFW message first reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀; they CAS `pending` → `posting` → `posted` before uploading a chat-theme PNG to `HIGHLIGHT_CHANNEL`, with at least `HIGHLIGHT_MIN_INTERVAL_SECONDS` between posts in a guild. NSFW source channels are ignored. Bedtime records are guild/member scoped and hold normalized
   sleep minutes, announcement channel, next UTC deadline, local-date deduplication,

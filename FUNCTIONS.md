@@ -815,13 +815,19 @@ automatic feature. Qualified messages wait for the guild's posting interval and
 must still have enough reactions when posted; each source message is posted once.
 
 Thirty seconds after startup (once Discord is ready), a cog reload, or each new
-highlight, the bot sends **Bạn muốn nổi tiếng? Bạn muốn lên TV? 📺** followed by
-**Hãy, click, vào, đây! 👇** with a **Click vào đây** button in the
+highlight, the bot sends **📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇**
+with a **Click vào đây** button in the
 highlight channel. Reconnects do not repeat the startup prompt. No new highlight
 is needed for the startup prompt. Clicking it privately shows the
 same current requirements as `highlight`. Posted buttons survive bot restarts;
 pending 30-second prompts are cancelled on restart or cog reload. The delay is
 controlled by `HIGHLIGHT_PROMPT_DELAY_SECONDS` in `_highlight_helpers.py`.
+Before posting a replacement, the bot deletes its previous prompt, whose message
+ID is saved per channel in `highlight_prompts` across restarts. It also removes
+older copies found in the latest 100 channel messages, identified by the bot's
+author ID and the requirements button. Highlight cards and other messages are
+kept. The bot needs Read Message History in the highlight channel; if lookup or
+deletion fails, it skips the new notice to avoid adding duplicates.
 
 Highlight cards include message text, up to four gallery images, and up to four
 embeds with their titles, descriptions, authors, fields, footers, images, and

@@ -550,12 +550,30 @@ The GitHub Actions workflow also builds and publishes container images to GitHub
 
 ## Tests
 
-Install the development dependencies and run the full suite from the repository root:
+Follow [HOW_TO_IMPLEMENT_FEATURE.md](HOW_TO_IMPLEMENT_FEATURE.md) when adding or
+changing a feature. Install development dependencies from the repository root:
 
 ```powershell
 python -m pip install -r requirements-dev.txt
+```
+
+During development, run only the affected tests, for example:
+
+```powershell
+python -m pytest test/test_highlight.py -k prompt -q
+python -m pytest test/test_highlight.py -q
+```
+
+Run the full suite once implementation, tests, development checks, documentation,
+and diff review are complete:
+
+```powershell
 python -m pytest
 ```
+
+Use focused tests while fixing failures, then repeat the full run after fixes are
+complete. Documentation-only and behavior-neutral copy edits need text/link/diff
+checks and any affected existing tests instead of the full suite.
 
 `pytest.ini` discovers `test/test_*.py`, including the existing `unittest` tests.
 The manual `test/word_stardardlize.py` data utility is excluded. Tests mock external

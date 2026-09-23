@@ -4,6 +4,8 @@
 
 Read [README.md](README.md) for setup and operation, [CODEBASE.md](CODEBASE.md) for runtime flow and file ownership, [FUNCTIONS.md](FUNCTIONS.md) for the full command and feature catalog, and [CODING_CONVENSION.md](CODING_CONVENSION.md) for detailed implementation rules. Update the relevant document when structure, configuration, or conventions change.
 
+Follow [HOW_TO_IMPLEMENT_FEATURE.md](HOW_TO_IMPLEMENT_FEATURE.md) for the step-by-step feature workflow, from acceptance criteria through focused development tests to final verification.
+
 ## Project Structure & Module Organization
 
 `main.py` configures Discord intents, loads datasets, and discovers extensions. `db.py` creates the MongoDB client, while `dataloader.py` handles files under `data/`. Bot features live in domain-based packages under `cogs/` (`mod/`, `booster/`, `minigames/`, `interaction/`, and others). Every loadable cog must expose `async def setup(bot)`. Prefix helper modules with `_` so production discovery skips them.
@@ -27,6 +29,8 @@ For focused development, set `ENVIRONMENT=development` and list dotted cog paths
 Target Python 3.11 and use four-space indentation. Follow existing conventions: `snake_case` for modules, functions, and variables; `PascalCase` for cog/view classes; and `UPPER_SNAKE_CASE` for constants. Keep Discord callbacks asynchronous, add type hints to new public helpers, and group standard-library, third-party, then local imports. No formatter or linter is configured, so match surrounding code and avoid unrelated reformatting.
 
 ## Testing Guidelines
+
+During development, run only the affected tests or modules (for example, `python -m pytest test/test_highlight.py -k prompt -q`). Include direct consumers when shared code changes. Run `python -m pytest` once after implementation, tests, development checks, documentation, and diff review are complete. If failures require fixes, use focused tests while fixing them and rerun the full suite after the fixes are complete. Do not repeat a passing full run without relevant changes. Documentation-only and behavior-neutral copy edits use text/link/diff checks and any affected existing tests instead of the full suite. See the feature workflow for details.
 
 Tests use the standard `unittest` framework and run through pytest in CI. Name discovered files `test_*.py`, classes `Test...`, and methods `test_...`. Keep unit tests deterministic and isolated from live Discord, MongoDB, and external APIs. There is no enforced coverage threshold; add focused regression tests for changed parsing, persistence, or game logic. The `pytest` PR check must be required in GitHub branch protection to block merges on failure; see README.md.
 

@@ -9,7 +9,7 @@ import aiohttp
 import discord
 from PIL import Image
 from pymongo import DESCENDING, ReturnDocument
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from cogs.utils._highlight_helpers import (
     HIGHLIGHT_MIN_INTERVAL_SECONDS,
@@ -37,7 +37,7 @@ from cogs.utils._highlight_helpers import (
     should_post_highlight,
 )
 from cogs.utils._highlight_media import collect_highlight_media
-from cogs.utils.highlight import HighlightCog
+from cogs.utils.highlight import HighlightCog, PROMPT_CUSTOM_ID
 
 
 BOT_ID = 111
@@ -136,11 +136,13 @@ class FakeCollection:
                 updated[key] = [item for item in current if item != value]
         return updated
 
-    def update_one(self, query, update):
+    def update_one(self, query, update, upsert=False):
         for index, doc in enumerate(self.docs):
             if self._match(doc, query):
                 self.docs[index] = self._apply(doc, update)
                 return SimpleNamespace(modified_count=1)
+        if upsert:
+            self.insert_one(self._apply(query, update))
         return SimpleNamespace(modified_count=0)
 
     def find_one_and_update(self, query, update, return_document=None):
@@ -282,8 +284,12 @@ class TestHighlightHelpers(unittest.IsolatedAsyncioTestCase):
 class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.collection = FakeCollection()
+        self.prompt_collection = FakeCollection()
         self.highlight_channel = SimpleNamespace(
             id=HIGHLIGHT_CHANNEL_ID,
+            guild=SimpleNamespace(id=GUILD_ID),
+            history=Mock(side_effect=lambda **kwargs: AsyncIterator([])),
+            fetch_message=AsyncMock(),
             send=AsyncMock(
                 return_value=SimpleNamespace(
                     id=777,
@@ -303,7 +309,10 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
         )
         self.guild = SimpleNamespace(id=GUILD_ID, get_channel=Mock(return_value=None))
         self.bot = SimpleNamespace(
-            db={"highlight_nominations": self.collection},
+            db={
+                "highlight_nominations": self.collection,
+                "highlight_prompts": self.prompt_collection,
+            },
             global_vars={"HIGHLIGHT_CHANNEL": str(HIGHLIGHT_CHANNEL_ID)},
             user=SimpleNamespace(id=BOT_ID),
             get_channel=Mock(side_effect=self._get_channel),
@@ -555,6 +564,122 @@ class TestHighlightAutomation(unittest.IsolatedAsyncioTestCase):
         ) as warning:
             await self.cog._send_requirements_prompt(self.highlight_channel)
         warning.assert_called_once()
+
+    def _prompt_message(self, message_id, *, author_id=BOT_ID, custom_id=PROMPT_CUSTOM_ID):
+        return SimpleNamespace(
+            id=message_id,
+            author=SimpleNamespace(id=author_id),
+            components=[SimpleNamespace(children=[SimpleNamespace(custom_id=custom_id)])],
+            delete=AsyncMock(),
+        )
+
+    async def test_prompt_removes_legacy_notices_but_keeps_highlights_and_other_authors(self):
+        old = self._prompt_message(501)
+        duplicate = self._prompt_message(502)
+        highlight = self._prompt_message(503, custom_id=None)
+        other_author = self._prompt_message(504, author_id=42)
+        self.highlight_channel.history.side_effect = lambda **kwargs: AsyncIterator(
+            [old, duplicate, highlight, other_author],
+        )
+
+        async def send(*args, **kwargs):
+            old.delete.assert_awaited_once()
+            duplicate.delete.assert_awaited_once()
+            return SimpleNamespace(id=777)
+
+        self.highlight_channel.send.side_effect = send
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog._send_requirements_prompt(self.highlight_channel)
+        highlight.delete.assert_not_awaited()
+        other_author.delete.assert_not_awaited()
+        self.assertEqual(self.prompt_collection.docs, [{
+            "_id": HIGHLIGHT_CHANNEL_ID, "guild_id": GUILD_ID, "message_id": 777,
+        }])
+
+    async def test_prompt_restores_saved_id_after_reload_outside_recent_history(self):
+        self.prompt_collection.insert_one({
+            "_id": HIGHLIGHT_CHANNEL_ID, "guild_id": GUILD_ID, "message_id": 501,
+        })
+        old = self._prompt_message(501)
+        self.highlight_channel.fetch_message.return_value = old
+        self.cog.cog_unload()
+        self.cog = HighlightCog(self.bot)
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog.on_ready()
+            await asyncio.gather(*self.cog._prompt_tasks)
+        self.highlight_channel.fetch_message.assert_awaited_once_with(501)
+        old.delete.assert_awaited_once()
+        self.highlight_channel.send.assert_awaited_once()
+
+    async def test_prompt_does_not_delete_unrelated_message_from_saved_id(self):
+        self.prompt_collection.insert_one({"_id": HIGHLIGHT_CHANNEL_ID, "message_id": 501})
+        unrelated = self._prompt_message(501, custom_id="giveaway:join")
+        self.highlight_channel.fetch_message.return_value = unrelated
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog._send_requirements_prompt(self.highlight_channel)
+        unrelated.delete.assert_not_awaited()
+        self.highlight_channel.send.assert_awaited_once()
+
+    async def test_prompt_replaces_notice_already_deleted_by_member(self):
+        self.prompt_collection.insert_one({"_id": HIGHLIGHT_CHANNEL_ID, "message_id": 501})
+        self.highlight_channel.fetch_message.side_effect = discord.NotFound(
+            Mock(status=404, reason="Not Found"), "deleted",
+        )
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog._send_requirements_prompt(self.highlight_channel)
+        self.highlight_channel.send.assert_awaited_once()
+
+    async def test_prompt_delete_race_does_not_block_replacement(self):
+        old = self._prompt_message(501)
+        old.delete.side_effect = discord.NotFound(Mock(status=404), "deleted")
+        self.highlight_channel.history.side_effect = lambda **kwargs: AsyncIterator([old])
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await self.cog._send_requirements_prompt(self.highlight_channel)
+        self.highlight_channel.send.assert_awaited_once()
+
+    async def test_prompt_cleanup_failure_does_not_add_another_notice(self):
+        old = self._prompt_message(501)
+        old.delete.side_effect = discord.Forbidden(Mock(status=403), "forbidden")
+        self.highlight_channel.history.side_effect = lambda **kwargs: AsyncIterator([old])
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock), self.assertLogs(
+            "cogs.utils.highlight", level="WARNING",
+        ):
+            await self.cog._send_requirements_prompt(self.highlight_channel)
+        self.highlight_channel.send.assert_not_awaited()
+
+    async def test_prompt_history_or_database_failure_does_not_add_another_notice(self):
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            with patch.object(self.prompt_collection, "find_one", side_effect=PyMongoError()):
+                with self.assertLogs("cogs.utils.highlight", level="WARNING"):
+                    await self.cog._send_requirements_prompt(self.highlight_channel)
+            self.highlight_channel.history.side_effect = discord.Forbidden(
+                Mock(status=403), "missing history permission",
+            )
+            with self.assertLogs("cogs.utils.highlight", level="WARNING"):
+                await self.cog._send_requirements_prompt(self.highlight_channel)
+        self.highlight_channel.send.assert_not_awaited()
+
+    async def test_concurrent_prompts_leave_only_the_latest_notice(self):
+        live_messages = []
+        sent_messages = []
+
+        async def send(*args, **kwargs):
+            message = self._prompt_message(700 + len(sent_messages))
+            message.delete.side_effect = lambda: live_messages.remove(message)
+            live_messages.append(message)
+            sent_messages.append(message)
+            return message
+
+        self.highlight_channel.send.side_effect = send
+        self.highlight_channel.history.side_effect = lambda **kwargs: AsyncIterator(live_messages)
+        with patch("cogs.utils.highlight.asyncio.sleep", new_callable=AsyncMock):
+            await asyncio.gather(
+                self.cog._send_requirements_prompt(self.highlight_channel),
+                self.cog._send_requirements_prompt(self.highlight_channel),
+            )
+        self.assertEqual(len(sent_messages), 2)
+        self.assertEqual(live_messages, [sent_messages[-1]])
+        self.assertEqual(self.prompt_collection.docs[0]["message_id"], sent_messages[-1].id)
 
     async def test_unload_cancels_pending_prompt(self):
         self.cog._schedule_requirements_prompt(self.highlight_channel)

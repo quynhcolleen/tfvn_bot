@@ -2,6 +2,8 @@
 
 These are the target conventions for new and changed code. Some legacy modules differ; improve the code you touch without reformatting unrelated files. Use [AGENTS.md](AGENTS.md) for the short contributor workflow and [CODEBASE.md](CODEBASE.md) to find subsystem ownership.
 
+Follow [HOW_TO_IMPLEMENT_FEATURE.md](HOW_TO_IMPLEMENT_FEATURE.md) for the ordered feature workflow and when to run focused versus full tests.
+
 ## Python Style
 
 - Target Python 3.11, save source/data files as UTF-8, and keep tracked text files on LF line endings as enforced by `.gitattributes`.
@@ -125,12 +127,32 @@ Tests use `unittest`, live under `test/`, and run through pytest in CI:
 
 Extract parsing, scoring, formatting, and validation into pure helpers so they can be tested without Discord. Mock Discord, MongoDB, time, randomness, and HTTP boundaries; automated tests must not require production credentials or network access. Add a regression test for each fixed bug and cover both success and invalid-input paths.
 
-Install development dependencies and run the same full suite as the PR check:
+Install development dependencies during setup:
 
 ```powershell
 python -m pip install -r requirements-dev.txt
+```
+
+During development, run only the changed behavior's tests or affected modules:
+
+```powershell
+python -m pytest test/test_highlight.py -k prompt -q
+python -m pytest test/test_highlight.py -q
+```
+
+Replace these examples with the feature's test file and selection. Include direct
+consumers of changed shared code. Do not run the full suite after every edit.
+Once implementation, tests, development checks, documentation, and diff review
+are complete, run the same full suite as the PR check:
+
+```powershell
 python -m pytest
 ```
+
+If the full run fails, use focused tests during fixes, then rerun the full suite
+after the fixes are complete. Repeat a passing full run only when executable code,
+tests, or relevant configuration change. Documentation-only and behavior-neutral
+copy edits need text/link/diff checks and any affected existing tests, not a full run.
 
 `test/word_stardardlize.py` is a manual data utility and can write files; it is not part of normal test execution.
 
@@ -138,7 +160,7 @@ python -m pytest
 
 Before handing off a change:
 
-- Run the relevant unit tests and the full discovered suite.
+- Pass focused tests during development, then the full suite once the feature and its documentation are complete; use the documentation/copy-only exception above when applicable.
 - Exercise the affected cog with a focused `dev_cogs.txt` profile when Discord behavior changed.
 - Document new environment variables, Mongo global variables, collections, or migrations.
 - Update `CODEBASE.md` when adding, removing, or moving modules.
