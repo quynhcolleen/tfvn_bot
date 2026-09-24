@@ -9,3 +9,5 @@ venv/
 env/
 dev_cogs.txt
 draft.txt
+.env.development
+.env.production
