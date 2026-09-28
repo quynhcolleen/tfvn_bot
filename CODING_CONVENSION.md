@@ -86,7 +86,22 @@ Use environment variables for credentials and process-level boot settings:
 - `ENVIRONMENT` and `COMMAND_PREFIX`
 - Process-level extension controls such as `DISABLED_COGS`
 
-Use MongoDB `global_variables` for guild-specific IDs, configurable media arrays, and feature settings. Read them through `bot.global_vars`; validate required values at cog initialization and name the missing key in the error. Optional settings should have an explicit default or disable only the affected behavior.
+Use MongoDB `global_variables` for feature configuration. Only the seven welcome
+and departure keys in `ANNOUNCEMENT_VARIABLES` are guild-specific. They use
+integer `guild_id` plus `name`, `type`, and `value`, with a unique `(guild_id, name)`
+index, and are cached in `bot.guild_vars[guild_id]`. Read them through
+`get_guild_variable` or `get_guild_variables` with the actual event/command guild;
+resolve at use time without falling back to legacy shared values.
+
+The settings commands accept only `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`,
+`BYE_CHANNEL`, `WELCOME_GIF_URL`, `GOODBYE_GIF_URL`, and `BANNED_GIF_URL`. All seven
+are `STRING` values entered through a direct value prompt. Both commands require
+Administrator and a guild context; no shared-setting command path is provided.
+
+Legacy unscoped `{name, type, value}` records continue to load into the flat
+`bot.global_vars` map for existing features. Missing required announcement settings
+skip delivery only for the affected guild. Optional settings need an explicit default. Validate
+channel ownership before sending announcements.
 
 Use `DISABLED_COGS` when an entire extension must be skipped before import;
 patterns are parsed by `cogs._feature_flags`.

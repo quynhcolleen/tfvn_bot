@@ -7,7 +7,7 @@ This document maps the maintained repository files and explains where each behav
 1. `main.py` loads `.env`, creates the prefix-based `commands.Bot`, enables member and message-content intents, attaches the MongoDB database from `db.py`, and owns graceful SIGINT/SIGTERM command draining.
 2. `DataLoader` loads shared lists from `data/` onto the bot instance.
 3. In production, every public Python module below `cogs/` is discovered recursively. Development uses the ignored `dev_cogs.txt`. Both use the database selected by `DB_NAME`. Selected extensions and safe startup failure types are retained in memory for diagnostics; disabled modules are excluded and current loaded extensions take precedence over stale failure records.
-4. `cogs.settings.variable_setting` is loaded first when selected, populating `bot.global_vars` from MongoDB.
+4. `cogs.settings.variable_setting` is loaded first when selected, populating `bot.guild_vars[guild_id]` with announcement settings and retaining the flat `bot.global_vars` cache for legacy features. Welcome and departure announcements read their current guild's values through `cogs.settings._guild_variables`.
 5. Each extension registers commands, listeners, views, or scheduled tasks through `async def setup(bot)`.
 
 ## Repository Tree and Responsibilities
@@ -68,6 +68,7 @@ tfvn_bot/
 │
 ├── scripts/
 │   ├── migrate_nsfw_gifs.py        Moves legacy GIF lists into Mongo global variables
+│   ├── migrate_guild_variables.py  Previews/copies legacy announcement settings into one guild
 │   ├── prepare_lunch_assets.py     Prepares the upstream lunch catalog and food image sheets
 │   ├── prepare_tarot_assets.py     Downloads and crops public-domain RWS scans into assets/tarot/
 │   ├── vietnamese_king_data_prepare.py
@@ -88,6 +89,8 @@ tfvn_bot/
 │   ├── test_giveaway.py            Giveaway duration/prize parsing, role weights, and persistence
 │   ├── test_giveaway_ui.py         Giveaway create panel, role settings, modal, and permission checks
 │   ├── test_doctor.py              Environment, feature, permission, and runtime diagnostics
+│   ├── test_guild_variables.py     Announcement settings isolation, prompts, permissions, and migration
+│   ├── test_guild_announcements.py Guild welcome destinations, GIF overrides, and live updates
 │   ├── test_extension_loading.py   Selected extensions and safe startup-failure diagnostics
 │   ├── test_cultivation.py         Tiên Lộ calculations, dashboard panels, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
@@ -127,6 +130,7 @@ tfvn_bot/
     │   └── bedtime_remind.py       Admin schedules, minute mentions, and chat reminders
     ├── announcement/
     │   ├── __init__.py             Announcement package marker
+    │   ├── _media.py               Guild image override validation and bundled defaults
     │   ├── welcome.py              Member-join announcement
     │   └── goodbye.py              Unified leave/kick/ban departure announcement
     ├── booster/
@@ -265,7 +269,9 @@ tfvn_bot/
     │   ├── server_stats.py              In-memory uptime and command/error counts
     │   ├── setup_check.py               Manage Guild diagnostic summary using the shared Doctor collector
     │   └── leave.py                     Administrator-controlled guild departure
-    ├── settings/variable_setting.py     Mongo-backed runtime variable commands
+    ├── settings/
+    │   ├── variable_setting.py         Announcement-only settings commands and legacy cache loading
+    │   └── _guild_variables.py         Seven-key announcement whitelist, guild lookups, and unique index
     └── utils/
         ├── giveaway.py                  Persistent views, entries, scheduling, rerolls, and guild role settings
         ├── _giveaway_helpers.py         Duration/prize parsing, blacklist/bonus weights, and weighted draws
@@ -333,7 +339,16 @@ files without downloading.
 
 MongoDB collections are created lazily. Major groups are:
 
-- Configuration: `global_variables`, `moderation_config`
+- Configuration: announcement records in `global_variables` use
+  `{guild_id, name, type: "STRING", value}` with a partial unique `(guild_id, name)`
+  index for numeric guild IDs. The seven allowed keys are `JOIN_CHANNEL`,
+  `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL`, `WELCOME_GIF_URL`,
+  `GOODBYE_GIF_URL`, and `BANNED_GIF_URL`. Administrator commands can only read/write
+  these values for their current guild; the set command prompts directly for
+  the value. `migrate_guild_variables.py` previews legacy announcement copies
+  by default and writes only with `--apply`. Other legacy unscoped records still
+  populate the flat `bot.global_vars` cache for compatibility. `moderation_config`
+  remains independently guild-scoped
 - Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`, `shop_custom_roles`, `shop_custom_rooms`, `shop_migrations`
 - Cultivation audit: append-only `cultivation_events`; TC exchanges also write `transaction_logs`
 - Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`, `interaction_streaks`. Pair streaks are unique per guild `(user_a, user_b)` with Vietnam calendar dates (UTC+7); a chain stays live if `last_active_date` is today or yesterday. Current counts of 3, 7, 30, or 100 ping both members in the channel that credited the day
@@ -386,8 +401,9 @@ MongoDB collections are created lazily. Major groups are:
 
 Discord tokens, database credentials, and external API credentials belong in
 environment variables. Runtime database selection uses `DB_NAME`.
-Process-level extension controls use `DISABLED_COGS`; guild-specific IDs and
-media arrays generally belong in `global_variables`.
+Process-level extension controls use `DISABLED_COGS`. Announcement keys in
+`global_variables` are guild-scoped; legacy feature records retain their existing
+unscoped format.
 
 Tiên Lộ stores its authoritative profile below `user_accounts.cultivation` and
 keeps Trap Coin in `user_accounts.balance`, allowing an exchange to update both

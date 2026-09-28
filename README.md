@@ -32,7 +32,7 @@ Cog loading depends on `ENVIRONMENT`:
 `DISABLED_COGS` accepts comma-separated dotted paths or wildcard patterns and
 skips matching extensions before import.
 
-The settings cog is always prioritized when present. It loads the MongoDB `global_variables` collection into `bot.global_vars` before feature cogs initialize. If an individual cog is missing its required configuration, the loader reports that failure and continues loading the remaining cogs.
+The settings cog is always prioritized when present. It loads welcome/departure announcement settings into `bot.guild_vars[guild_id]` and retains the flat `bot.global_vars` cache for legacy feature configuration. Announcement settings are resolved for the event's guild at use time. The settings commands manage announcements only. Extension startup failures are reported without stopping the remaining cogs.
 
 ## Requirements
 
@@ -148,9 +148,9 @@ async def new_preview(ctx: commands.Context) -> None:
 ```
 
 The callback is loaded with the normal bot, but runs only when the member has at
-least one role configured by `BETA_ROLE_IDS`. Set it as an `ARRAY` with
-`!tf setting set_variable BETA_ROLE_IDS`, one role ID per line.
-This setting is read only from MongoDB's `global_variables`; `.env` role values
+least one role configured by the legacy `BETA_ROLE_IDS` array in MongoDB
+`global_variables`. The announcement settings commands do not manage this array.
+This setting is read only from MongoDB; `.env` role values
 are ignored. Denied checks receive a safe message instead of running the
 callback. The shipped `!tf beta_preview` command can verify the configuration.
 
@@ -186,21 +186,59 @@ python main.py
 
 When startup succeeds, the console prints `Bot is ready!`. Runtime output is also appended to `bot.log`.
 
-## Server-specific settings
+## Announcement settings
 
-Most server IDs and feature assets used by the feature cogs are stored in MongoDB rather than `.env` (`INVITE_LINK` and `VERIFY_CHANNEL` are notable environment-based settings). With `cogs.settings.variable_setting` loaded, an administrator can set a value interactively:
+The settings commands configure welcome and leave/kick/ban announcements for
+the current server. With `cogs.settings.variable_setting` loaded, an
+administrator can set or read an announcement value:
 
 ```text
 !tf setting set_variable JOIN_CHANNEL
+!tf setting get_variable JOIN_CHANNEL
 ```
 
-The bot then asks whether the value is a `STRING` or `ARRAY` and prompts for its contents. Restart the bot after adding settings needed by cogs that previously failed to initialize.
+The set command prompts directly for the value and stores it as a `STRING`.
+Both commands accept only the seven keys below, require Administrator, and
+cannot be used in DMs. Values automatically use the current server's ID and
+apply immediately. Prompts expire after 120 seconds; enter `cancel` to stop.
 
-Common settings include:
+Announcement records use `{guild_id, name, type, value}` with a unique
+`(guild_id, name)` index, cached in `bot.guild_vars[guild_id][name]`. Announcement
+lookups never fall back to legacy shared channel IDs. Existing unscoped feature
+records continue to load into the flat `bot.global_vars[name]` cache for
+compatibility; these commands cannot read or modify them.
 
-| Feature | MongoDB global variables | Type |
+| Guild announcement variables | Type |
+| --- | --- |
+| `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL` | `STRING` |
+| `WELCOME_GIF_URL`, `GOODBYE_GIF_URL`, `BANNED_GIF_URL` | `STRING` |
+
+Welcome messages require `JOIN_CHANNEL`, `RULE_CHANNEL`, and `ROLE_CHANNEL` to
+point to channels in that server. Departure messages require `BYE_CHANNEL`.
+GIF overrides are optional HTTP(S) URLs; missing or invalid values use bundled
+images. These keys are read from MongoDB, not from same-named `.env` entries.
+Other features keep their existing configuration. `INVITE_LINK` and
+`VERIFY_CHANNEL` still use `.env`.
+
+When upgrading an existing deployment, stop the old bot, copy your legacy settings
+for announcements to the intended server, then start the updated bot. Replace `123456789012345678`
+with your server ID (Discord Developer Mode → right-click server → Copy Server ID):
+
+```powershell
+python scripts/migrate_guild_variables.py --guild-id 123456789012345678
+python scripts/migrate_guild_variables.py --guild-id 123456789012345678 --apply
+```
+
+The first command previews counts without writing. `--apply` copies missing
+announcement values only, preserves existing guild settings, and retains source
+records. It does not import `.env`. Both commands are safe to rerun. Restart the
+bot or reload the settings cog after running the migration. No migration runs
+automatically.
+
+Existing feature configuration remains compatible with the flat cache:
+
+| Feature | Shared MongoDB variables | Type |
 | --- | --- | --- |
-| Join and leave/kick/ban announcements | `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL` | `STRING` |
 | Birthday announcements | `BIRTHDAY_CHANNEL` | `STRING` |
 | Chat highlights | `HIGHLIGHT_CHANNEL` | `STRING` |
 | Word games | `WORD_CONNECT_GAMES_CHANNELS`, `VIETNAMESE_KING_GAMES_CHANNELS` | `ARRAY` |
@@ -223,7 +261,9 @@ Replace pools that already exist (needed after adding or expanding `GANGBANG_GIF
 python scripts/migrate_nsfw_gifs.py --overwrite
 ```
 
-`ORGY_GIFS` is not in that seed file; set it with `!tf setting set_variable ORGY_GIFS`. Reload `cogs.interaction.nsfw_interaction` or restart the bot after changing GIF arrays.
+`ORGY_GIFS` is not in that seed file.
+Restart the bot after running the seed script, or reload the settings cog followed
+by `cogs.interaction.nsfw_interaction`.
 
 The booster role anchor is optional; without it, Discord keeps the custom role at its default position. `BOOSTER_CUSTOM_VOICE_CATEGORY_ID` is required for custom rooms so their private category placement and permission overwrites are deterministic. The word-chain move icons also have built-in emoji defaults.
 
@@ -238,7 +278,7 @@ commands rather than `setting set_variable`:
 | System | Initial configuration |
 | --- | --- |
 | Moderation cases | `!tf case log_channel #mod-log` |
-| MrBeast photo-dump alerts | `!tf setting set_variable MRBEAST_SCAM_ALERT_CHANNEL` (falls back to the case log channel) |
+| MrBeast photo-dump alerts | Existing `MRBEAST_SCAM_ALERT_CHANNEL` configuration, with fallback to the case log channel |
 | Shop | Add a role, badge, or custom-role listing; no separate setup command is required |
 
 The role exam uses the repository file `data/role_exam.json` instead of MongoDB.
@@ -476,11 +516,12 @@ extensions that failed to load; disabled features and known other-server targets
 are skipped. Channel permission overrides are checked separately from server
 permissions, and role hierarchy is checked only for roles the bot manages.
 Missing optional settings do not produce warnings. The scan uses current process
-environment and runtime configuration, flags settings that need a cog reload,
+environment and legacy shared configuration, flags settings that need a cog reload,
 and does not reload `.env`, change settings, or store reports. Secrets and raw
 exception messages are never included in diagnostics. MongoDB checks run in a
 worker thread with a five-second deadline, so a database failure still leaves
-other findings available.
+other findings available. Doctor retains its legacy configuration checks and
+does not inspect announcement overrides in `bot.guild_vars`.
 
 If the invoking Administrator is also the Bot owner, `operation_dashboard` adds private
 panels for the bot's joined servers and lifecycle history. The server manager can

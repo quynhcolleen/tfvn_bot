@@ -84,11 +84,13 @@ for 180 seconds and recheck the opening user, server, and current Administrator
 permission. Healthy scans say explicitly that no problems were found. Doctor
 checks enabled features in the current server, including selected extensions
 that failed to load, while skipping disabled features and known other-server
-targets. It checks required environment and feature settings, channel permission
-overrides, guild permissions, hierarchy for roles the bot manages, runtime intents, cached
-settings needing reload, and MongoDB availability. Reports contain no secret
+targets. It checks required environment and legacy shared feature settings, channel
+permission overrides, guild permissions, hierarchy for roles the bot manages,
+runtime intents, cached settings needing reload, and MongoDB availability. Reports contain no secret
 values or raw exceptions, suppress mentions, and are not saved. The same collector
 backs `setup check`; Doctor does not require that command's cog to be loaded.
+These legacy configuration checks do not inspect announcement overrides in
+`bot.guild_vars`.
 
 When the Administrator is also the Bot owner, the dashboard adds two private controls. The joined-server manager lists every guild currently connected to the bot and can leave a selected guild only after confirmation; it cannot leave the guild where `operation_dashboard` was invoked. The standalone `!tf leave` command remains unchanged and still leaves its current guild immediately. The lifecycle panel shows the 10 newest `initial_ready`, `reidentified`, or `resumed` events for the current environment. These append-only global events are retained indefinitely in `bot_lifecycle_events`; they are separate from `operation_logs` and are never included in guild audit browsing, CSV exports, or pruning.
 
@@ -725,15 +727,22 @@ No user command. On message, if content matches entries in `data/banned_word_lis
 
 ---
 
-## Settings (runtime configuration)
+## Announcement settings
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `setting` | Administrator | Settings group help |
-| `setting set_variable <NAME>` | Administrator | Interactive set of a Mongo `global_variables` key (loaded into `bot.global_vars`) |
-| `setting get_variable <NAME>` | Administrator | Read a stored variable |
+| `setting` | Administrator, guild only | Announcement settings help |
+| `setting set_variable <NAME>` | Administrator, guild only | Prompt directly for this guild's announcement value and save it as a `STRING` |
+| `setting get_variable <NAME>` | Administrator, guild only | Read this guild's announcement value |
 
-Common variable examples (not exhaustive): channel IDs, booster category, Area 51 channel, `MRBEAST_SCAM_ALERT_CHANNEL`, media arrays, `BETA_ROLE_IDS`.
+Only `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL`,
+`WELCOME_GIF_URL`, `GOODBYE_GIF_URL`, and `BANNED_GIF_URL` are accepted. All seven
+are `STRING` values scoped to the current guild and apply immediately. Their
+`(guild_id, name)` records are cached in `bot.guild_vars[guild_id]`. GIF overrides
+fall back to bundled images when absent or invalid. Prompts accept `cancel` and
+expire after 120 seconds. The flat `bot.global_vars` cache remains available for
+legacy features; these commands cannot manage other settings. See README for
+the announcement-only migration.
 
 **Module:** `cogs.settings.variable_setting`
 

@@ -1314,15 +1314,15 @@ HELP_TOPICS = (
                         "leave",
                         "Cho bot rời server ngay, không xác nhận — Administrator.",
                     ),
-                    _entry("setting", "Xem hướng dẫn biến runtime — Administrator."),
+                    _entry("setting", "Biến thông báo server — Admin."),
                     _entry(
                         "setting set_variable",
-                        "Đặt STRING/ARRAY qua hội thoại — Administrator.",
+                        "Đặt biến thông báo server — Admin.",
                         "setting set_variable <NAME>",
                     ),
                     _entry(
                         "setting get_variable",
-                        "Đọc biến runtime — Administrator.",
+                        "Đọc biến thông báo server — Admin.",
                         "setting get_variable <NAME>",
                     ),
                 ),

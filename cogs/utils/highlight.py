@@ -163,7 +163,7 @@ class HighlightCog(commands.Cog):
             logger.warning(
                 "Highlights are waiting for HIGHLIGHT_CHANNEL in bot.global_vars. "
                 "Load cogs.settings.variable_setting before cogs.utils.highlight "
-                "and configure HIGHLIGHT_CHANNEL with setting set_variable."
+                "and configure HIGHLIGHT_CHANNEL in the legacy MongoDB settings."
             )
         if self.bot.is_ready():
             await self._schedule_startup_prompt()
@@ -585,8 +585,8 @@ class HighlightCog(commands.Cog):
             channel_id = self._highlight_channel_id()
         except HighlightConfigError as exc:
             raise HighlightLookupError(
-                "Kênh highlight chưa được cấu hình. Quản trị viên hãy dùng "
-                f"`setting set_variable {HIGHLIGHT_CHANNEL_VARIABLE}`."
+                "Kênh highlight chưa được cấu hình. Nhờ chủ bot cấu hình "
+                f"`{HIGHLIGHT_CHANNEL_VARIABLE}`."
             ) from exc
         channel = await self._get_channel(guild, channel_id)
         if channel is None or not self._can_send_messages(channel):
