@@ -24,6 +24,7 @@ from cogs.utils._highlight_helpers import (
     HIGHLIGHT_CHANNEL_VARIABLE,
     HIGHLIGHT_COLLECTION,
     HIGHLIGHT_MIN_INTERVAL_SECONDS,
+    HIGHLIGHT_PROMPT_DELAY_SECONDS,
     HIGHLIGHT_THRESHOLD,
     MAX_ATTACHMENT_BYTES,
     SKULL_EMOJI,
@@ -64,6 +65,33 @@ CONGRATS_MENTIONS = discord.AllowedMentions(
 )
 TERMINAL_STATUSES = (STATUS_POSTED, STATUS_FAILED)
 MEDIA_TIMEOUT_SECONDS = 10
+PROMPT_CUSTOM_ID = "highlight:requirements"
+PROMPT_COLLECTION = "highlight_prompts"
+PROMPT_HISTORY_LIMIT = 100
+
+
+class HighlightRequirementsView(discord.ui.View):
+    """Public, persistent button that reveals the current rules privately."""
+
+    def __init__(self, cog: HighlightCog) -> None:
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(
+        label="Click vào đây",
+        style=discord.ButtonStyle.primary,
+        custom_id=PROMPT_CUSTOM_ID,
+    )
+    async def show_requirements(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ) -> None:
+        await interaction.response.send_message(
+            embed=self.cog.requirements_embed(),
+            ephemeral=True,
+            allowed_mentions=NO_MENTIONS,
+        )
 
 
 class HighlightCog(commands.Cog):
@@ -74,6 +102,10 @@ class HighlightCog(commands.Cog):
         self.db = bot.db
         self._guild_locks: dict[int, asyncio.Lock] = {}
         self._flush_tasks: dict[int, asyncio.Task] = {}
+        self._prompt_tasks: set[asyncio.Task] = set()
+        self._prompt_lock = asyncio.Lock()
+        self._requirements_view: HighlightRequirementsView | None = None
+        self._startup_prompt_scheduled = False
         self._restored = False
         self._ensure_indexes()
 
@@ -112,21 +144,29 @@ class HighlightCog(commands.Cog):
             logger.exception("Failed to ensure highlight nomination indexes")
 
     def cog_unload(self) -> None:
+        for task in self._prompt_tasks:
+            task.cancel()
+        self._prompt_tasks.clear()
+        if self._requirements_view is not None:
+            self._requirements_view.stop()
+            self._requirements_view = None
         for task in self._flush_tasks.values():
             task.cancel()
         self._flush_tasks.clear()
         self._guild_locks.clear()
 
     async def cog_load(self) -> None:
+        self.bot.add_view(self._get_requirements_view())
         try:
             self._highlight_channel_id()
         except HighlightConfigError:
             logger.warning(
                 "Highlights are waiting for HIGHLIGHT_CHANNEL in bot.global_vars. "
                 "Load cogs.settings.variable_setting before cogs.utils.highlight "
-                "and configure HIGHLIGHT_CHANNEL with setting set_variable."
+                "and configure HIGHLIGHT_CHANNEL in the legacy MongoDB settings."
             )
         if self.bot.is_ready():
+            await self._schedule_startup_prompt()
             await self._restore_pending_nominations()
 
     @commands.command(
@@ -135,6 +175,10 @@ class HighlightCog(commands.Cog):
     )
     @commands.guild_only()
     async def highlight(self, ctx: commands.Context) -> None:
+        await ctx.send(embed=self.requirements_embed(), allowed_mentions=NO_MENTIONS)
+
+    def requirements_embed(self) -> discord.Embed:
+        """Build the shared command/button guide from the active highlight rules."""
         try:
             destination = f"<#{self._highlight_channel_id()}>"
         except HighlightConfigError:
@@ -167,7 +211,112 @@ class HighlightCog(commands.Cog):
             inline=False,
         )
         embed.add_field(name="Kênh highlight", value=destination, inline=False)
-        await ctx.send(embed=embed, allowed_mentions=NO_MENTIONS)
+        return embed
+
+    def _get_requirements_view(self) -> HighlightRequirementsView:
+        if self._requirements_view is None:
+            self._requirements_view = HighlightRequirementsView(self)
+        return self._requirements_view
+
+    def _schedule_requirements_prompt(
+        self,
+        channel: discord.abc.Messageable,
+    ) -> None:
+        task = asyncio.create_task(self._send_requirements_prompt(channel))
+        self._prompt_tasks.add(task)
+        task.add_done_callback(self._prompt_tasks.discard)
+
+    async def _schedule_startup_prompt(self) -> None:
+        """Show the hook once per cog load, even when no new highlights arrive."""
+        if self._startup_prompt_scheduled:
+            return
+        try:
+            channel_id = self._highlight_channel_id()
+        except HighlightConfigError:
+            return
+        # Reserve before the lookup yields so overlapping ready events cannot
+        # schedule multiple startup prompts.
+        self._startup_prompt_scheduled = True
+        channel = await self._get_channel(None, channel_id)
+        if channel is None or not self._can_send_messages(channel):
+            self._startup_prompt_scheduled = False
+            logger.warning("Could not find the highlight channel for the startup prompt")
+            return
+        self._schedule_requirements_prompt(channel)
+
+    async def _send_requirements_prompt(
+        self,
+        channel: discord.abc.Messageable,
+    ) -> None:
+        await asyncio.sleep(HIGHLIGHT_PROMPT_DELAY_SECONDS)
+        try:
+            async with self._prompt_lock:
+                # A changed destination must not leave a new prompt in the old channel.
+                if channel.id != self._highlight_channel_id():
+                    return
+                await self._delete_previous_prompts(channel)
+                view = HighlightRequirementsView(self)
+                try:
+                    sent = await channel.send(
+                        "📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇",
+                        view=view,
+                        allowed_mentions=NO_MENTIONS,
+                    )
+                finally:
+                    # The globally registered handler serves every prompt.
+                    view.stop()
+                await asyncio.to_thread(
+                    self.db[PROMPT_COLLECTION].update_one,
+                    {"_id": channel.id},
+                    {"$set": {
+                        "guild_id": channel.guild.id,
+                        "message_id": sent.id,
+                    }},
+                    upsert=True,
+                )
+        except HighlightConfigError:
+            return
+        except (discord.HTTPException, PyMongoError):
+            logger.warning(
+                "Could not replace highlight requirements prompt in channel %s",
+                channel.id,
+                exc_info=True,
+            )
+
+    def _is_requirements_prompt(self, message: discord.Message) -> bool:
+        """Identify our notices independently of their display text."""
+        if message.author.id != getattr(self.bot.user, "id", None):
+            return False
+        return any(
+            getattr(component, "custom_id", None) == PROMPT_CUSTOM_ID
+            for row in message.components
+            for component in getattr(row, "children", ())
+        )
+
+    async def _delete_previous_prompts(self, channel: discord.abc.Messageable) -> None:
+        """Remove tracked and recent legacy notices before sending a replacement."""
+        saved = await asyncio.to_thread(
+            self.db[PROMPT_COLLECTION].find_one, {"_id": channel.id},
+        )
+        # Recover notices from older versions or a send whose database write failed.
+        previous = {
+            message.id: message
+            async for message in channel.history(limit=PROMPT_HISTORY_LIMIT)
+            if self._is_requirements_prompt(message)
+        }
+        if saved and saved["message_id"] not in previous:
+            try:
+                message = await channel.fetch_message(saved["message_id"])
+            except discord.NotFound:
+                pass
+            else:
+                if self._is_requirements_prompt(message):
+                    previous[message.id] = message
+        for message in previous.values():
+            try:
+                await message.delete()
+            except discord.NotFound:
+                pass
 
     def _global_var(self, name: str) -> object:
         return getattr(self.bot, "global_vars", {}).get(name)
@@ -436,8 +585,8 @@ class HighlightCog(commands.Cog):
             channel_id = self._highlight_channel_id()
         except HighlightConfigError as exc:
             raise HighlightLookupError(
-                "Kênh highlight chưa được cấu hình. Quản trị viên hãy dùng "
-                f"`setting set_variable {HIGHLIGHT_CHANNEL_VARIABLE}`."
+                "Kênh highlight chưa được cấu hình. Nhờ chủ bot cấu hình "
+                f"`{HIGHLIGHT_CHANNEL_VARIABLE}`."
             ) from exc
         channel = await self._get_channel(guild, channel_id)
         if channel is None or not self._can_send_messages(channel):
@@ -597,6 +746,7 @@ class HighlightCog(commands.Cog):
         nomination["status"] = STATUS_POSTED
         nomination["highlight_message_id"] = sent.id
         nomination["posted_at"] = posted_at
+        self._schedule_requirements_prompt(highlight_channel)
         await self._send_highlight_congrats(message, sent)
 
     async def _send_highlight_congrats(
@@ -868,6 +1018,7 @@ class HighlightCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
+        await self._schedule_startup_prompt()
         await self._restore_pending_nominations()
 
     async def _handle_skull_add(

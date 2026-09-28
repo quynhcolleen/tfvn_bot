@@ -8,6 +8,8 @@ import discord
 from discord.ext import commands
 
 from assets.gifs import BANNED_GIF, GOODBYE_GIF
+from cogs.announcement._media import announcement_gif_url
+from cogs.settings._guild_variables import get_guild_variable
 
 
 logger = logging.getLogger(__name__)
@@ -49,23 +51,26 @@ def _is_recent(
 def build_departure_embed(
     member: discord.Member | discord.User,
     kind: DepartureKind,
+    *,
+    goodbye_gif: str = GOODBYE_GIF,
+    banned_gif: str = BANNED_GIF,
 ) -> discord.Embed:
     if kind is DepartureKind.BAN:
         title = f"{member.name} đã ăn sút và cút 🔨"
         color = discord.Color.red()
-        image_url = BANNED_GIF
+        image_url = banned_gif
     elif kind is DepartureKind.KICK:
         title = f"{member.name} đã ăn kick và cút 👢"
         color = discord.Color.orange()
-        image_url = GOODBYE_GIF
+        image_url = goodbye_gif
     elif kind is DepartureKind.LEAVE:
         title = f"{member.name} đã rời khỏi server 🥹"
         color = discord.Color.blue()
-        image_url = GOODBYE_GIF
+        image_url = goodbye_gif
     else:
         title = f"{member.name} đã rời hoặc bị đưa khỏi server 👋"
         color = discord.Color.light_grey()
-        image_url = GOODBYE_GIF
+        image_url = goodbye_gif
 
     embed = discord.Embed(title=title, color=color)
     avatar_url = member.display_avatar.url
@@ -81,17 +86,6 @@ class GoodbyeCog(commands.Cog):
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        raw_channel_id = getattr(bot, "global_vars", {}).get("BYE_CHANNEL")
-        if raw_channel_id is None or not str(raw_channel_id).strip():
-            raise ValueError("BYE_CHANNEL is not set in global variables.")
-        try:
-            self.bye_channel = int(raw_channel_id)
-        except (TypeError, ValueError) as error:
-            raise ValueError(
-                "BYE_CHANNEL must be a valid integer string "
-                "(e.g., '889516932468973679')."
-            ) from error
-
         self._departure_signals: dict[tuple[int, int], DepartureSignal] = {}
 
     def _remember_departure(
@@ -217,7 +211,16 @@ class GoodbyeCog(commands.Cog):
         kind: DepartureKind,
     ) -> None:
         await channel.send(
-            embed=build_departure_embed(member, kind),
+            embed=build_departure_embed(
+                member,
+                kind,
+                goodbye_gif=announcement_gif_url(
+                    self.bot, channel.guild.id, "GOODBYE_GIF_URL", GOODBYE_GIF
+                ),
+                banned_gif=announcement_gif_url(
+                    self.bot, channel.guild.id, "BANNED_GIF_URL", BANNED_GIF
+                ),
+            ),
             allowed_mentions=discord.AllowedMentions.none(),
         )
 
@@ -254,11 +257,15 @@ class GoodbyeCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member) -> None:
-        channel = self.bot.get_channel(self.bye_channel)
-        if channel is None:
+        try:
+            channel_id = int(get_guild_variable(self.bot, member.guild.id, "BYE_CHANNEL"))
+        except (TypeError, ValueError):
+            return
+        channel = self.bot.get_channel(channel_id)
+        if channel is None or getattr(getattr(channel, "guild", None), "id", None) != member.guild.id:
             logger.warning(
                 "Goodbye channel is unavailable channel=%s guild=%s",
-                self.bye_channel,
+                channel_id,
                 member.guild.id,
             )
             return
@@ -272,13 +279,13 @@ class GoodbyeCog(commands.Cog):
         except discord.Forbidden:
             logger.warning(
                 "Cannot send departure announcement channel=%s guild=%s",
-                self.bye_channel,
+                channel_id,
                 member.guild.id,
             )
         except discord.HTTPException:
             logger.exception(
                 "Departure announcement failed channel=%s guild=%s",
-                self.bye_channel,
+                channel_id,
                 member.guild.id,
             )
 

@@ -9,6 +9,9 @@ from cogs.booster._custom_resource_ui import (
     BoosterRoomCreatorView,
     RoomDesignDraft,
 )
+from cogs.booster._room_helpers import custom_room_category, custom_room_denial, private_room_overwrites
+from cogs.economy._shop_rentals import paid_resource_denial
+from cogs.roles._personal_roles import personal_resource_lock, resolve_personal_room
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +22,7 @@ class BoosterCustomRoomCog(commands.Cog):
         self.bot = bot
         self.db = bot.db
         self.collection = self.db["booster_custom_rooms"]
-        self._member_locks: dict[tuple[int, int], asyncio.Lock] = {}
+        self.shop_rooms = self.db["shop_custom_rooms"]
 
     def _is_booster(self, member: discord.Member) -> bool:
         return member.premium_since is not None
@@ -30,30 +33,13 @@ class BoosterCustomRoomCog(commands.Cog):
         return guild.get_member(self.bot.user.id)
 
     def _get_member_lock(self, guild_id: int, user_id: int) -> asyncio.Lock:
-        return self._member_locks.setdefault((guild_id, user_id), asyncio.Lock())
+        return personal_resource_lock(self.bot, guild_id, user_id, "custom_room")
 
     def _get_category(
         self,
         guild: discord.Guild,
     ) -> discord.CategoryChannel | None:
-        if not hasattr(self.bot, "global_vars"):
-            return None
-
-        category_value = self.bot.global_vars.get(
-            "BOOSTER_CUSTOM_VOICE_CATEGORY_ID"
-        )
-        if not category_value:
-            return None
-
-        try:
-            category_id = int(category_value)
-        except (TypeError, ValueError):
-            return None
-
-        channel = guild.get_channel(category_id)
-        if isinstance(channel, discord.CategoryChannel):
-            return channel
-        return None
+        return custom_room_category(self.bot, guild)
 
     def _base_denial(
         self,
@@ -63,19 +49,7 @@ class BoosterCustomRoomCog(commands.Cog):
     ) -> str | None:
         if not self._is_booster(member):
             return "Bạn cần là Booster để dùng lệnh này."
-        bot_member = self._get_bot_member(guild)
-        if not bot_member or not bot_member.guild_permissions.manage_channels:
-            return "Bot đang thiếu quyền Manage Channels."
-        if not bot_member.guild_permissions.manage_roles:
-            return "Bot đang thiếu quyền Manage Roles để tạo quyền riêng cho phòng."
-        if category is None:
-            return "Chưa cài đặt category cho custom room."
-        category_permissions = category.permissions_for(bot_member)
-        if not category_permissions.manage_channels:
-            return "Bot không có quyền Manage Channels trong category custom room."
-        if not category_permissions.manage_roles:
-            return "Bot không có quyền Manage Roles trong category custom room."
-        return None
+        return custom_room_denial(self._get_bot_member(guild), category)
 
     async def _existing_room_denial(
         self,
@@ -110,6 +84,16 @@ class BoosterCustomRoomCog(commands.Cog):
                     return "Không thể xác minh custom room hiện tại. Vui lòng thử lại."
             if existing is not None:
                 return "Bạn đã có custom room rồi."
+        try:
+            denial = paid_resource_denial(self.db, guild.id, member.id, "custom_room")
+            if denial:
+                return denial
+            record = self.shop_rooms.find_one({"guild_id": guild.id, "user_id": member.id})
+            if await resolve_personal_room(guild, record) is not None:
+                return "Bạn đã có phòng từ cửa hàng. Hãy dùng `shop use custom_room`."
+        except Exception:
+            logger.exception("Could not verify purchased room for booster")
+            return "Không thể kiểm tra phòng lúc này. Vui lòng thử lại."
         return None
 
     def _private_overwrites(
@@ -120,30 +104,7 @@ class BoosterCustomRoomCog(commands.Cog):
     ) -> dict[discord.Role | discord.Member, discord.PermissionOverwrite]:
         # Do not inherit category role allows: an allow for a broad role (for
         # example the Booster role) would expose every supposedly private room.
-        overwrites: dict[
-            discord.Role | discord.Member,
-            discord.PermissionOverwrite,
-        ] = {}
-        everyone = discord.PermissionOverwrite()
-        everyone.view_channel = False
-        everyone.connect = False
-        overwrites[guild.default_role] = everyone
-
-        owner = discord.PermissionOverwrite()
-        owner.view_channel = True
-        owner.connect = True
-        owner.manage_channels = True
-        owner.manage_permissions = True
-        owner.move_members = True
-        overwrites[member] = owner
-
-        bot_overwrite = discord.PermissionOverwrite()
-        bot_overwrite.view_channel = True
-        bot_overwrite.connect = True
-        bot_overwrite.manage_channels = True
-        bot_overwrite.manage_permissions = True
-        overwrites[bot_member] = bot_overwrite
-        return overwrites
+        return private_room_overwrites(guild, member, bot_member)
 
     async def _delete_untracked_room(
         self,

@@ -28,7 +28,7 @@ CORE_ENVIRONMENT_VARIABLES = (
     "DISCORD_TOKEN", "DB_METHOD", "DB_USERNAME", "DB_PASSWORD", "DB_HOST",
 )
 PROOF_MODULES = frozenset({
-    "cogs.utils.quote", "cogs.funny_things.femboy_card", "cogs.utils.hash_verify",
+    "cogs.utils.quote", "cogs.funny_things.cards.femboy_card", "cogs.utils.hash_verify",
     "cogs.utils.softotp",
 })
 BOORU_ENVIRONMENT = {
@@ -57,7 +57,7 @@ CHANNEL_REQUIREMENTS = (
     ChannelRequirement("RULE_CHANNEL", ("cogs.announcement.welcome",), (), "reference"),
     ChannelRequirement("ROLE_CHANNEL", ("cogs.announcement.welcome",), (), "reference"),
     ChannelRequirement("BYE_CHANNEL", ("cogs.announcement.goodbye",)),
-    ChannelRequirement("BIRTHDAY_CHANNEL", ("cogs.funny_things.birthday",)),
+    ChannelRequirement("BIRTHDAY_CHANNEL", ("cogs.funny_things.birthday.birthday",)),
     ChannelRequirement(
         "HIGHLIGHT_CHANNEL", ("cogs.utils.highlight",),
         MESSAGE_PERMISSIONS + ("attach_files",),
@@ -80,14 +80,19 @@ CHANNEL_REQUIREMENTS = (
         GAME_PERMISSIONS, array=True,
     ),
     ChannelRequirement(
-        "BOOSTER_CUSTOM_VOICE_CATEGORY_ID", ("cogs.booster.create_custom_room",),
+        "BOOSTER_CUSTOM_VOICE_CATEGORY_ID",
+        ("cogs.booster.create_custom_room", "cogs.economy.shop_custom_room"),
         ("manage_channels", "manage_roles"), "category",
     ),
 )
 # The final value determines whether the bot must be able to assign/manage the role.
 ROLE_REQUIREMENTS = (
     ("FALLEN_FEMBOY_ROLE_ID", ("cogs.mod.verified",), True),
-    ("BOOSTER_CUSTOM_ROLE_ANCHOR_ID", ("cogs.booster.create_custom_role",), True),
+    (
+        "BOOSTER_CUSTOM_ROLE_ANCHOR_ID",
+        ("cogs.booster.create_custom_role", "cogs.economy.shop_custom_role"),
+        True,
+    ),
     ("KING_ROLE_ID", ("cogs.interaction.nsfw_interaction", "cogs.interaction.nsfw_super_user"), False),
     ("QUEEN_ROLE_ID", ("cogs.interaction.nsfw_interaction", "cogs.interaction.nsfw_super_user"), False),
 )
@@ -95,10 +100,15 @@ GUILD_PERMISSION_MODULES = {
     "manage_roles": (
         "cogs.mod.role", "cogs.mod.mute", "cogs.mod.softban", "cogs.mod.verified",
         "cogs.onboarding.role_exam", "cogs.economy.shop",
+        "cogs.economy.shop_custom_role",
+        "cogs.economy.shop_custom_room",
         "cogs.booster.create_custom_role", "cogs.booster.update_custom_role",
         "cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted",
     ),
-    "manage_channels": ("cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted"),
+    "manage_channels": (
+        "cogs.booster.create_custom_room", "cogs.booster.janitor_unboosted",
+        "cogs.economy.shop_custom_room",
+    ),
     "kick_members": ("cogs.mod.kick",),
     "ban_members": (
         "cogs.mod.ban", "cogs.mod.unban", "cogs.mod.area_51_guard",
@@ -228,12 +238,12 @@ def _check_runtime(bot: commands.Bot, modules: set[str]) -> list[SetupCheck]:
     required_intents = {"guilds", "guild_messages", "message_content"}
     if _enabled(modules, (
         "cogs.announcement.welcome", "cogs.announcement.goodbye",
-        "cogs.funny_things.birthday", "cogs.booster.janitor_unboosted",
+        "cogs.funny_things.birthday.birthday", "cogs.booster.janitor_unboosted",
         "cogs.operation.operation_dashboard",
     )):
         required_intents.add("members")
     if _enabled(modules, (
-        "cogs.utils.highlight", "cogs.utils.vote", "cogs.minigames.sicbo.sicbo",
+        "cogs.utils.highlight", "cogs.utils.vote",
     )):
         required_intents.add("guild_reactions")
     for name in sorted(required_intents):

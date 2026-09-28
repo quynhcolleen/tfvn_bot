@@ -14,11 +14,11 @@ For a complete list of commands and automatic features, see [FUNCTIONS.md](FUNCT
 - **Community management:** welcome and differentiated leave/kick/ban announcements, verification, AFK tracking, birthdays, scheduled bedtime reminders, votes, and giveaways.
 - **Moderation:** kick, ban/unban, soft-ban, mute, timeout, warnings, numbered audit cases, message cleanup, slow mode, nickname/role tools, the Area 51 guard workflow, and a MrBeast photo-dump raid filter (3rd dump in two minutes: 30-second confirm button or 24-hour timeout; 5th dump: timeout immediately plus a private staff decision panel).
 - **Booster perks:** custom roles and voice rooms, with automatic cleanup after a member stops boosting.
-- **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, a configurable role/badge shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
-- **Social and fun commands:** member interactions, rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
+- **Games and economy:** the global, persistent Tiên Lộ AFK cultivation game, daily Trap Coins, an interactive role/badge/custom-role shop, transaction history, interactive Blackjack and five-card-draw Poker, persistent multiplayer Crocodile Dentist, slots, coin flips, Sic Bo, Vietnamese word chaining (`noitu`), and Vua Tiếng Việt (`vtv`).
+- **Social and fun commands:** member interactions, pair streaks (mention, reply, or shared voice), rankings, avatars, random members, community-themed cards, and a collection of playful “meter” commands.
 - **Operations:** an Administrator dashboard for bot/server health, private Doctor diagnostics, guild command auditing, CSV export, and guarded log pruning, with private Bot owner panels for joined-server management and recent lifecycle history.
 - **Optional age-restricted features:** NSFW interactions and Rule34/Gelbooru searches, guarded by Discord's NSFW channel setting.
-- **Persistent state:** MongoDB-backed balances, cultivation profiles, interactions, Crocodile Dentist games, game context, reminders, settings, giveaways, booster resources, moderation data, signed content proofs, guild command audit logs, and append-only bot lifecycle events.
+- **Persistent state:** MongoDB-backed balances, cultivation profiles, interactions, pair streaks, Crocodile Dentist games, game context, reminders, settings, giveaways, booster resources, moderation data, signed content proofs, guild command audit logs, and append-only bot lifecycle events.
 
 ## How it works
 
@@ -32,7 +32,7 @@ Cog loading depends on `ENVIRONMENT`:
 `DISABLED_COGS` accepts comma-separated dotted paths or wildcard patterns and
 skips matching extensions before import.
 
-The settings cog is always prioritized when present. It loads the MongoDB `global_variables` collection into `bot.global_vars` before feature cogs initialize. If an individual cog is missing its required configuration, the loader reports that failure and continues loading the remaining cogs.
+The settings cog is always prioritized when present. It loads welcome/departure announcement settings into `bot.guild_vars[guild_id]` and retains the flat `bot.global_vars` cache for legacy feature configuration. Announcement settings are resolved for the event's guild at use time. The settings commands manage announcements only. Extension startup failures are reported without stopping the remaining cogs.
 
 ## Requirements
 
@@ -148,9 +148,9 @@ async def new_preview(ctx: commands.Context) -> None:
 ```
 
 The callback is loaded with the normal bot, but runs only when the member has at
-least one role configured by `BETA_ROLE_IDS`. Set it as an `ARRAY` with
-`!tf setting set_variable BETA_ROLE_IDS`, one role ID per line.
-This setting is read only from MongoDB's `global_variables`; `.env` role values
+least one role configured by the legacy `BETA_ROLE_IDS` array in MongoDB
+`global_variables`. The announcement settings commands do not manage this array.
+This setting is read only from MongoDB; `.env` role values
 are ignored. Denied checks receive a safe message instead of running the
 callback. The shipped `!tf beta_preview` command can verify the configuration.
 
@@ -186,21 +186,59 @@ python main.py
 
 When startup succeeds, the console prints `Bot is ready!`. Runtime output is also appended to `bot.log`.
 
-## Server-specific settings
+## Announcement settings
 
-Most server IDs and feature assets used by the feature cogs are stored in MongoDB rather than `.env` (`INVITE_LINK` and `VERIFY_CHANNEL` are notable environment-based settings). With `cogs.settings.variable_setting` loaded, an administrator can set a value interactively:
+The settings commands configure welcome and leave/kick/ban announcements for
+the current server. With `cogs.settings.variable_setting` loaded, an
+administrator can set or read an announcement value:
 
 ```text
 !tf setting set_variable JOIN_CHANNEL
+!tf setting get_variable JOIN_CHANNEL
 ```
 
-The bot then asks whether the value is a `STRING` or `ARRAY` and prompts for its contents. Restart the bot after adding settings needed by cogs that previously failed to initialize.
+The set command prompts directly for the value and stores it as a `STRING`.
+Both commands accept only the seven keys below, require Administrator, and
+cannot be used in DMs. Values automatically use the current server's ID and
+apply immediately. Prompts expire after 120 seconds; enter `cancel` to stop.
 
-Common settings include:
+Announcement records use `{guild_id, name, type, value}` with a unique
+`(guild_id, name)` index, cached in `bot.guild_vars[guild_id][name]`. Announcement
+lookups never fall back to legacy shared channel IDs. Existing unscoped feature
+records continue to load into the flat `bot.global_vars[name]` cache for
+compatibility; these commands cannot read or modify them.
 
-| Feature | MongoDB global variables | Type |
+| Guild announcement variables | Type |
+| --- | --- |
+| `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL` | `STRING` |
+| `WELCOME_GIF_URL`, `GOODBYE_GIF_URL`, `BANNED_GIF_URL` | `STRING` |
+
+Welcome messages require `JOIN_CHANNEL`, `RULE_CHANNEL`, and `ROLE_CHANNEL` to
+point to channels in that server. Departure messages require `BYE_CHANNEL`.
+GIF overrides are optional HTTP(S) URLs; missing or invalid values use bundled
+images. These keys are read from MongoDB, not from same-named `.env` entries.
+Other features keep their existing configuration. `INVITE_LINK` and
+`VERIFY_CHANNEL` still use `.env`.
+
+When upgrading an existing deployment, stop the old bot, copy your legacy settings
+for announcements to the intended server, then start the updated bot. Replace `123456789012345678`
+with your server ID (Discord Developer Mode → right-click server → Copy Server ID):
+
+```powershell
+python scripts/migrate_guild_variables.py --guild-id 123456789012345678
+python scripts/migrate_guild_variables.py --guild-id 123456789012345678 --apply
+```
+
+The first command previews counts without writing. `--apply` copies missing
+announcement values only, preserves existing guild settings, and retains source
+records. It does not import `.env`. Both commands are safe to rerun. Restart the
+bot or reload the settings cog after running the migration. No migration runs
+automatically.
+
+Existing feature configuration remains compatible with the flat cache:
+
+| Feature | Shared MongoDB variables | Type |
 | --- | --- | --- |
-| Join and leave/kick/ban announcements | `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL` | `STRING` |
 | Birthday announcements | `BIRTHDAY_CHANNEL` | `STRING` |
 | Chat highlights | `HIGHLIGHT_CHANNEL` | `STRING` |
 | Word games | `WORD_CONNECT_GAMES_CHANNELS`, `VIETNAMESE_KING_GAMES_CHANNELS` | `ARRAY` |
@@ -223,7 +261,9 @@ Replace pools that already exist (needed after adding or expanding `GANGBANG_GIF
 python scripts/migrate_nsfw_gifs.py --overwrite
 ```
 
-`ORGY_GIFS` is not in that seed file; set it with `!tf setting set_variable ORGY_GIFS`. Reload `cogs.interaction.nsfw_interaction` or restart the bot after changing GIF arrays.
+`ORGY_GIFS` is not in that seed file.
+Restart the bot after running the seed script, or reload the settings cog followed
+by `cogs.interaction.nsfw_interaction`.
 
 The booster role anchor is optional; without it, Discord keeps the custom role at its default position. `BOOSTER_CUSTOM_VOICE_CATEGORY_ID` is required for custom rooms so their private category placement and permission overwrites are deterministic. The word-chain move icons also have built-in emoji defaults.
 
@@ -238,8 +278,8 @@ commands rather than `setting set_variable`:
 | System | Initial configuration |
 | --- | --- |
 | Moderation cases | `!tf case log_channel #mod-log` |
-| MrBeast photo-dump alerts | `!tf setting set_variable MRBEAST_SCAM_ALERT_CHANNEL` (falls back to the case log channel) |
-| Shop | Add a role or badge item; no separate setup command is required |
+| MrBeast photo-dump alerts | Existing `MRBEAST_SCAM_ALERT_CHANNEL` configuration, with fallback to the case log channel |
+| Shop | Add a role, badge, or custom-role listing; no separate setup command is required |
 
 The role exam uses the repository file `data/role_exam.json` instead of MongoDB.
 Use JSON `null` for `role_id` to leave the reward unconfigured. After replacing
@@ -274,7 +314,7 @@ menu focused on their respective topics.
 | --- | --- |
 | General | `help [topic]`, `hello`, `invite`, `verify`, `role_exam @user`, `self_unverified`, `ping`, `server_stats` |
 | Community | `afk`, `jobremind add`, `bedtime`, `bedtime add @member <bedtime_HH:MM> <wake_HH:MM> #channel`, `birthday`, `vote`, `giveaway` |
-| Economy and games | `daily`, `user_balance`, `user_transactions`, `shop`, `blackjack`, `poker`, `crocodile challenge`, `slot`, `flip_coin`, `sicbo_start`, `noitu`, `vtv` |
+| Economy and games | `daily`, `user_balance`, `user_transactions`, `shop`, `blackjack`, `poker`, `crocodile challenge`, `slot`, `flip_coin`, `sicbo`, `noitu`, `vtv` |
 | Tiên Lộ | `tutien`, `tutien thucong`, `tutien dotpha`, `tutien bicanh`, `tutien thiluyen`, `tutien doido` |
 | Moderation | `kick`, `ban`, `unban`, `softban`, `mute`, `timeout`, `warn`, `case`, `purge`, `slowmode`, `verified` |
 | Operations | `ping`, `server_stats`, `operation_dashboard`, `bot_status`, `setup check` |
@@ -328,6 +368,10 @@ Start a persistent profile and open its private dashboard with:
 !tf tutien
 ```
 
+The dashboard is limited to the member who opened it and has panels for Cảnh giới,
+Phái & Thiên phú, Chợ, Kho & Trang bị, and Tháp Thí Luyện & Bí Cảnh. Prefix
+subcommands remain available as fallbacks.
+
 Tiên Lộ calculates Bế Quan rewards from timestamps, so AFK progress survives bot
 restarts without a scheduler. Players choose Cân Bằng, Tĩnh Tu, or Khai Khoáng;
 advance from Phàm Nhân through Kim Đan; select Kiếm Tu, Thể Tu, or Đan Tu; allocate
@@ -378,17 +422,46 @@ press; firing a panel does not extend that deadline.
 
 ### Trap Coin shop
 
-Administrators can add permanent role or badge ownership to the guild catalog:
+`!tf shop` opens an owner-locked interactive catalog. Members select an item,
+confirm **Mua**, then **Dùng** to equip a badge, apply a purchased role, or
+design a paid custom role or private voice room. Prefix subcommands remain as shortcuts.
+
+Administrators add listings to the guild catalog:
 
 ```text
 !tf shop add_role pink 100 @Pink A cosmetic pink role
 !tf shop add_badge helper 250 Community Helper
+!tf shop add_custom_role 5000 Role tùy chỉnh với tên và màu riêng
+!tf shop add_custom_room 5000 Phòng voice riêng trong 30 ngày
 ```
 
-Members use `shop`, `shop buy <item_id>`, `shop inventory`, and
-`shop use <item_id>`. Purchases deduct balances atomically, reject duplicate
-ownership, and write to `transaction_logs`. A badge remains owned when it is
-unequipped.
+The IDs `custom_role` and `custom_room` are reserved for 30-day rentals. Use
+`shop buy <id>` to buy or renew and `shop use <id>` to create or edit the resource.
+Payment starts the clock even before creation. Each renewal adds 30 days to the
+remaining time, or starts 30 days from payment if already expired. Prices are
+charged per purchase; there is no automatic renewal.
+
+Members may have one personal role and one private room across booster and shop
+perks. Paid time reserves that resource before creation. Rooms use
+`BOOSTER_CUSTOM_VOICE_CATEGORY_ID` and require Manage Channels and Manage Roles
+in the guild and category. They start private; editing preserves sharing settings.
+
+The rental cogs delete expired resources on startup and every 60 seconds, retrying
+failed Discord deletions. They must remain loaded for automatic cleanup. Leaving
+deletes the Discord resource but keeps remaining paid time for recreation after
+rejoining. Ordinary catalog roles, badges, and booster expiry rules stay unchanged.
+
+Existing shop custom-role inventory without expiry receives one automatic 30-day
+grace period on upgrade. The persisted `shop_migrations` marker prevents restarts
+from extending it. Migration failures pause rental purchase/use and expiry cleanup
+until a retry succeeds. Purchases use atomic balance debits, conditional renewal
+updates, compensating refunds, and `transaction_logs` including the new expiry.
+
+For development, load `cogs.economy.shop`, `cogs.economy.shop_custom_role`, and
+`cogs.economy.shop_custom_room` with the settings cog. To verify expiry live, use a
+disposable test member/resource and set only that test inventory row's `expires_at`
+to a past UTC time with `expiry_cleanup_pending=true`; within a minute the resource
+should be deleted, inventory retained, and another purchase should permit recreation.
 
 ### Moderation cases
 
@@ -443,11 +516,12 @@ extensions that failed to load; disabled features and known other-server targets
 are skipped. Channel permission overrides are checked separately from server
 permissions, and role hierarchy is checked only for roles the bot manages.
 Missing optional settings do not produce warnings. The scan uses current process
-environment and runtime configuration, flags settings that need a cog reload,
+environment and legacy shared configuration, flags settings that need a cog reload,
 and does not reload `.env`, change settings, or store reports. Secrets and raw
 exception messages are never included in diagnostics. MongoDB checks run in a
 worker thread with a five-second deadline, so a database failure still leaves
-other findings available.
+other findings available. Doctor retains its legacy configuration checks and
+does not inspect announcement overrides in `bot.guild_vars`.
 
 If the invoking Administrator is also the Bot owner, `operation_dashboard` adds private
 panels for the bot's joined servers and lifecycle history. The server manager can
@@ -517,7 +591,36 @@ The GitHub Actions workflow also builds and publishes container images to GitHub
 
 ## Tests
 
-Run the unit-test suite from the repository root:
+Follow [HOW_TO_IMPLEMENT_FEATURE.md](HOW_TO_IMPLEMENT_FEATURE.md) when adding or
+changing a feature. Install development dependencies from the repository root:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+```
+
+During development, run only the affected tests, for example:
+
+```powershell
+python -m pytest test/test_highlight.py -k prompt -q
+python -m pytest test/test_highlight.py -q
+```
+
+Run the full suite once implementation, tests, development checks, documentation,
+and diff review are complete:
+
+```powershell
+python -m pytest
+```
+
+Use focused tests while fixing failures, then repeat the full run after fixes are
+complete. Documentation-only and behavior-neutral copy edits need text/link/diff
+checks and any affected existing tests instead of the full suite.
+
+`pytest.ini` discovers `test/test_*.py`, including the existing `unittest` tests.
+The manual `test/word_stardardlize.py` data utility is excluded. Tests mock external
+services and do not need Discord tokens, MongoDB, or a `.env` file.
+
+The standard-library runner remains available:
 
 ```powershell
 python -m unittest discover -s test -p "test_*.py"
@@ -527,6 +630,27 @@ The automated tests cover cultivation calculations and state transitions, card-g
 rules and wagers, persistent Crocodile Dentist and bedtime-reminder behavior, the
 categorized help menu, meter formatting, quote-card rendering, cog flags, and
 validation helpers used by the shop, cases, and setup diagnostics.
+
+### Required PR check
+
+`.github/workflows/tests.yml` runs the full suite with Python 3.11 on every pull
+request, on pushes to `main`, `prod`, and `op/dockered`, and for merge queues. The
+`pytest` check fails if a test fails, collection fails, or no tests are collected.
+
+To block merging failing PRs, configure GitHub after pushing the workflow:
+
+1. Let the workflow run once so GitHub can list the `pytest` check.
+2. Open **Settings → Branches → Branch protection rules** and add or edit a rule
+   for each target branch you want to protect (for example, `main` and `prod`).
+3. Enable **Require a pull request before merging** and **Require status checks
+   to pass before merging**, then select `pytest` from GitHub Actions.
+4. Enable **Require branches to be up to date before merging** and **Do not allow
+   bypassing the above settings**, then save the rule.
+
+Branch protection is a GitHub repository setting; the workflow alone reports
+failures but does not prevent merging. With the required check enabled, failing
+PRs stay open and cannot merge until the check passes. See GitHub's
+[required status check documentation](https://docs.github.com/en/pull-requests/reference/status-checks).
 
 ## Project structure
 
@@ -542,17 +666,17 @@ tfvn_bot/
 │   ├── _hash_verification.py # Signed content-proof issuance and validation
 │   ├── bedtime_remind/     # Persistent UTC+7 bedtime schedules, admin UI, and chat reminders
 │   ├── settings/           # Mongo-backed runtime variables
-│   ├── economy/            # Trap Coin shop, inventory, badges, and role items
+│   ├── economy/            # Trap Coin shop hub, catalog products, and custom roles
 │   ├── cultivation/        # Tiên Lộ progression, AFK calculations, PvE, and economy
 │   ├── mod/                # Moderation and verification
 │   ├── operation/          # Health/audit UI, owner controls, and lifecycle events
 │   ├── booster/            # Booster custom roles/rooms and cleanup
 │   ├── minigames/          # Economy/card, persistent multiplayer, and Vietnamese word games
-│   ├── funny_things/       # Fun meters, cards, and birthday features
+│   ├── funny_things/       # Fun meters, cards, birthday, and tarot features
 │   ├── interaction/        # Social and optional NSFW interactions
 │   └── ...
 ├── data/                   # Word lists, filters, and game datasets
-├── assets/                 # GIF and media constants
+├── assets/                 # GIF constants, lunch media, and public-domain tarot scans
 ├── fonts/                  # Bundled quote-card fonts, licenses, and source notes
 ├── scripts/                # One-off data preparation/migration utilities
 ├── test/                   # Unit tests and development utilities

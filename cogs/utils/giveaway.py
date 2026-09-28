@@ -1,20 +1,37 @@
 import asyncio
 import logging
-import random
-import re
 from datetime import datetime, timedelta, timezone
 
 import discord
 from discord.ext import commands
 from pymongo import ASCENDING, ReturnDocument
 
+from cogs.utils._giveaway_helpers import (
+    MAX_WINNERS,
+    GiveawayCreateError,
+    GiveawayFormError,
+    GiveawayRoleSettings,
+    can_manage_giveaway,
+    describe_role_settings,
+    entry_weight,
+    format_duration,
+    is_blacklisted,
+    member_role_ids,
+    parse_giveaway_form,
+    pick_weighted_winners,
+    settings_from_mapping,
+)
+from cogs.utils._giveaway_ui import (
+    GiveawayCreateView,
+    GiveawaySettingsView,
+    NO_MENTIONS,
+)
+
 
 GIVEAWAY_COLLECTION = "giveaways"
+GIVEAWAY_SETTINGS_COLLECTION = "giveaway_settings"
 GIVEAWAY_BUTTON_CUSTOM_ID = "tfvn:giveaway:join"
 GIVEAWAY_LEAVE_BUTTON_CUSTOM_ID = "tfvn:giveaway:leave"
-MAX_WINNERS = 20
-MIN_DURATION_SECONDS = 10
-MAX_DURATION_SECONDS = 60 * 60 * 24 * 30  # 30 days
 UPDATE_DEBOUNCE_SECONDS = 2.0
 # Discord embed field value hard limit
 MAX_EMBED_FIELD_CHARS = 1024
@@ -117,10 +134,16 @@ class GiveawayCog(commands.Cog):
         self.logger = logging.getLogger(__name__)
         self.pending_giveaways: dict[int, asyncio.Task] = {}
         self._update_tasks: dict[int, asyncio.Task] = {}
+        self._ui_views: set[discord.ui.View] = set()
         self._synced_startup = False
+        self._unloading = False
         self._ensure_indexes()
 
     def cog_unload(self) -> None:
+        self._unloading = True
+        for view in tuple(self._ui_views):
+            view.stop()
+        self._ui_views.clear()
         for task in self.pending_giveaways.values():
             task.cancel()
         for task in self._update_tasks.values():
@@ -134,6 +157,10 @@ class GiveawayCog(commands.Cog):
     @property
     def collection(self):
         return self.db[GIVEAWAY_COLLECTION]
+
+    @property
+    def settings_collection(self):
+        return self.db[GIVEAWAY_SETTINGS_COLLECTION]
 
     def _ensure_indexes(self) -> None:
         """Indexes so giveaways + entrants survive restarts and stay queryable."""
@@ -155,52 +182,54 @@ class GiveawayCog(commands.Cog):
                 [("entries", ASCENDING)],
                 name="entries_user",
             )
+            self.settings_collection.create_index(
+                [("guild_id", ASCENDING)],
+                unique=True,
+                name="giveaway_settings_guild_unique",
+            )
         except Exception:
             self.logger.exception("Failed to ensure giveaway indexes")
 
-    def parse_duration(self, duration: str) -> int:
-        matches = re.findall(r"(\d+)([dhms])", duration.lower().replace(" ", ""))
-        if not matches:
-            raise ValueError("Invalid duration")
+    def get_guild_settings(self, guild_id: int | None) -> GiveawayRoleSettings:
+        if guild_id is None:
+            return GiveawayRoleSettings()
+        try:
+            document = self.settings_collection.find_one({"guild_id": int(guild_id)})
+        except Exception:
+            self.logger.exception(
+                "Failed to load giveaway settings guild=%s",
+                guild_id,
+            )
+            return GiveawayRoleSettings()
+        return settings_from_mapping(document)
 
-        total_seconds = 0
-        for value, unit in matches:
-            amount = int(value)
-            if unit == "d":
-                total_seconds += amount * 86400
-            elif unit == "h":
-                total_seconds += amount * 3600
-            elif unit == "m":
-                total_seconds += amount * 60
-            elif unit == "s":
-                total_seconds += amount
+    def save_guild_settings(
+        self,
+        guild_id: int,
+        settings: GiveawayRoleSettings,
+        *,
+        updated_by: int,
+    ) -> GiveawayRoleSettings:
+        payload = {
+            "guild_id": int(guild_id),
+            **settings.to_document(),
+            "updated_at": _mongo_utc(),
+            "updated_by": int(updated_by),
+        }
+        self.settings_collection.update_one(
+            {"guild_id": int(guild_id)},
+            {"$set": payload},
+            upsert=True,
+        )
+        return settings
 
-        if total_seconds <= 0:
-            raise ValueError("Duration must be positive")
-
-        return total_seconds
-
-    def format_duration(self, seconds: int) -> str:
-        units = [
-            ("ngày", 86400),
-            ("giờ", 3600),
-            ("phút", 60),
-            ("giây", 1),
-        ]
-        parts = []
-
-        for name, unit_seconds in units:
-            value, seconds = divmod(seconds, unit_seconds)
-            if value:
-                parts.append(f"{value} {name}")
-
-        return " ".join(parts) if parts else "0 giây"
-
-    def _usage_text(self) -> str:
-        prefix = self.bot.command_prefix
+    def _usage_text(self, prefix: str | None = None) -> str:
+        prefix = prefix if prefix is not None else self.bot.command_prefix
         return (
             f"**Cách dùng:**\n"
-            f"`{prefix}giveaway <thời gian> [số người thắng] <phần thưởng>` — tạo giveaway\n"
+            f"`{prefix}giveaway` — mở biểu mẫu Discord để tạo giveaway\n"
+            f"`{prefix}giveaway <thời gian> [số người thắng] <phần thưởng>` — tạo nhanh\n"
+            f"`{prefix}giveaway settings` — role cấm tham gia và role tăng tỉ lệ thắng\n"
             f"`{prefix}giveaway list` — danh sách giveaway đang chạy\n"
             f"`{prefix}giveaway entries [message_id]` — ai đã join\n"
             f"`{prefix}giveaway end [message_id]` — kết thúc sớm (host/mod)\n"
@@ -266,14 +295,7 @@ class GiveawayCog(commands.Cog):
 
     def _is_admin_or_mod(self, member: discord.Member | discord.User) -> bool:
         """Admin or mod: Administrator, Manage Server, or Manage Messages."""
-        if not isinstance(member, discord.Member):
-            return False
-        perms = member.guild_permissions
-        return bool(
-            perms.administrator
-            or perms.manage_guild
-            or perms.manage_messages
-        )
+        return can_manage_giveaway(member)
 
     def _is_host_or_mod(
         self,
@@ -283,6 +305,146 @@ class GiveawayCog(commands.Cog):
         if member.id == giveaway.get("host_id"):
             return True
         return self._is_admin_or_mod(member)
+
+    async def _open_create_form(self, ctx: commands.Context) -> None:
+        if ctx.guild is None:
+            await ctx.reply(self._usage_text(ctx.clean_prefix), mention_author=False)
+            return
+        view = GiveawayCreateView(
+            self,
+            guild_id=ctx.guild.id,
+            author_id=ctx.author.id,
+            channel_id=ctx.channel.id,
+            prefix=ctx.clean_prefix,
+            settings=self.get_guild_settings(ctx.guild.id),
+        )
+        self._ui_views.add(view)
+        try:
+            view.message = await ctx.reply(
+                embed=view.build_embed(),
+                view=view,
+                mention_author=False,
+                allowed_mentions=NO_MENTIONS,
+            )
+        except discord.HTTPException:
+            view.stop()
+            raise
+        finally:
+            if view.message is None:
+                view.stop()
+
+    async def _open_settings_panel(self, ctx: commands.Context) -> None:
+        if ctx.guild is None:
+            await ctx.reply(self._usage_text(ctx.clean_prefix), mention_author=False)
+            return
+        view = GiveawaySettingsView(
+            self,
+            guild_id=ctx.guild.id,
+            author_id=ctx.author.id,
+            prefix=ctx.clean_prefix,
+            settings=self.get_guild_settings(ctx.guild.id),
+        )
+        self._ui_views.add(view)
+        try:
+            view.message = await ctx.reply(
+                embed=view.build_embed(),
+                view=view,
+                mention_author=False,
+                allowed_mentions=NO_MENTIONS,
+            )
+        except discord.HTTPException:
+            view.stop()
+            raise
+        finally:
+            if view.message is None:
+                view.stop()
+
+    async def start_giveaway(
+        self,
+        *,
+        guild_id: int | None,
+        channel: discord.abc.Messageable,
+        host_id: int,
+        prize: str,
+        winner_count: int,
+        seconds: int,
+        settings: GiveawayRoleSettings | None = None,
+    ) -> tuple[discord.Message, dict]:
+        channel_id = getattr(channel, "id", None)
+        if channel_id is None or not hasattr(channel, "send"):
+            raise GiveawayCreateError(
+                "Không tìm thấy kênh để đăng giveaway. Hãy gọi lại lệnh trong kênh text."
+            )
+
+        created_at = _mongo_utc()
+        end_at = created_at + timedelta(seconds=seconds)
+        role_settings = settings or self.get_guild_settings(guild_id)
+        giveaway_doc = {
+            "guild_id": guild_id,
+            "channel_id": int(channel_id),
+            "host_id": int(host_id),
+            "message_id": 0,
+            "prize": prize,
+            "winner_count": winner_count,
+            "entries": [],
+            "entry_meta": {},
+            "winner_ids": [],
+            "reroll_history": [],
+            "created_at": created_at,
+            "updated_at": created_at,
+            "end_at": end_at,
+            "ended": False,
+            **role_settings.to_document(),
+        }
+
+        view = GiveawayView(self)
+        try:
+            message = await channel.send(
+                embed=self._giveaway_embed(giveaway_doc),
+                view=view,
+                allowed_mentions=NO_MENTIONS,
+            )
+        except discord.Forbidden as error:
+            raise GiveawayCreateError(
+                "Bot không gửi được tin nhắn giveaway trong kênh này."
+            ) from error
+        except discord.HTTPException as error:
+            self.logger.exception("Failed to send giveaway message")
+            raise GiveawayCreateError(
+                "Không thể tạo giveaway. Vui lòng thử lại."
+            ) from error
+
+        view.message_id = message.id
+        giveaway_doc["message_id"] = int(message.id)
+        self.bot.add_view(
+            GiveawayView(self, message.id),
+            message_id=message.id,
+        )
+
+        try:
+            self.collection.insert_one(giveaway_doc)
+        except Exception as error:
+            self.logger.exception(
+                "Failed to persist giveaway message_id=%s to database",
+                message.id,
+            )
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            raise GiveawayCreateError(
+                "Không thể tạo giveaway. Vui lòng thử lại."
+            ) from error
+
+        self._track_giveaway(giveaway_doc)
+        self.logger.info(
+            "Created giveaway message_id=%s guild=%s prize=%r end_at=%s",
+            message.id,
+            giveaway_doc.get("guild_id"),
+            giveaway_doc.get("prize"),
+            end_at,
+        )
+        return message, giveaway_doc
 
     async def _resolve_message_id(
         self,
@@ -324,6 +486,13 @@ class GiveawayCog(commands.Cog):
             value=str(winner_count),
             inline=True,
         )
+        role_settings = settings_from_mapping(giveaway)
+        if role_settings.blacklist_role_ids or role_settings.bonus_role_ids:
+            embed.add_field(
+                name="Role",
+                value=describe_role_settings(role_settings),
+                inline=False,
+            )
 
         winner_ids = giveaway.get("winner_ids") or []
         if ended:
@@ -500,12 +669,43 @@ class GiveawayCog(commands.Cog):
             return
         task.cancel()
 
-    def _pick_winners(self, entries: list[int], winner_count: int) -> list[int]:
-        unique = list(dict.fromkeys(int(e) for e in entries))
-        count = min(max(int(winner_count), 0), len(unique))
-        if count <= 0:
-            return []
-        return random.sample(unique, count)
+    def _pick_winners(
+        self,
+        entries: list[int],
+        winner_count: int,
+        weights: dict[int, int] | None = None,
+    ) -> list[int]:
+        return pick_weighted_winners(entries, winner_count, weights)
+
+    def _weights_for_entries(
+        self,
+        giveaway: dict,
+        entries: list[int],
+    ) -> tuple[list[int], dict[int, int]]:
+        settings = settings_from_mapping(giveaway)
+        meta = giveaway.get("entry_meta") or {}
+        guild_id = giveaway.get("guild_id")
+        guild = self.bot.get_guild(int(guild_id)) if guild_id else None
+        eligible: list[int] = []
+        weights: dict[int, int] = {}
+        for user_id in entries:
+            member = guild.get_member(user_id) if guild is not None else None
+            role_ids = member_role_ids(member)
+            if member is not None and is_blacklisted(role_ids, settings):
+                continue
+            stored = meta.get(str(user_id)) or meta.get(user_id) or {}
+            stored_weight = stored.get("weight") if isinstance(stored, dict) else None
+            if isinstance(stored_weight, int) and stored_weight >= 1:
+                weight = stored_weight
+            elif member is not None:
+                weight = entry_weight(role_ids, settings)
+            else:
+                weight = 1
+            if weight <= 0:
+                continue
+            eligible.append(user_id)
+            weights[user_id] = weight
+        return eligible, weights
 
     async def _restore_giveaways_from_db(self) -> None:
         """Reload active giveaways + entrants from MongoDB after restart."""
@@ -637,8 +837,27 @@ class GiveawayCog(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
 
+        giveaway = self.collection.find_one({"message_id": message_id})
+        if giveaway is None or giveaway.get("ended"):
+            view.disable_buttons()
+            await interaction.followup.send(
+                "Giveaway này đã kết thúc.",
+                ephemeral=True,
+            )
+            return
+
+        settings = settings_from_mapping(giveaway)
+        role_ids = member_role_ids(interaction.user)
+        if is_blacklisted(role_ids, settings):
+            await interaction.followup.send(
+                "Role của bạn không được tham gia giveaway này.",
+                ephemeral=True,
+            )
+            return
+
         user_id = int(interaction.user.id)
         joined_at = _mongo_utc()
+        weight = entry_weight(role_ids, settings)
         # Persist entrant ID + join metadata so restarts keep the full list
         result = self.collection.find_one_and_update(
             {
@@ -653,6 +872,7 @@ class GiveawayCog(commands.Cog):
                         "user_id": user_id,
                         "joined_at": joined_at,
                         "name": str(interaction.user),
+                        "weight": weight,
                     },
                     "updated_at": joined_at,
                 },
@@ -758,7 +978,8 @@ class GiveawayCog(commands.Cog):
 
         entries = self._entry_ids(giveaway)
         winner_count = int(giveaway.get("winner_count") or 1)
-        winner_ids = self._pick_winners(entries, winner_count)
+        eligible, weights = self._weights_for_entries(giveaway, entries)
+        winner_ids = self._pick_winners(eligible, winner_count, weights)
         ended_at = _mongo_utc()
 
         # Atomic: mark ended + store winners in one write (kept in DB after restart)
@@ -842,11 +1063,12 @@ class GiveawayCog(commands.Cog):
         entries = self._entry_ids(giveaway)
         count = winner_count if winner_count is not None else giveaway.get("winner_count", 1)
         previous = {int(w) for w in (giveaway.get("winner_ids") or [])}
+        eligible, weights = self._weights_for_entries(giveaway, entries)
 
         # Prefer entrants who have not won yet; fall back to full pool
-        eligible = [uid for uid in entries if uid not in previous]
-        pool = eligible if eligible else list(entries)
-        winner_ids = self._pick_winners(pool, count)
+        unused = [uid for uid in eligible if uid not in previous]
+        pool = unused if unused else list(eligible)
+        winner_ids = self._pick_winners(pool, count, weights)
         rerolled_at = _mongo_utc()
 
         giveaway = self.collection.find_one_and_update(
@@ -888,12 +1110,21 @@ class GiveawayCog(commands.Cog):
         prize: str = None,
     ) -> None:
         if duration is None:
-            await ctx.reply(self._usage_text(), mention_author=False)
+            if self._is_admin_or_mod(ctx.author):
+                await self._open_create_form(ctx)
+            else:
+                await ctx.reply(
+                    self._usage_text(ctx.clean_prefix),
+                    mention_author=False,
+                )
             return
 
         # Subcommand names should not be treated as durations
-        if duration.lower() in {"end", "reroll", "list", "entries", "help"}:
-            await ctx.reply(self._usage_text(), mention_author=False)
+        if duration.lower() in {"end", "reroll", "list", "entries", "help", "settings", "setting"}:
+            await ctx.reply(
+                self._usage_text(ctx.clean_prefix),
+                mention_author=False,
+            )
             return
 
         if not self._is_admin_or_mod(ctx.author):
@@ -905,112 +1136,62 @@ class GiveawayCog(commands.Cog):
 
         winner_count, prize = self._split_giveaway_args(winner_or_prize, prize)
         if not prize:
-            await ctx.reply(self._usage_text(), mention_author=False)
-            return
-
-        if winner_count < 1 or winner_count > MAX_WINNERS:
             await ctx.reply(
-                f"Số người thắng phải từ 1 đến {MAX_WINNERS}.",
+                self._usage_text(ctx.clean_prefix),
                 mention_author=False,
             )
             return
 
         try:
-            seconds = self.parse_duration(duration)
-        except ValueError:
-            await ctx.reply(
-                "Thời gian không hợp lệ. Sử dụng định dạng như `10m`, `1h30m`, hoặc `2d`.",
-                mention_author=False,
+            draft = parse_giveaway_form(
+                prize=prize,
+                duration=duration,
+                winners=winner_count,
             )
+        except GiveawayFormError as error:
+            await ctx.reply(str(error), mention_author=False)
             return
-
-        if seconds < MIN_DURATION_SECONDS:
-            await ctx.reply(
-                f"Thời gian tối thiểu là {MIN_DURATION_SECONDS} giây.",
-                mention_author=False,
-            )
-            return
-
-        if seconds > MAX_DURATION_SECONDS:
-            await ctx.reply(
-                f"Thời gian tối đa là {self.format_duration(MAX_DURATION_SECONDS)}.",
-                mention_author=False,
-            )
-            return
-
-        created_at = _mongo_utc()
-        end_at = created_at + timedelta(seconds=seconds)
-        # message_id filled after send, then written to DB
-        giveaway_doc = {
-            "guild_id": ctx.guild.id if ctx.guild else None,
-            "channel_id": ctx.channel.id,
-            "host_id": int(ctx.author.id),
-            "message_id": 0,
-            "prize": prize.strip(),
-            "winner_count": winner_count,
-            # Persisted entrant list (survives bot/server restart)
-            "entries": [],
-            "entry_meta": {},
-            "winner_ids": [],
-            "reroll_history": [],
-            "created_at": created_at,
-            "updated_at": created_at,
-            "end_at": end_at,
-            "ended": False,
-        }
-
-        view = GiveawayView(self)
-        message = await ctx.send(
-            embed=self._giveaway_embed(giveaway_doc),
-            view=view,
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-        view.message_id = message.id
-        giveaway_doc["message_id"] = int(message.id)
-
-        # Register persistent view for this message across restarts
-        self.bot.add_view(
-            GiveawayView(self, message.id),
-            message_id=message.id,
-        )
 
         try:
-            self.collection.insert_one(giveaway_doc)
-        except Exception:
-            self.logger.exception(
-                "Failed to persist giveaway message_id=%s to database",
-                message.id,
+            message, giveaway_doc = await self.start_giveaway(
+                guild_id=ctx.guild.id if ctx.guild else None,
+                channel=ctx.channel,
+                host_id=int(ctx.author.id),
+                prize=draft.prize,
+                winner_count=draft.winner_count,
+                seconds=draft.seconds,
             )
-            await ctx.reply(
-                "Không thể tạo giveaway. Vui lòng thử lại.",
-                mention_author=False,
-            )
-            try:
-                await message.delete()
-            except discord.HTTPException:
-                pass
+        except GiveawayCreateError as error:
+            await ctx.reply(str(error), mention_author=False)
             return
 
-        self._track_giveaway(giveaway_doc)
-        self.logger.info(
-            "Created giveaway message_id=%s guild=%s prize=%r end_at=%s",
-            message.id,
-            giveaway_doc.get("guild_id"),
-            giveaway_doc.get("prize"),
-            end_at,
-        )
-
+        end_at = giveaway_doc["end_at"]
         await ctx.reply(
             (
-                f"Đã bắt đầu giveaway cho **{prize.strip()}** "
-                f"({winner_count} người thắng).\n"
-                f"Kết thúc sau **{self.format_duration(seconds)}** "
+                f"Đã bắt đầu giveaway cho **{draft.prize}** "
+                f"({draft.winner_count} người thắng).\n"
+                f"Kết thúc sau **{format_duration(draft.seconds)}** "
                 f"({discord.utils.format_dt(_as_utc(end_at), style='R')}).\n"
                 f"Tin nhắn: {message.jump_url}"
             ),
             mention_author=False,
-            allowed_mentions=discord.AllowedMentions.none(),
+            allowed_mentions=NO_MENTIONS,
         )
+
+    @giveaway.command(
+        name="settings",
+        aliases=["setting"],
+        help="Cài đặt role cấm tham gia và role tăng tỉ lệ thắng.",
+    )
+    @commands.guild_only()
+    async def giveaway_settings(self, ctx: commands.Context) -> None:
+        if not self._is_admin_or_mod(ctx.author):
+            await ctx.reply(
+                "Chỉ **admin** hoặc **mod** (Manage Messages / Manage Server) mới có thể đổi cài đặt giveaway.",
+                mention_author=False,
+            )
+            return
+        await self._open_settings_panel(ctx)
 
     @giveaway.command(name="list", aliases=["ls", "active"], help="Danh sách giveaway đang chạy.")
     @commands.guild_only()

@@ -140,7 +140,7 @@ HELP_TOPICS = (
         key="community",
         label="Cộng đồng",
         emoji="🫂",
-        option_description="AFK, giờ ngủ, nhắc việc, sinh nhật và sự kiện",
+        option_description="AFK, giờ ngủ, nhắc việc, sinh nhật, chuỗi và sự kiện",
         title="Cộng đồng & sự kiện",
         description="Các tiện ích giúp thành viên theo dõi và tham gia hoạt động server.",
         color=0x5865F2,
@@ -244,11 +244,15 @@ HELP_TOPICS = (
                             ),
                         ),
                         (
-                            "Không đối số mở hướng dẫn; tạo giveaway 10 giây–30 ngày, "
-                            "1–20 người thắng "
-                            "(Admin/Manage Server/Manage Messages)."
+                            "Không đối số mở biểu mẫu Discord kèm chọn role; "
+                            "lệnh chữ 10 giây–30 ngày, 1–20 người thắng (mod)."
                         ),
                         aliases=("ga",),
+                    ),
+                    _entry(
+                        "giveaway settings",
+                        "Chọn role cấm join và role tăng tỉ lệ x2–x20 cho giveaway mới.",
+                        aliases=("giveaway setting",),
                     ),
                     _entry(
                         "giveaway list",
@@ -267,21 +271,34 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "giveaway end",
-                        (
-                            "Host hoặc Admin/Manage Server/Manage Messages kết thúc sớm "
-                            "bằng ID hay reply."
-                        ),
+                        "Host hoặc mod kết thúc sớm bằng ID hay reply.",
                         "giveaway end [message_id]",
                     ),
                     _entry(
                         "giveaway reroll",
-                        (
-                            "Host hoặc Admin/Manage Server/Manage Messages chọn lại "
-                            "1–20 người thắng bằng ID hay reply."
-                        ),
+                        "Host hoặc mod chọn lại 1–20 người thắng bằng ID hay reply.",
                         "giveaway reroll [message_id] [số người thắng]",
                         aliases=("giveaway rr",),
                     ),
+                ),
+            ),
+            HelpSection(
+                name="Chuỗi tương tác",
+                entries=(
+                    _entry(
+                        "streak",
+                        "Xem chuỗi đang sống của bạn, hoặc với một member.",
+                        "streak [@user]",
+                    ),
+                    _entry(
+                        "streak top",
+                        "Top 10 chuỗi đang sống trong server.",
+                    ),
+                ),
+                note=(
+                    "Ngày theo UTC+7. Mention, trả lời, hoặc 5 phút voice chung. "
+                    "Bỏ một ngày thì chuỗi đứt. Mốc 3, 7, 30, 100 ngày ping cả hai "
+                    "trong kênh đó."
                 ),
             ),
             HelpSection(
@@ -324,10 +341,14 @@ HELP_TOPICS = (
             HelpSection(
                 name="Cửa hàng",
                 entries=(
-                    _entry("shop", "Xem vật phẩm đang bán.", aliases=("store",)),
+                    _entry(
+                        "shop",
+                        "Mở cửa hàng tương tác để mua, dùng và xem kho.",
+                        aliases=("store",),
+                    ),
                     _entry(
                         "shop buy",
-                        "Mua một vật phẩm; tối đa 2 lần mỗi 5 giây/người.",
+                        "Mua vật phẩm/gia hạn custom role hoặc phòng thêm 30 ngày; 2 lần/5 giây.",
                         "shop buy <item_id>",
                     ),
                     _entry(
@@ -336,7 +357,11 @@ HELP_TOPICS = (
                         "shop inventory [@user]",
                         aliases=("shop inv",),
                     ),
-                    _entry("shop use", "Dùng badge hoặc role đã mua.", "shop use <item_id>"),
+                    _entry(
+                        "shop use",
+                        "Dùng badge, role, hoặc thiết kế custom role/phòng còn hạn.",
+                        "shop use <item_id>",
+                    ),
                     _entry("shop unequip", "Gỡ badge đang trang bị."),
                 ),
                 note="Các lệnh quản lý số dư và danh mục shop nằm trong chủ đề Quản trị.",
@@ -361,7 +386,7 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "tutien",
-                        "Mở bảng điều khiển Tiên Lộ chỉ người gọi được sử dụng.",
+                        "Mở bảng Cảnh giới, Phái & Thiên phú, Chợ, Kho & Trang bị, Tháp Thí Luyện & Bí Cảnh.",
                         aliases=("cultivate",),
                     ),
                     _entry("tutien batdau", "Khởi tạo hồ sơ và bắt đầu Bế Quan."),
@@ -397,7 +422,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "tutien phai",
-                        "Xem phái hoặc chọn Kiếm Tu, Thể Tu, Đan Tu khi đạt Luyện Khí 1.",
+                        "Mở bảng Phái & Thiên phú, hoặc chọn Kiếm Tu, Thể Tu, Đan Tu khi đạt Luyện Khí 1.",
                         "tutien phai [kiem|the|dan]",
                     ),
                     _entry(
@@ -406,7 +431,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "tutien thienphu",
-                        "Xem talent ID, hiệu ứng, cấp hiện tại và điểm còn lại.",
+                        "Mở bảng Phái & Thiên phú với talent ID, hiệu ứng, cấp và điểm còn lại.",
                     ),
                     _entry(
                         "tutien thienphu tang",
@@ -445,14 +470,14 @@ HELP_TOPICS = (
                 entries=(
                     _entry(
                         "tutien choden",
-                        "Xem vật phẩm cơ bản và bốn ưu đãi luân phiên theo ngày ICT.",
+                        "Mở bảng Chợ với vật phẩm cơ bản và bốn ưu đãi luân phiên theo ngày ICT.",
                     ),
                     _entry(
                         "tutien mua",
                         "Mua vật phẩm từ Chợ Đen.",
                         "tutien mua <item_id>",
                     ),
-                    _entry("tutien kho", "Xem nguyên liệu và trang bị đang sở hữu."),
+                    _entry("tutien kho", "Mở bảng Kho & Trang bị để mặc, phân rã hoặc luyện."),
                     _entry(
                         "tutien trangbi",
                         "Trang bị vật phẩm thuộc một trong bốn ô cố định.",
@@ -479,7 +504,7 @@ HELP_TOPICS = (
                         "Đánh tầng kế tiếp trong tháp 30 tầng; mỗi tầng chỉ nhận thưởng một lần.",
                         "tutien thiluyen [tang]",
                     ),
-                    _entry("tutien bicanh", "Xem hướng dẫn Bí Cảnh."),
+                    _entry("tutien bicanh", "Mở bảng Tháp Thí Luyện & Bí Cảnh."),
                     _entry(
                         "tutien bicanh start",
                         "Bắt đầu chuyến đi 2/4/8 giờ với một hướng săn thưởng.",
@@ -533,27 +558,36 @@ HELP_TOPICS = (
                     _entry(
                         "blackjack",
                         (
-                            "Đánh Blackjack với nhà cái; cược 5–1.000.000 TC, "
-                            "xì dách trả 3:2 (lẻ làm tròn xuống) và hòa hoàn tiền."
+                            "Đánh Blackjack với nhà cái trên bàn bài hình; "
+                            "cược 5–1.000.000 TC, xì dách trả 3:2 "
+                            "(lẻ làm tròn xuống), hòa hoàn tiền; sau ván có "
+                            "Chơi lại và Đổi cược."
                         ),
                         "blackjack [số TC]",
                     ),
                     _entry(
                         "poker",
                         (
-                            "Đấu Poker 5 lá một lượt đổi bài với nhà cái; "
-                            "cược 5–1.000.000 TC."
+                            "Đấu Poker 5 lá một lượt đổi bài với nhà cái "
+                            "trên bàn bài hình; cược 5–1.000.000 TC; sau ván "
+                            "có Chơi lại và Đổi cược."
                         ),
                         "poker [số TC]",
                     ),
-                    _entry("slot", "Quay máy slot; mỗi lượt tốn 5 Trap Coin."),
+                    _entry(
+                        "slot",
+                        "Quay máy slot trên bàn hình; 5 TC mỗi lượt, ba giống 100 TC, hai giống 10 TC.",
+                    ),
                     _entry("flip_coin", "Đặt cược mặt đồng xu.", "flip_coin <head|tail> <số TC>"),
                     _entry(
-                        "sicbo_start",
+                        "sicbo",
                         (
-                            "Bắt đầu vòng chọn Tài/Xỉu/Bộ ba bằng reaction; "
-                            "hiện không đặt cược hoặc trả Trap Coin."
+                            "Cược Tài/Xỉu/Bộ ba trên bàn hình; Tài/Xỉu 1:1, "
+                            "Bộ ba 30:1, triple làm Tài/Xỉu thua; sau ván có "
+                            "Chơi lại và Đổi cược."
                         ),
+                        "sicbo [số TC]",
+                        aliases=("sicbo_start",),
                     ),
                 ),
             ),
@@ -709,6 +743,21 @@ HELP_TOPICS = (
                             ("yapper", "yapper [@user]"),
                         ),
                         "Các meter vui khác; nếu bỏ trống sẽ dùng chính bạn.",
+                    ),
+                ),
+            ),
+            HelpSection(
+                name="Tarot",
+                entries=(
+                    _entry(
+                        "tarot",
+                        (
+                            "Bói Tarot: 1/3/5/7 lá hoặc Celtic Cross 10 lá; "
+                            "lật từng lá hoặc lật tất cả; nút Hướng dẫn; "
+                            "tên lá bằng tiếng Anh."
+                        ),
+                        "tarot [trải] [câu hỏi]",
+                        aliases=("boi",),
                     ),
                 ),
             ),
@@ -1265,15 +1314,15 @@ HELP_TOPICS = (
                         "leave",
                         "Cho bot rời server ngay, không xác nhận — Administrator.",
                     ),
-                    _entry("setting", "Xem hướng dẫn biến runtime — Administrator."),
+                    _entry("setting", "Biến thông báo server — Admin."),
                     _entry(
                         "setting set_variable",
-                        "Đặt STRING/ARRAY qua hội thoại — Administrator.",
+                        "Đặt biến thông báo server — Admin.",
                         "setting set_variable <NAME>",
                     ),
                     _entry(
                         "setting get_variable",
-                        "Đọc biến runtime — Administrator.",
+                        "Đọc biến thông báo server — Admin.",
                         "setting get_variable <NAME>",
                     ),
                 ),
@@ -1289,7 +1338,7 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "remove_tc",
-                        "Trừ 1–1.000.000.000 TC nếu đủ số dư — Administrator.",
+                        "Trừ TC nếu đủ số dư — Administrator.",
                         "remove_tc @user <số> [lý do]",
                         aliases=("sub_tc", "subtract_tc", "take_tc"),
                     ),
@@ -1307,25 +1356,32 @@ HELP_TOPICS = (
                     ),
                     _entry(
                         "shop add_role",
-                        "Thêm role giá 1–1.000.000.000 TC vào shop — cần Manage Server.",
+                        "Thêm role vào shop.",
                         "shop add_role <id> <giá> @role [mô tả]",
                     ),
                     _entry(
                         "shop add_badge",
-                        "Thêm badge giá 1–1.000.000.000 TC — cần Manage Server.",
+                        "Thêm badge vào shop.",
                         "shop add_badge <id> <giá> <tên nhiều từ>",
                     ),
                     _entry(
+                        "shop add_custom_role",
+                        "Custom role thuê 30 ngày.",
+                        "shop add_custom_role <giá> [mô tả]",
+                    ),
+                    _entry(
+                        "shop add_custom_room",
+                        "Phòng voice riêng thuê 30 ngày.",
+                        "shop add_custom_room <giá> [mô tả]",
+                    ),
+                    _entry(
                         "shop remove",
-                        "Ẩn vật phẩm khỏi shop — cần Manage Server.",
+                        "Ẩn vật phẩm khỏi shop.",
                         "shop remove <item_id>",
                         aliases=("shop disable",),
                     ),
                 ),
-                note=(
-                    "Bốn lệnh số dư không nhận bot. Item ID dài 1–32 ký tự, bắt đầu bằng "
-                    "chữ/số và chỉ gồm chữ thường, số, `_`, `-`."
-                ),
+                note="Không cộng/trừ bot. Shop: Manage Server; 1–1.000.000.000 TC; ID 1–32.",
             ),
             HelpSection(
                 name="Triggered replies",

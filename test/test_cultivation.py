@@ -2,12 +2,19 @@ import unittest
 from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import discord
 from pymongo.errors import DuplicateKeyError
 
 from cogs.cultivation import _cultivation_helpers as rules
+from cogs.cultivation._cultivation_ui import (
+    PANEL_INVENTORY,
+    PANEL_MARKET,
+    PANEL_PATH,
+    PANEL_PVE,
+    PANEL_REALM,
+)
 from cogs.cultivation.cultivation import (
     DASHBOARD_TIMEOUT_SECONDS,
     CultivationCog,
@@ -225,6 +232,30 @@ def make_cog(accounts: list[dict] | None = None) -> tuple[CultivationCog, FakeDa
     return cog, database
 
 
+def fake_interaction(user_id: int = 42, display_name: str = "Đạo Hữu"):
+    return SimpleNamespace(
+        id=123,
+        user=SimpleNamespace(id=user_id, display_name=display_name),
+        response=SimpleNamespace(
+            send_message=AsyncMock(),
+            edit_message=AsyncMock(),
+        ),
+    )
+
+
+def child_labels(view: CultivationView) -> list[str]:
+    labels: list[str] = []
+    for child in view.children:
+        label = getattr(child, "label", None)
+        if label:
+            labels.append(str(label))
+            continue
+        placeholder = getattr(child, "placeholder", None)
+        if placeholder:
+            labels.append(str(placeholder))
+    return labels
+
+
 class TestCultivationCatalog(unittest.TestCase):
     def test_initial_release_has_complete_progression_catalog(self) -> None:
         self.assertEqual(len(rules.STAGES), 18)
@@ -264,6 +295,32 @@ class TestCultivationCatalog(unittest.TestCase):
             tuple(item.key for item in offers if not item.permanent_market),
             tuple(item.key for item in next_day if not item.permanent_market),
         )
+
+
+class TestCultivationFormatting(unittest.TestCase):
+    def test_item_and_recipe_summaries_are_deterministic(self) -> None:
+        item = rules.ITEMS["tu_linh_chau"]
+        self.assertIn("Tu Vi", rules.item_stat_summary(item))
+        self.assertEqual(rules.clip_text("abcdef", 4), "abc…")
+        recipe = rules.RECIPES["huyen_thiet_kiem"]
+        self.assertIn("500 LT", rules.recipe_cost_text(recipe))
+        discounted = fresh_state()
+        discounted.update({"path": "dan", "talents": {"luyen_dan": 5}})
+        self.assertIn("400 LT", rules.recipe_cost_text(recipe, discounted))
+
+    def test_realm_and_tower_maps_mark_current_progress(self) -> None:
+        state = fresh_state()
+        state["stage_index"] = 2
+        realm = rules.realm_map_text(state)
+        self.assertIn("**▶Tầng 2**", realm)
+        self.assertIn("✓Tầng 1", realm)
+        self.assertIn("Luyện Khí:", realm)
+
+        tower = rules.tower_map_text(10)
+        self.assertIn(" 1–5:", tower)
+        self.assertIn("👑", tower)
+        self.assertIn("⬜", tower)
+        self.assertEqual(rules.format_duration_seconds(90 * 60), "1h 30m")
 
 
 class TestCultivationState(unittest.TestCase):
@@ -1157,7 +1214,9 @@ class TestCultivationDiscordSurface(unittest.IsolatedAsyncioTestCase):
 
         kwargs = ctx.reply.await_args.kwargs
         self.assertIsInstance(kwargs["embed"], discord.Embed)
+        self.assertIn("Cảnh giới", kwargs["embed"].title)
         self.assertIsInstance(kwargs["view"], CultivationView)
+        self.assertEqual(kwargs["view"].panel, PANEL_REALM)
         self.assertIs(kwargs["view"].message, message)
 
     async def test_invalid_dashboard_action_is_ephemeral(self) -> None:
@@ -1299,6 +1358,183 @@ class TestCultivationDiscordSurface(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("tạm tắt", ctx.reply.await_args.args[0])
 
+    async def test_view_commands_open_matching_dashboard_panels(self) -> None:
+        state = rules.start_meditation(fresh_state(), NOW)
+        cog, _ = make_cog(
+            [{"user_id": 42, "balance": 0, "cultivation": state}]
+        )
+        ctx = SimpleNamespace(
+            author=SimpleNamespace(id=42, display_name="Đạo Hữu"),
+            reply=AsyncMock(return_value=SimpleNamespace(id=1)),
+        )
+        expected = (
+            (cog.cultivation_path, PANEL_PATH, "Phái"),
+            (cog.cultivation_talents, PANEL_PATH, "Phái"),
+            (cog.cultivation_market, PANEL_MARKET, "Chợ"),
+            (cog.cultivation_inventory, PANEL_INVENTORY, "Kho"),
+            (cog.cultivation_expedition, PANEL_PVE, "Tháp"),
+        )
+        for command, panel, title_part in expected:
+            ctx.reply.reset_mock()
+            with self.subTest(panel=panel):
+                if command is cog.cultivation_path:
+                    await command.callback(cog, ctx, None)
+                else:
+                    await command.callback(cog, ctx)
+                view = ctx.reply.await_args.kwargs["view"]
+                embed = ctx.reply.await_args.kwargs["embed"]
+                self.assertEqual(view.panel, panel)
+                self.assertIn(title_part, embed.title)
+
+    async def test_dashboard_navigation_does_not_mutate_state(self) -> None:
+        state = rules.start_meditation(fresh_state(), NOW)
+        cog, database = make_cog(
+            [{"user_id": 42, "balance": 0, "cultivation": state}]
+        )
+        view = CultivationView(cog, 42, state=state)
+        interaction = fake_interaction()
+
+        with patch("cogs.cultivation.cultivation._utcnow", return_value=NOW):
+            await cog.handle_dashboard_action(
+                interaction, view, "navigate", PANEL_MARKET
+            )
+
+        self.assertEqual(view.panel, PANEL_MARKET)
+        self.assertIn("Mua", child_labels(view))
+        interaction.response.edit_message.assert_awaited_once()
+        persisted = database["user_accounts"].documents[0]["cultivation"]
+        self.assertEqual(persisted["version"], 1)
+        self.assertEqual(database["cultivation_events"].documents, [])
+
+    async def test_dashboard_select_enables_market_purchase(self) -> None:
+        state = rules.start_meditation(fresh_state(), NOW)
+        state["spirit_stones"] = 1_000
+        item = rules.daily_market(NOW)[0]
+        cog, database = make_cog(
+            [{"user_id": 42, "balance": 0, "cultivation": state}]
+        )
+        view = CultivationView(cog, 42, panel=PANEL_MARKET, state=state)
+        interaction = fake_interaction()
+
+        with patch("cogs.cultivation.cultivation._utcnow", return_value=NOW):
+            await cog.handle_dashboard_action(
+                interaction, view, "select", f"market:{item.key}"
+            )
+            buy = next(
+                child
+                for child in view.children
+                if getattr(child, "label", None) == "Mua"
+            )
+            self.assertFalse(buy.disabled)
+            await buy.callback(interaction)
+
+        owned = database["user_accounts"].documents[0]["cultivation"]["owned_items"]
+        self.assertIn(item.key, owned)
+
+    async def test_path_and_talent_can_be_chosen_from_dashboard(self) -> None:
+        state = rules.start_meditation(fresh_state(), NOW)
+        state["stage_index"] = 1
+        state["talent_points"] = 2
+        cog, database = make_cog(
+            [{"user_id": 42, "balance": 0, "cultivation": state}]
+        )
+        view = CultivationView(cog, 42, panel=PANEL_PATH, state=state)
+        interaction = fake_interaction()
+
+        with patch("cogs.cultivation.cultivation._utcnow", return_value=NOW):
+            await cog.handle_dashboard_action(interaction, view, "path", "kiem")
+            await cog.handle_dashboard_action(
+                interaction, view, "select", "talent:kiem_y"
+            )
+            allocate = next(
+                child
+                for child in view.children
+                if getattr(child, "label", None) == "Cộng 1 điểm"
+            )
+            await allocate.callback(interaction)
+
+        persisted = database["user_accounts"].documents[0]["cultivation"]
+        self.assertEqual(persisted["path"], "kiem")
+        self.assertEqual(persisted["talents"]["kiem_y"], 1)
+        self.assertEqual(persisted["talent_points"], 1)
+
+    async def test_salvage_and_reset_require_confirmation(self) -> None:
+        state = rules.start_meditation(fresh_state(), NOW)
+        state.update(
+            {
+                "stage_index": 1,
+                "path": "kiem",
+                "spirit_stones": 5_000,
+                "owned_items": ["thanh_truc_kiem"],
+            }
+        )
+        cog, database = make_cog(
+            [{"user_id": 42, "balance": 0, "cultivation": state}]
+        )
+        view = CultivationView(cog, 42, panel=PANEL_INVENTORY, state=state)
+        view.selected_item = "thanh_truc_kiem"
+        view.rebuild(state)
+        interaction = fake_interaction()
+
+        with patch("cogs.cultivation.cultivation._utcnow", return_value=NOW):
+            await view._run(interaction, "salvage", "thanh_truc_kiem")
+            owned = database["user_accounts"].documents[0]["cultivation"]["owned_items"]
+            self.assertEqual(owned, ["thanh_truc_kiem"])
+            self.assertEqual(view.confirming, ("salvage", "thanh_truc_kiem"))
+            self.assertIn("Xác nhận phân rã", child_labels(view))
+
+            await view._run(interaction, "salvage", "thanh_truc_kiem")
+
+        owned = database["user_accounts"].documents[0]["cultivation"]["owned_items"]
+        self.assertEqual(owned, [])
+
+        path_view = CultivationView(
+            cog,
+            42,
+            panel=PANEL_PATH,
+            state=database["user_accounts"].documents[0]["cultivation"],
+        )
+        with patch("cogs.cultivation.cultivation._utcnow", return_value=NOW):
+            await path_view._run(interaction, "reset_path")
+            self.assertEqual(
+                database["user_accounts"].documents[0]["cultivation"]["path"],
+                "kiem",
+            )
+            await path_view._run(interaction, "reset_path")
+        self.assertIsNone(
+            database["user_accounts"].documents[0]["cultivation"]["path"]
+        )
+
+    async def test_pve_panel_can_clear_tower_and_start_expedition(self) -> None:
+        state = rules.start_meditation(fresh_state(), NOW)
+        state["stage_index"] = 4
+        cog, database = make_cog(
+            [{"user_id": 42, "balance": 0, "cultivation": state}]
+        )
+        view = CultivationView(cog, 42, panel=PANEL_PVE, state=state)
+        interaction = fake_interaction()
+
+        with patch("cogs.cultivation.cultivation._utcnow", return_value=NOW):
+            await cog.handle_dashboard_action(interaction, view, "trial", None)
+            self.assertEqual(
+                database["user_accounts"].documents[0]["cultivation"]["tower_floor"],
+                1,
+            )
+            await cog.handle_dashboard_action(
+                interaction, view, "select", "zone:linhduoc"
+            )
+            await cog.handle_dashboard_action(
+                interaction, view, "select", "hours:4"
+            )
+            await cog.handle_dashboard_action(
+                interaction, view, "expedition_start", "linhduoc:4"
+            )
+
+        session = database["user_accounts"].documents[0]["cultivation"]["session"]
+        self.assertEqual(session["kind"], "expedition")
+        self.assertEqual(session["zone"], "linhduoc")
+        self.assertEqual(session["hours"], 4)
+
 
 class TestCultivationEmbeds(unittest.TestCase):
     @staticmethod
@@ -1339,12 +1575,15 @@ class TestCultivationEmbeds(unittest.TestCase):
         state = rules.start_meditation(state, NOW)
         embeds = (
             cog.profile_embed(member, state, NOW + timedelta(hours=48), owner_view=True),
+            cog.realm_embed(member, state, NOW + timedelta(hours=48)),
             cog.market_embed(state, NOW),
-            cog.inventory_embed(member, state),
+            cog.inventory_embed(member, state, include_recipes=True),
             cog.crafting_embed(state),
             cog.talent_embed(member, state),
             cog.expedition_embed(state, NOW),
+            cog.pve_embed(state, NOW),
             cog.exchange_embed(state, 10**12, NOW),
+            cog.dashboard_embed(member, state, NOW, PANEL_PATH),
         )
 
         for embed in embeds:

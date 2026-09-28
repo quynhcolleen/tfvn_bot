@@ -88,6 +88,7 @@ class TestHelpTopicData(unittest.TestCase):
 
         self.assertIn("`!tf femboycard`", rendered_topics["fun"])
         self.assertNotIn("femboycard [@user]", rendered_topics["fun"])
+        self.assertIn("`!tf tarot [trải] [câu hỏi]`", rendered_topics["fun"])
         self.assertIn(
             "`!tf custom_role <#RRGGBB[,#RRGGBB]> <tên role>`",
             rendered_topics["utilities"],

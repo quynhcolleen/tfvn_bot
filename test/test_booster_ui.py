@@ -25,6 +25,7 @@ from cogs.booster._role_colors import RoleColorSpec
 from cogs.booster.create_custom_role import BoosterCustomRoleCog
 from cogs.booster.create_custom_room import BoosterCustomRoomCog
 from cogs.booster.update_custom_role import BoosterCustomRoleUpdateCog
+from test_shop import FakeCollection
 
 
 def make_interaction(user_id: int = 42, guild_id: int = 10):
@@ -54,10 +55,16 @@ def make_context():
 
 
 def make_bot():
+    shop_roles = Mock()
+    shop_roles.find_one.return_value = None
     return SimpleNamespace(
         db={
             "booster_custom_roles": Mock(),
             "booster_custom_rooms": Mock(),
+            "shop_custom_roles": shop_roles,
+            "shop_custom_rooms": FakeCollection(),
+            "shop_inventory": FakeCollection(),
+            "shop_migrations": FakeCollection(),
         },
         user=SimpleNamespace(id=999),
         global_vars={},

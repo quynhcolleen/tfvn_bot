@@ -71,8 +71,9 @@ def make_fixture(*, view_audit_log: bool = True, channel_available=True):
         ),
         guild=guild,
     )
+    channel.guild = guild
     bot = SimpleNamespace(
-        global_vars={"BYE_CHANNEL": str(BYE_CHANNEL_ID)},
+        guild_vars={GUILD_ID: {"BYE_CHANNEL": str(BYE_CHANNEL_ID)}},
         get_channel=Mock(
             return_value=channel if channel_available else None,
         ),
@@ -104,14 +105,36 @@ class TestDepartureEmbeds(unittest.TestCase):
 
         self.assertEqual(len(actual_titles), len(expected_titles))
 
-    def test_missing_bye_channel_setting_is_rejected(self) -> None:
-        bot = SimpleNamespace(global_vars={})
-
-        with self.assertRaisesRegex(ValueError, "BYE_CHANNEL is not set"):
-            GoodbyeCog(bot)
+    def test_missing_bye_channel_setting_does_not_block_cog_loading(self) -> None:
+        bot = SimpleNamespace(guild_vars={})
+        self.assertIsInstance(GoodbyeCog(bot), GoodbyeCog)
 
 
 class TestDepartureListeners(unittest.IsolatedAsyncioTestCase):
+    async def test_another_guild_setting_does_not_enable_announcements(self) -> None:
+        cog, bot, guild, member, channel = make_fixture()
+        bot.guild_vars = {GUILD_ID + 1: {"BYE_CHANNEL": BYE_CHANNEL_ID}}
+        await cog.on_member_remove(member)
+        bot.get_channel.assert_not_called()
+        guild.audit_logs.assert_not_called()
+        channel.send.assert_not_awaited()
+
+    async def test_channel_in_another_guild_is_not_used(self) -> None:
+        cog, bot, guild, member, channel = make_fixture()
+        channel.guild = SimpleNamespace(id=GUILD_ID + 1)
+        with self.assertLogs("cogs.announcement.goodbye", level="WARNING"):
+            await cog.on_member_remove(member)
+        guild.audit_logs.assert_not_called()
+        channel.send.assert_not_awaited()
+
+    async def test_changed_setting_is_resolved_on_next_departure(self) -> None:
+        cog, bot, guild, member, channel = make_fixture()
+        bot.guild_vars[GUILD_ID]["BYE_CHANNEL"] = BYE_CHANNEL_ID + 1
+        cog._classify_departure = AsyncMock(return_value=DepartureKind.LEAVE)
+        await cog.on_member_remove(member)
+        bot.get_channel.assert_called_once_with(BYE_CHANNEL_ID + 1)
+        channel.send.assert_awaited_once()
+
     @staticmethod
     def sent_embed(channel) -> discord.Embed:
         channel.send.assert_awaited_once()

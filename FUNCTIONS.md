@@ -84,11 +84,13 @@ for 180 seconds and recheck the opening user, server, and current Administrator
 permission. Healthy scans say explicitly that no problems were found. Doctor
 checks enabled features in the current server, including selected extensions
 that failed to load, while skipping disabled features and known other-server
-targets. It checks required environment and feature settings, channel permission
-overrides, guild permissions, hierarchy for roles the bot manages, runtime intents, cached
-settings needing reload, and MongoDB availability. Reports contain no secret
+targets. It checks required environment and legacy shared feature settings, channel
+permission overrides, guild permissions, hierarchy for roles the bot manages,
+runtime intents, cached settings needing reload, and MongoDB availability. Reports contain no secret
 values or raw exceptions, suppress mentions, and are not saved. The same collector
 backs `setup check`; Doctor does not require that command's cog to be loaded.
+These legacy configuration checks do not inspect announcement overrides in
+`bot.guild_vars`.
 
 When the Administrator is also the Bot owner, the dashboard adds two private controls. The joined-server manager lists every guild currently connected to the bot and can leave a selected guild only after confirmation; it cannot leave the guild where `operation_dashboard` was invoked. The standalone `!tf leave` command remains unchanged and still leaves its current guild immediately. The lifecycle panel shows the 10 newest `initial_ready`, `reidentified`, or `resumed` events for the current environment. These append-only global events are retained indefinitely in `bot_lifecycle_events`; they are separate from `operation_logs` and are never included in guild audit browsing, CSV exports, or pruning.
 
@@ -179,18 +181,35 @@ No user commands. Event listeners only:
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
-| `shop` | `store` | Everyone | List enabled catalog items |
-| `shop buy <item_id>` | — | Everyone | Purchase a catalog item; 2 calls per 5 seconds per user |
+| `shop` | `store` | Everyone | Open an owner-locked interactive catalog to buy, use, and inspect inventory |
+| `shop buy <item_id>` | — | Everyone | Purchase a catalog item or renew custom role/room for 30 days; 2 calls per 5 seconds per user |
 | `shop inventory [@member]` | `inv` | Everyone | View owned shop items |
-| `shop use <item_id>` | — | Everyone | Equip badge or apply purchased role |
+| `shop use <item_id>` | — | Everyone | Equip a badge, apply a purchased role, or create/edit a custom role/room with active paid time |
 | `shop unequip` | — | Everyone | Clear active badge |
 | `shop add_role <id> <price> @role [description]` | — | Manage Guild | Add/update a sellable role priced 1–1,000,000,000 TC |
 | `shop add_badge <id> <price> <display name>` | — | Manage Guild | Add/update a badge item priced 1–1,000,000,000 TC |
+| `shop add_custom_role <price> [description]` | — | Manage Guild | Add/update the guild `custom_role` listing priced 1–1,000,000,000 TC |
+| `shop add_custom_room <price> [description]` | — | Manage Guild | Add/update the guild `custom_room` listing priced 1–1,000,000,000 TC per 30 days |
 | `shop remove <item_id>` | `disable` | Manage Guild | Hide an item from the shop |
 
-Shop item IDs are 1–32 lowercase letters, digits, `_`, or `-`, and must start with a letter or digit.
+Shop item IDs are 1–32 lowercase letters, digits, `_`, or `-`, and must start with a letter or digit. The IDs `custom_role` and `custom_room` are reserved for paid personal resources.
 
-**Module:** `cogs.daily_reward.*`, `cogs.economy.shop`
+Each custom-role/room purchase adds 30 days from payment or the remaining expiry,
+whichever is later. `shop use custom_role` opens the color/name designer;
+`shop use custom_room` opens the private-room name/member-limit editor. Rooms share
+the configured booster category. Members may have one personal role and one room
+across booster/shop, including active paid time before creation. Leaving deletes
+the resource but retains paid time, which continues elapsing. Expired resources are
+deleted on startup and every minute; failed deletions retry. Existing permanent
+shop custom-role purchases receive one 30-day migration grace period. Ordinary
+catalog roles, badges, and booster perks retain their current rules.
+
+Both creation paths recheck saved roles before creating one and serialize requests
+for the same member. If a saved role is missing from the bot's cache, Discord must
+confirm its absence before it can be recreated; a failed lookup asks the member
+to retry. Finished or expired shop panels and role editors release their UI state.
+
+**Module:** `cogs.daily_reward.*`, `cogs.economy.shop`, `cogs.economy.shop_custom_role`, `cogs.economy.shop_custom_room`
 
 ---
 
@@ -203,25 +222,25 @@ never both at the same time.
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
-| `tutien` | `cultivate` | Everyone | Open the owner-only Tiên Lộ dashboard |
+| `tutien` | `cultivate` | Everyone | Open the owner-only Tiên Lộ dashboard with panels for Cảnh giới, Phái & Thiên phú, Chợ, Kho & Trang bị, and Tháp Thí Luyện & Bí Cảnh |
 | `tutien batdau` | — | Everyone | Create a cultivation profile and begin Bế Quan |
 | `tutien thucong` | — | Everyone | Collect at least 10 minutes of AFK rewards, then automatically resume the selected focus |
 | `tutien huong <canbang\|tinhtu\|khaikhoang>` | — | Everyone | Select balanced, Tu Vi-focused, or Linh Thạch-focused cultivation |
 | `tutien dotpha` | — | Everyone | Attempt the next breakthrough when resource and tower requirements are met |
-| `tutien phai [kiem\|the\|dan]` | — | Everyone | View the current class or choose Kiếm Tu, Thể Tu, or Đan Tu at Luyện Khí 1 |
+| `tutien phai [kiem\|the\|dan]` | — | Everyone | Open the Phái & Thiên phú panel, or choose Kiếm Tu, Thể Tu, or Đan Tu at Luyện Khí 1 |
 | `tutien phai reset` | — | Everyone | Clear the class and refund all talent points for a realm-scaled fee; seven-day cooldown |
-| `tutien thienphu` | — | Everyone | View talent IDs, effects, ranks, and unallocated points |
+| `tutien thienphu` | — | Everyone | Open the Phái & Thiên phú panel with talent IDs, effects, ranks, and unallocated points |
 | `tutien thienphu tang <talent_id> [points]` | — | Everyone | Allocate one or more points to a talent belonging to the selected class |
 | `tutien dongphu` | — | Everyone | View cave level, bonuses, capacity, and the next upgrade price |
 | `tutien dongphu nangcap` | — | Everyone | Buy the next cave level when enough Linh Thạch is available |
-| `tutien choden` | — | Everyone | View permanent stock and four deterministic offers for the current ICT date |
+| `tutien choden` | — | Everyone | Open the Chợ panel with permanent stock and four deterministic ICT-date offers |
 | `tutien mua <item_id>` | — | Everyone | Buy one market item with Linh Thạch |
-| `tutien kho` | — | Everyone | View materials and owned equipment |
+| `tutien kho` | — | Everyone | Open the Kho & Trang bị panel |
 | `tutien trangbi <item_id>` | — | Everyone | Equip an owned item in its fixed slot |
 | `tutien phanra <item_id>` | — | Everyone | Salvage one equipment item into crafting fragments |
 | `tutien luyen [recipe_id]` | — | Everyone | View fixed recipes or craft one guaranteed item |
 | `tutien thiluyen [tang]` | — | Everyone | Challenge the next uncleared floor of the 30-floor tower |
-| `tutien bicanh` | — | Everyone | Show the expedition guide and current status |
+| `tutien bicanh` | — | Everyone | Open the Tháp Thí Luyện & Bí Cảnh panel |
 | `tutien bicanh start <linhduoc\|cokhoang\|yeuthuson> <2\|4\|8>` | — | Everyone | Begin a timed expedition in the selected zone |
 | `tutien bicanh claim` | — | Everyone | Collect a finished expedition |
 | `tutien bicanh cancel` | — | Everyone | Cancel an active expedition without rewards and resume Bế Quan |
@@ -254,10 +273,15 @@ never both at the same time.
 - Weekly exchange limits reset Monday at 00:00 `Asia/Ho_Chi_Minh`. The unequal
   buy/sell rates prevent exchange arbitrage.
 
-The dashboard and its components are restricted to the invoking member. Replies
-mention only that member; an unauthorized component click receives an ephemeral
-denial. Profiles are global, but private profiles are absent from guild
-leaderboards.
+The dashboard edits its existing message and has five owner-only panels:
+Cảnh giới (Bế Quan, đột phá, Động Phủ), Phái & Thiên phú, Chợ, Kho & Trang bị,
+and Tháp Thí Luyện & Bí Cảnh. Prefix subcommands remain complete fallbacks.
+`tutien phai`, `tutien thienphu`, `tutien choden`, `tutien kho`, and
+`tutien bicanh` open the matching panel. Destructive actions (tẩy tủy, phân rã,
+hủy Bí Cảnh) require a second confirmation click. The dashboard and its
+components are restricted to the invoking member. Replies mention only that
+member; an unauthorized component click receives an ephemeral denial. Profiles
+are global, but private profiles are absent from guild leaderboards.
 
 **Persistence:** versioned `user_accounts.cultivation` state, append-only
 `cultivation_events`, and TC exchange records in `transaction_logs`. Trap Coin
@@ -273,11 +297,11 @@ account write.
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `blackjack [n]` | Everyone | Solo Blackjack against the dealer; wagers `n` TC (default 5, range 5–1,000,000), wins pay 1:1, natural profit pays 3:2 rounded down to whole TC, and pushes/timeouts return the stake |
-| `poker [n]` | Everyone | Solo five-card draw against the dealer; wagers `n` TC (default 5, range 5–1,000,000), allows one draw of up to three cards, wins pay 1:1, and ties/timeouts return the stake |
-| `slot` | Everyone | Slot machine; costs **5** Trap Coins; logs debit transaction |
+| `blackjack [n]` | Everyone | Solo Blackjack against the dealer on a rendered table; wagers `n` TC (default 5, range 5–1,000,000), wins pay 1:1, natural profit pays 3:2 rounded down to whole TC, and pushes/timeouts return the stake. After a hand the same panel offers **Chơi lại** and **Đổi cược** (5–1,000,000 TC) without opening a new table |
+| `poker [n]` | Everyone | Solo five-card draw against the dealer on a rendered table; wagers `n` TC (default 5, range 5–1,000,000), allows one draw of up to three cards, wins pay 1:1, and ties/timeouts return the stake. After a hand the same panel offers **Chơi lại** and **Đổi cược** (5–1,000,000 TC) without opening a new table |
+| `slot` | Everyone | Slot machine with a rendered cabinet and replay button; costs **5** Trap Coins; three matching symbols credit **100** TC and a pair credits **10** TC |
 | `flip_coin <head\|tail> <n>` | Everyone | Coin flip bet of `n` Trap Coins (needs ≥5 TC to play); win pays 2× stake |
-| `sicbo_start` | Everyone | Reaction-based Sic Bo round (Big / Small / Triple); payout wiring is incomplete |
+| `sicbo [n]` | Everyone | Solo Sic Bo (Tài/Xỉu/Bộ ba) on a rendered board; wagers `n` TC (default 5, range 5–1,000,000); Tài/Xỉu pay 1:1, Bộ ba pays 30:1 including the stake, triples lose Tài/Xỉu, and timeouts return the stake. After a round the same panel offers **Chơi lại** and **Đổi cược** (5–1,000,000 TC) without opening a new table |
 | `crocodile` | Everyone (guild only) | Show the caller's newest 10 pending or active Crocodile Dentist games in the current server |
 | `crocodile challenge [teeth] @user1 [@user2 @user3 @user4]` | Everyone (guild only) | Create a 2–5 player challenge; `teeth` must precede the mentions, defaults to 13, and accepts 2–25 |
 | `crocodile fire <game_id>` | Host (guild only) | Recreate the authoritative invitation or gameplay panel for an open game in the current channel without resetting its state or deadlines |
@@ -312,9 +336,11 @@ credits all-time and bot-wide. Order is win count, then total TC, then the
 earlier most-recent win, then user ID. They reuse `transaction_logs`, do not ping
 mentions, and stay silent outside a configured game channel.
 
-**Module:** `cogs.minigames.*`; the interactive card-game cogs are
-`cogs.minigames.blackjack.blackjack` and `cogs.minigames.poker.poker`; persistent
-Crocodile Dentist lives in `cogs.minigames.crocodile_dentist.crocodile`.
+**Module:** `cogs.minigames.*`; the interactive casino cogs are
+`cogs.minigames.blackjack.blackjack`, `cogs.minigames.poker.poker`,
+`cogs.minigames.slot_machine.slot_machine`, and `cogs.minigames.sicbo.sicbo`;
+persistent Crocodile Dentist lives in `cogs.minigames.crocodile_dentist.crocodile`.
+`sicbo_start` remains an alias of `sicbo`.
 
 ---
 
@@ -348,10 +374,11 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `touchgrass` | — | Touch-grass meter |
 | `yapper` | — | Yap meter |
 | `femboycard` | — | Personal femboy card from configured role names (`data/femboy_role.txt`), including current guild marriage (partner, rank, level, wedding date / days together, or single); issued with a signed TFVN proof that binds the member, role, guild, issuer, time, and saved snapshot; 10s per-user cooldown |
+| `tarot [trải] [câu hỏi]` | `boi` | Interactive tarot: 1-card, 3-card past/present/future, 5-card cross, 7-card horseshoe, or 10-card Celtic Cross; cards start face down and the querent can flip each card or flip all; **Hướng dẫn** explains upright/reversed and each seat; card names are English; 20s per-user cooldown |
 | `birthday` | — | Open the interactive month and day picker |
 | `birthday set <day> <month>` | — | Register a birthday directly (announced by scheduled task) |
 
-**Module:** `cogs.funny_things.*`
+**Module:** `cogs.funny_things.meters.*`, `cogs.funny_things.cards.femboy_card`, `cogs.funny_things.tarot.tarot`, `cogs.funny_things.birthday.birthday`
 
 ---
 
@@ -391,12 +418,16 @@ Most meters accept an optional `@member` (default: author). Scores are determini
 | `marriage help` | — | Everyone (guild) | Rules: XP, ranks, cooldowns |
 | `marriage top` | `lb`, `leaderboard`, `rank` | Everyone (guild) | Top 10 couples by XP |
 | `divorce` | — | Everyone (guild) | End active marriage after confirm buttons |
+| `streak [@user]` | — | Everyone (guild) | Show your live pair streaks, or the chain with `@user` (UTC+7; mention, reply, or 5 minutes in the same voice/stage channel) |
+| `streak top` | — | Everyone (guild) | Top 10 live pair streaks in the server |
 | `rank [r] [action]` | `ranking` | Everyone | All-time bot-wide interaction leaderboards (`r` = receivers); action can be kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap, tickle, pinch, wave, blush, highfive, feed, or wink |
 | `cat` | — | Everyone | Random cat image (external API) |
 | `dog` | — | Everyone | Random dog image (external API) |
 | `36` | — | Everyone | Static meme GIF reply |
 
-**Module:** `cogs.interaction.user_interaction`, `cat`, `dog`, `meme_interaction`
+**Module:** `cogs.interaction.user_interaction`, `cat`, `dog`, `meme_interaction`, `interact_streak`, `marriage`
+
+Pair streaks are guild-scoped: the first qualifying mention, reply, or 5-minute shared voice/stage overlap each Vietnam calendar day (UTC+7) continues the chain. Missing a day resets the current count to 1 on the next interaction; the longest count is kept. Hitting **3, 7, 30, or 100** days pings both members in that channel (the text channel for mention/reply, or the voice channel when it can receive messages). Bots, webhooks, DMs, self-targets, and the guild AFK channel do not count.
 
 All 25 SFW interactions require a non-bot target and have a 3-second per-command, per-user cooldown. Self-target is allowed only for `pat`, `slap`, `punch`, `hit`, `poke`, `bonk`, `smack`, `tickle`, and `blush`.
 
@@ -523,13 +554,17 @@ listener uses an in-memory cache and does not query MongoDB for each message.
 
 | Command | Aliases | Access | Description |
 | --- | --- | --- | --- |
-| `giveaway <duration> [winners] <prize>` | `ga` | Administrator / Manage Guild / Manage Messages | Start giveaway (e.g. `1h30m`, `2d`); persistent join/leave buttons |
+| `giveaway` | `ga` | Administrator / Manage Guild / Manage Messages | Open Discord create form (prize, duration, 1–20 winners, blacklist/bonus roles) in the current channel |
+| `giveaway <duration> [winners] <prize>` | `ga` | Administrator / Manage Guild / Manage Messages | CLI shortcut to start a giveaway (e.g. `1h30m`, `2d`); uses guild role settings; persistent join/leave buttons |
+| `giveaway settings` | `setting` | Administrator / Manage Guild / Manage Messages | Discord panel to set blacklist roles and bonus-win roles (x2–x20) for new giveaways |
 | `giveaway list` | `ls`, `active` | Everyone (guild) | List active giveaways |
 | `giveaway entries [message_id]` | `entrants`, `joined`, `who` | Everyone (guild) | Who joined a giveaway |
 | `giveaway end [message_id]` | — | Host or Administrator / Manage Guild / Manage Messages | End early and pick winners; accepts an ID or replied giveaway message |
 | `giveaway reroll [message_id] [winner_count]` | `rr` | Host or Administrator / Manage Guild / Manage Messages | Reroll 1–20 winners; accepts an ID or replied ended giveaway message |
 
-Duration range: 10 seconds–30 days; max 20 winners.
+Duration range: 10 seconds–30 days; max 20 winners. Empty `giveaway` opens a Discord modal; the public giveaway posts in the same channel. Guild role settings snapshot onto each giveaway at create: blacklist roles cannot join, bonus roles get `n` times the tickets when winners are drawn.
+
+**Module:** `cogs.utils.giveaway`, `cogs.utils._giveaway_helpers`, `cogs.utils._giveaway_ui`
 
 ### Votes
 
@@ -692,15 +727,22 @@ No user command. On message, if content matches entries in `data/banned_word_lis
 
 ---
 
-## Settings (runtime configuration)
+## Announcement settings
 
 | Command | Access | Description |
 | --- | --- | --- |
-| `setting` | Administrator | Settings group help |
-| `setting set_variable <NAME>` | Administrator | Interactive set of a Mongo `global_variables` key (loaded into `bot.global_vars`) |
-| `setting get_variable <NAME>` | Administrator | Read a stored variable |
+| `setting` | Administrator, guild only | Announcement settings help |
+| `setting set_variable <NAME>` | Administrator, guild only | Prompt directly for this guild's announcement value and save it as a `STRING` |
+| `setting get_variable <NAME>` | Administrator, guild only | Read this guild's announcement value |
 
-Common variable examples (not exhaustive): channel IDs, booster category, Area 51 channel, `MRBEAST_SCAM_ALERT_CHANNEL`, media arrays, `BETA_ROLE_IDS`.
+Only `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL`,
+`WELCOME_GIF_URL`, `GOODBYE_GIF_URL`, and `BANNED_GIF_URL` are accepted. All seven
+are `STRING` values scoped to the current guild and apply immediately. Their
+`(guild_id, name)` records are cached in `bot.guild_vars[guild_id]`. GIF overrides
+fall back to bundled images when absent or invalid. Prompts accept `cancel` and
+expire after 120 seconds. The flat `bot.global_vars` cache remains available for
+legacy features; these commands cannot manage other settings. See README for
+the announcement-only migration.
 
 **Module:** `cogs.settings.variable_setting`
 
@@ -739,7 +781,7 @@ triggerreply, triggerreply add, triggerreply update, triggerreply list, triggerr
 afk, afk dynamic, afk time, afk clear, afk check
 random_femboy
 daily, user_balance, user_transactions, add_tc, remove_tc, set_tc, check_tc
-shop, shop buy, shop inventory, shop use, shop unequip, shop add_role, shop add_badge, shop remove
+shop, shop buy, shop inventory, shop use, shop unequip, shop add_role, shop add_badge, shop add_custom_role, shop add_custom_room, shop remove
 tutien, tutien batdau, tutien thucong, tutien huong, tutien dotpha,
 tutien phai, tutien phai reset, tutien thienphu, tutien thienphu tang,
 tutien dongphu, tutien dongphu nangcap, tutien choden, tutien mua, tutien kho,
@@ -747,22 +789,22 @@ tutien trangbi, tutien phanra, tutien luyen, tutien thiluyen,
 tutien bicanh, tutien bicanh start, tutien bicanh claim, tutien bicanh cancel,
 tutien doido, tutien doido mua, tutien doido ban,
 tutien profile, tutien top, tutien riengtu
-blackjack, poker, slot, flip_coin, sicbo_start
+blackjack, poker, slot, flip_coin, sicbo
 crocodile, crocodile challenge, crocodile fire
 noitu, noitu status, noitu top, noitu hint, noitu end, noitu analyze
 vtv, vtv status, vtv top, vtv next, vtv hint
 gay, les, ship, penisize, titansize, aura, redflag, based, brainrot, clown, cope, cringe, delulu,
 gyatt, ick, mainchar, npc, ohio, rizz, simp, skillissue, touchgrass, yapper,
-femboycard, birthday, birthday set
+femboycard, tarot, birthday, birthday set
 kiss, hug, pat, slap, punch, hit, poke, cuddle, snuggle, boop, handhold, bonk, bite, stare, lick, smack, sniff, kidnap,
 tickle, pinch, wave, blush, highfive, feed, wink,
-avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, rank, cat, dog, 36
+avatar, server_avatar, propose, marriage, marriage help, marriage top, divorce, streak, streak top, rank, cat, dog, 36
 r34, gbr, nsfwrule, bj, rj, hj, fj, aj, tj, spank, frot, fuck, cream, 3some, orgy, gangbang, ride, fingering, facesit, ranknsfw, mrank
 locknsfw, unlocknsfw, verified, unverified
 custom_role, update_custom_role, custom_room
 jobremind, jobremind add
 bedtime, bedtime add, bedtime remove, bedtime list
-giveaway, giveaway list, giveaway entries, giveaway end, giveaway reroll
+giveaway, giveaway settings, giveaway list, giveaway entries, giveaway end, giveaway reroll
 vote, highlight, quote, hash_verify, softotp, softotp get, softotp verify, big_speaker, random_member, lunch, save_image
 kick, ban, unban, softban, unsoftban, mute, unmute, timeout, untimeout, warn, check_warn, scam_check
 nickchange, roleroll, roleunroll, rolecopy
@@ -780,6 +822,21 @@ to view the current requirements and destination channel, or a notice when no
 channel is configured. The command reads the threshold and spacing used by the
 automatic feature. Qualified messages wait for the guild's posting interval and
 must still have enough reactions when posted; each source message is posted once.
+
+Thirty seconds after startup (once Discord is ready), a cog reload, or each new
+highlight, the bot sends **📺 Bạn muốn nổi tiếng? Bạn muốn lên TV? Hãy, chọn, nút, đúng! 👇**
+with a **Click vào đây** button in the
+highlight channel. Reconnects do not repeat the startup prompt. No new highlight
+is needed for the startup prompt. Clicking it privately shows the
+same current requirements as `highlight`. Posted buttons survive bot restarts;
+pending 30-second prompts are cancelled on restart or cog reload. The delay is
+controlled by `HIGHLIGHT_PROMPT_DELAY_SECONDS` in `_highlight_helpers.py`.
+Before posting a replacement, the bot deletes its previous prompt, whose message
+ID is saved per channel in `highlight_prompts` across restarts. It also removes
+older copies found in the latest 100 channel messages, identified by the bot's
+author ID and the requirements button. Highlight cards and other messages are
+kept. The bot needs Read Message History in the highlight channel; if lookup or
+deletion fails, it skips the new notice to avoid adding duplicates.
 
 Highlight cards include message text, up to four gallery images, and up to four
 embeds with their titles, descriptions, authors, fields, footers, images, and

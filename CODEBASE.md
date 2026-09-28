@@ -7,7 +7,7 @@ This document maps the maintained repository files and explains where each behav
 1. `main.py` loads `.env`, creates the prefix-based `commands.Bot`, enables member and message-content intents, attaches the MongoDB database from `db.py`, and owns graceful SIGINT/SIGTERM command draining.
 2. `DataLoader` loads shared lists from `data/` onto the bot instance.
 3. In production, every public Python module below `cogs/` is discovered recursively. Development uses the ignored `dev_cogs.txt`. Both use the database selected by `DB_NAME`. Selected extensions and safe startup failure types are retained in memory for diagnostics; disabled modules are excluded and current loaded extensions take precedence over stale failure records.
-4. `cogs.settings.variable_setting` is loaded first when selected, populating `bot.global_vars` from MongoDB.
+4. `cogs.settings.variable_setting` is loaded first when selected, populating `bot.guild_vars[guild_id]` with announcement settings and retaining the flat `bot.global_vars` cache for legacy features. Welcome and departure announcements read their current guild's values through `cogs.settings._guild_variables`.
 5. Each extension registers commands, listeners, views, or scheduled tasks through `async def setup(bot)`.
 
 ## Repository Tree and Responsibilities
@@ -18,6 +18,8 @@ tfvn_bot/
 ├── db.py                           MongoDB client and selected database
 ├── dataloader.py                   UTF-8 JSON/text/line/CSV loading helpers
 ├── requirements.txt                Pinned Python runtime dependencies
+├── requirements-dev.txt            Runtime dependencies plus the pinned pytest runner
+├── pytest.ini                      Test discovery under test/test_*.py
 ├── Dockerfile                      Python 3.11 multi-stage image
 ├── docker-compose.yml              Bot service and environment wiring; no Mongo service
 ├── .dockerignore                   Excludes secrets, tests, logs, and local artifacts
@@ -29,15 +31,18 @@ tfvn_bot/
 ├── FUNCTIONS.md                    Full user-facing command and feature catalog
 ├── CULTIVATE_GAME_PLAN.md           Tiên Lộ gameplay, economy, and acceptance specification
 ├── CODING_CONVENSION.md            Detailed implementation conventions
+├── HOW_TO_IMPLEMENT_FEATURE.md     Feature workflow, focused development tests, final full-suite check
 ├── sample.dev_cogs.txt             Legacy development-cog sample; review paths before use
 │
 ├── .github/workflows/
 │   ├── build_and_push.yml          Builds and publishes images to GHCR
+│   ├── tests.yml                   Full pytest suite for PRs, deploy branches, and merge queues
 │   └── notificate_to_discord.yml   Sends tag notifications to Discord
 │
 ├── assets/
 │   ├── gifs.py                     Welcome and general interaction media URLs
 │   ├── lunch/                      Bundled food images, Genshin wish GIFs, and source notes
+│   ├── tarot/                      Public-domain Rider-Waite-Smith card scans and source notes
 │   └── nsfw_gifs.py                Legacy NSFW media lists used by migration tooling
 │
 ├── fonts/
@@ -63,7 +68,9 @@ tfvn_bot/
 │
 ├── scripts/
 │   ├── migrate_nsfw_gifs.py        Moves legacy GIF lists into Mongo global variables
+│   ├── migrate_guild_variables.py  Previews/copies legacy announcement settings into one guild
 │   ├── prepare_lunch_assets.py     Prepares the upstream lunch catalog and food image sheets
+│   ├── prepare_tarot_assets.py     Downloads and crops public-domain RWS scans into assets/tarot/
 │   ├── vietnamese_king_data_prepare.py
 │   │                                 Normalizes/filter source words and generates game data
 │   └── words.txt                   Source records for Vietnamese data preparation
@@ -75,10 +82,19 @@ tfvn_bot/
 │   ├── test_card_game_economy.py   Atomic card-game wager and refund helpers
 │   ├── test_crocodile_dentist.py   Crocodile rules, persistence, commands, and UI behavior
 │   ├── test_community_features.py  Pure validation/time/helper regression tests
+│   ├── test_shop.py                Shop store, catalog products, and interactive panel
+│   ├── test_shop_custom_role.py    Paid custom-role product, designer, and leave cleanup
+│   ├── test_shop_custom_room.py    Private room rentals, editor, conflicts, and cleanup
+│   ├── test_shop_rentals.py        Renewal accounting, migration, expiry worker, and UI
+│   ├── test_giveaway.py            Giveaway duration/prize parsing, role weights, and persistence
+│   ├── test_giveaway_ui.py         Giveaway create panel, role settings, modal, and permission checks
 │   ├── test_doctor.py              Environment, feature, permission, and runtime diagnostics
+│   ├── test_guild_variables.py     Announcement settings isolation, prompts, permissions, and migration
+│   ├── test_guild_announcements.py Guild welcome destinations, GIF overrides, and live updates
 │   ├── test_extension_loading.py   Selected extensions and safe startup-failure diagnostics
-│   ├── test_cultivation.py         Tiên Lộ calculations, state, UI, and persistence tests
+│   ├── test_cultivation.py         Tiên Lộ calculations, dashboard panels, and persistence tests
 │   ├── test_help_menu.py           Help catalog completeness, limits, gates, and UI tests
+│   ├── test_interact_streak.py     Pair-streak date/credit rules, listeners, and commands
 │   ├── test_legacy_case_slowmode.py Direct case updates and slowmode override regression tests
 │   ├── test_lunch.py               Lunch filter UI, owner checks, animation, and lifecycle tests
 │   ├── test_lunch_helpers.py       Lunch argument parsing, catalog validation, and selection tests
@@ -114,11 +130,13 @@ tfvn_bot/
     │   └── bedtime_remind.py       Admin schedules, minute mentions, and chat reminders
     ├── announcement/
     │   ├── __init__.py             Announcement package marker
+    │   ├── _media.py               Guild image override validation and bundled defaults
     │   ├── welcome.py              Member-join announcement
     │   └── goodbye.py              Unified leave/kick/ban departure announcement
     ├── booster/
     │   ├── _custom_resource_ui.py Guided booster role/room views, selects, and modals
     │   ├── _role_colors.py         Solid/gradient role-color parsing helper
+    │   ├── _room_helpers.py        Shared category validation and private room overwrites
     │   ├── create_custom_role.py   Booster-owned custom role creation
     │   ├── update_custom_role.py   Booster custom role edits
     │   ├── create_custom_room.py   Booster private voice-room creation
@@ -127,29 +145,47 @@ tfvn_bot/
     ├── cultivation/
     │   ├── __init__.py             Cultivation package marker
     │   ├── cultivation.py          Tiên Lộ commands, dashboard, and atomic persistence
+    │   ├── _cultivation_ui.py      Owner-only dashboard panels, selects, and buttons
     │   └── _cultivation_helpers.py Pure realms, rewards, market, PvE, and exchange rules
     ├── daily_reward/
     │   ├── daily_action.py         Daily Trap Coin grant and claim tracking
     │   └── user_account.py         Balance, badge, and transaction-history lookup
     ├── economy/
-    │   ├── _shop_helpers.py        Catalog ID, price, and display validation
-    │   └── shop.py                 Guild catalog, purchases, inventory, roles, and badges
+    │   ├── _shop_helpers.py        Catalog ID, price, listing, and reserved-ID helpers
+    │   ├── _shop_store.py          Atomic catalog, inventory, and Trap Coin purchases
+    │   ├── _shop_rentals.py        UTC entitlement checks, grace migration, and expiry workers
+    │   ├── _shop_products.py       Item-type registry for catalog and extra shop cogs
+    │   ├── _shop_catalog.py        Built-in sellable Discord role and badge products
+    │   ├── _shop_ui.py             Owner-locked interactive shop and inventory panel
+    │   ├── shop.py                 Shop hub: interactive catalog, inventory, and admin listings
+    │   ├── shop_custom_role.py     Renewable custom roles, designer, expiry and leave cleanup
+    │   └── shop_custom_room.py     Renewable private rooms, editor, expiry and leave cleanup
+    ├── roles/
+    │   ├── _personal_roles.py      Shared resource locks and verified Discord role/room lookup
+    │   └── _role_safety.py         Privileged-permission denylist for roles the bot may assign
     ├── discipline/discipline.py    Banned-word listener, logging, warning, and deletion
     ├── funny_things/
-    │   ├── _meter_helper.py        Deterministic scores, bars, loading, and embed helpers
-    │   ├── _birthday_ui.py         Owner-only month and day picker view
-    │   ├── aura.py                 Signed aura score and icon bar
-    │   ├── redflag.py              Signed red/green flag score and icon bar
-    │   ├── birthday.py             Birthday registration and announcement task
-    │   ├── femboy_card.py          Member card based on configured role names and guild marriage status
-    │   ├── gay_meter.py            Daily member meter with staged loading
-    │   ├── penisize.py             Daily member meter with staged loading
-    │   ├── titansize.py            Daily fictional centimeter-size and cup meter
-    │   ├── ship_meter.py           Two-member compatibility meter
-    │   └── based.py, brainrot.py, clown.py, cope.py, cringe.py, delulu.py,
-    │       gyatt.py, ick.py, les_meter.py, mainchar.py, npc.py, ohio.py,
-    │       rizz.py, simp.py, skillissue.py, touchgrass.py, yapper.py
-    │                                 Shared-helper-based daily meter commands
+    │   ├── meters/
+    │   │   ├── _meter_helper.py    Deterministic scores, bars, loading, and embed helpers
+    │   │   ├── aura.py             Signed aura score and icon bar
+    │   │   ├── redflag.py          Signed red/green flag score and icon bar
+    │   │   ├── gay_meter.py        Daily member meter with staged loading
+    │   │   ├── penisize.py         Daily member meter with staged loading
+    │   │   ├── titansize.py        Daily fictional centimeter-size and cup meter
+    │   │   ├── ship_meter.py       Two-member compatibility meter
+    │   │   └── based.py, brainrot.py, clown.py, cope.py, cringe.py, delulu.py,
+    │   │       gyatt.py, ick.py, les_meter.py, mainchar.py, npc.py, ohio.py,
+    │   │       rizz.py, simp.py, skillissue.py, touchgrass.py, yapper.py
+    │   │                             Shared-helper-based daily meter commands
+    │   ├── birthday/
+    │   │   ├── _birthday_ui.py     Owner-only month and day picker view
+    │   │   └── birthday.py         Birthday registration and announcement task
+    │   ├── cards/femboy_card.py    Member card based on configured role names and guild marriage status
+    │   └── tarot/
+    │       ├── tarot.py            Tarot command, spread picker, and reading session
+    │       ├── _tarot_helpers.py   78-card deck, spreads, draw, and flip state
+    │       ├── _tarot_ui.py        Owner-only spread select and per-card flip views
+    │       └── _tarot_render.py    Spread cloth using bundled Rider-Waite-Smith card scans
     ├── happy_new_year/
     │   └── happy_lunar_new_year_2026.py
     │                                     Time-limited one-time Lunar New Year greeting
@@ -159,6 +195,8 @@ tfvn_bot/
     │   ├── user_interaction.py        Social actions, avatar display, and rankings
     │   ├── marriage.py                Propose/divorce/status, couple XP ranks
     │   ├── _marriage_helpers.py       Pure level/rank/XP helpers for marriage
+    │   ├── interact_streak.py         Pair streaks from mentions, replies, and shared voice
+    │   ├── _interact_streak_helpers.py Pure Vietnam-date, pair, and credit rules for streaks
     │   ├── triggered_reply.py          Persistent phrase-triggered replies
     │   ├── _trigger_reply_helpers.py   Rule parsing and matching helpers
     │   ├── nsfw_interaction.py        Age-gated interactions and rankings
@@ -167,6 +205,7 @@ tfvn_bot/
     ├── minigames/
     │   ├── _playing_cards.py           Shared validated deck and card formatting
     │   ├── _card_game_economy.py       Atomic TC wagers, payouts, refunds, and audit logs
+    │   ├── _casino_ui.py               PNG felt tables for Blackjack, Poker, slots, and Sic Bo
     │   ├── _word_game_leaderboard.py   All-time vtv/noitu win ranks from transaction_logs
     │   ├── blackjack/
     │   │   ├── _blackjack_helpers.py   Pure Blackjack scoring and round state
@@ -175,9 +214,12 @@ tfvn_bot/
     │   │   ├── _poker_helpers.py       Five-card hand ranking, dealer draw, round state
     │   │   └── poker.py                Button-driven solo five-card draw against the dealer
     │   ├── flip_coin/flip_coin.py     Coin betting against user balances
-    │   ├── slot_machine/slot_machine.py
-    │   │                                 Slot betting, payouts, and transaction logs
-    │   ├── sicbo/sicbo.py             Reaction-based Sic Bo rounds
+    │   ├── slot_machine/
+    │   │   ├── _slot_helpers.py        Reel symbols and pair/jackpot payouts
+    │   │   └── slot_machine.py        Button-driven slot cabinet and Trap Coin settlement
+    │   ├── sicbo/
+    │   │   ├── _sicbo_helpers.py       Tài/Xỉu/Bộ ba resolution and payouts
+    │   │   └── sicbo.py               Button-driven solo Sic Bo against Trap Coin wagers
     │   ├── crocodile_dentist/
     │   │   ├── _crocodile_helpers.py  Pure challenge parsing and game-state transitions
     │   │   └── crocodile.py           Persistent invitations, tooth UI, expiry, and commands
@@ -227,12 +269,16 @@ tfvn_bot/
     │   ├── server_stats.py              In-memory uptime and command/error counts
     │   ├── setup_check.py               Manage Guild diagnostic summary using the shared Doctor collector
     │   └── leave.py                     Administrator-controlled guild departure
-    ├── settings/variable_setting.py     Mongo-backed runtime variable commands
+    ├── settings/
+    │   ├── variable_setting.py         Announcement-only settings commands and legacy cache loading
+    │   └── _guild_variables.py         Seven-key announcement whitelist, guild lookups, and unique index
     └── utils/
-        ├── giveaway.py                  Persistent views, entries, scheduling, and rerolls
+        ├── giveaway.py                  Persistent views, entries, scheduling, rerolls, and guild role settings
+        ├── _giveaway_helpers.py         Duration/prize parsing, blacklist/bonus weights, and weighted draws
+        ├── _giveaway_ui.py              Create form, role selects, and guild settings panel
         ├── vote.py                      Persistent reaction polls and result scheduling
-        ├── highlight.py                 Requirements command, 💀 listener, media downloads, chat PNG, TV congrats reply
-        ├── _highlight_helpers.py        Skull/interval knobs, NSFW skip, channel helpers
+        ├── highlight.py                 Requirements button, replacing startup/post prompts, 💀 listener, chat PNG, TV reply
+        ├── _highlight_helpers.py        Skull/interval/prompt-delay knobs, NSFW skip, channel helpers
         ├── _highlight_card.py           Discord dark-theme chat PNG, image gallery, and embed rendering
         ├── _highlight_font.py           Portable meter-block and rainbow-flag drawing with bundled fonts
         ├── _highlight_media.py          Bounded embed snapshots, mention names, and Discord media URLs
@@ -283,14 +329,29 @@ without downloading assets. Local image IDs start at 1000 and use `food-extra-*`
 sheets; image-generation prompts and wish animations have separate source notes
 under `assets/lunch/`.
 
+Tarot composites bundled Rider-Waite-Smith scans from `assets/tarot/` onto the
+spread cloth at runtime and does not download card art while handling commands.
+`scripts/prepare_tarot_assets.py` refreshes those WebP files from Wikimedia Commons
+and crops each scan to the printed card frame. `--from-existing` recrops bundled
+files without downloading.
+
 ## Persistence Boundaries
 
 MongoDB collections are created lazily. Major groups are:
 
-- Configuration: `global_variables`, `moderation_config`
-- Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`
+- Configuration: announcement records in `global_variables` use
+  `{guild_id, name, type: "STRING", value}` with a partial unique `(guild_id, name)`
+  index for numeric guild IDs. The seven allowed keys are `JOIN_CHANNEL`,
+  `RULE_CHANNEL`, `ROLE_CHANNEL`, `BYE_CHANNEL`, `WELCOME_GIF_URL`,
+  `GOODBYE_GIF_URL`, and `BANNED_GIF_URL`. Administrator commands can only read/write
+  these values for their current guild; the set command prompts directly for
+  the value. `migrate_guild_variables.py` previews legacy announcement copies
+  by default and writes only with `--apply`. Other legacy unscoped records still
+  populate the flat `bot.global_vars` cache for compatibility. `moderation_config`
+  remains independently guild-scoped
+- Economy: `user_accounts` (including versioned `cultivation` state), `daily_rewards_logs`, `transaction_logs`, `shop_items`, `shop_inventory`, `shop_custom_roles`, `shop_custom_rooms`, `shop_migrations`
 - Cultivation audit: append-only `cultivation_events`; TC exchanges also write `transaction_logs`
-- Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`
+- Social state: `interactions`, `nsfw_settings`, `images`, `marriages`, `marriage_proposals`, `triggered_replies`, `interaction_streaks`. Pair streaks are unique per guild `(user_a, user_b)` with Vietnam calendar dates (UTC+7); a chain stays live if `last_active_date` is today or yesterday. Current counts of 3, 7, 30, or 100 ping both members in the channel that credited the day
 - Soft OTP issuances: `softotp_issuances` stores guild/member/challenge bindings for `tfotp1.<key-id>.<unix>.<code>` tokens. Lookup `_id` is a SHA-256 of guild, challenge, key ID, issue time, and code; the user ID stays out of the token. Verify authenticates only the active HMAC key and does not scan the guild. Unique `(guild_id, user_id, challenge)` prevents duplicate live codes per member
 - Content provenance: `hash_verifications` stores immutable, guild-scoped
   femboy-card and quote snapshots. New records use their signed 128-bit token ID
@@ -310,7 +371,12 @@ MongoDB collections are created lazily. Major groups are:
   avatars, attachments, or embeds. Deployments must not share keyrings. Quote
   text and names stay out of the readable token and are returned only inside the
   exact source channel/thread; PyMongo reads/writes run in worker threads
-- Scheduling: `tasks`, `votes`, `giveaways`, `highlight_nominations`, `birthdays`, `birthday_announcements`,
+- Highlight notice state: `highlight_prompts` uses channel ID as `_id`, with
+  `guild_id` and `message_id` for the latest requirements prompt. Prompt replacement
+  is serialized within the cog; it deletes the saved notice and any matching bot
+  notices in the latest 100 channel messages before posting and saving a replacement.
+  Message ownership and the stable requirements button are checked before deletion.
+- Scheduling: `tasks`, `votes`, `giveaways`, `giveaway_settings`, `highlight_nominations`, `birthdays`, `birthday_announcements`,
   `bedtime_reminders`. Highlight rows are guild/source-message unique and created when a SFW message first reaches `HIGHLIGHT_THRESHOLD` unique non-bot 💀; they CAS `pending` → `posting` → `posted` before uploading a chat-theme PNG to `HIGHLIGHT_CHANNEL`, with at least `HIGHLIGHT_MIN_INTERVAL_SECONDS` between posts in a guild. NSFW source channels are ignored. Bedtime records are guild/member scoped and hold normalized
   sleep minutes, announcement channel, next UTC deadline, local-date deduplication,
   and audit timestamps; unique guild/member and due-time indexes enforce one schedule
@@ -323,18 +389,21 @@ MongoDB collections are created lazily. Major groups are:
   from `operation_logs` and is excluded from guild audit browsing, CSV export,
   and pruning
 - Shared sequence counters: `feature_counters`
-- Games and boosters: card-game wagers and word-game win rewards use
-  `user_accounts` plus `transaction_logs` through `_card_game_economy.CardGameBank`.
+- Games and boosters: card-game wagers, slot spins, Sic Bo bets, and word-game win
+  rewards use `user_accounts` plus `transaction_logs` through
+  `_card_game_economy.CardGameBank`. Blackjack, Poker, slots, and Sic Bo attach a
+  PNG felt table from `_casino_ui.py` to the live Discord panel.
   `vtv top` and `noitu top` rank `vietnamese_king_win` / `word_connect_win` credits
   in that same audit collection. Crocodile Dentist uses `crocodile_games` plus
   guild-scoped IDs from
   `feature_counters` keys named `crocodile_game:<guild_id>`; other state uses
-  `context`, `sicbo_active_games`, `booster_custom_roles`, and `booster_custom_rooms`
+  `context`, `booster_custom_roles`, and `booster_custom_rooms`
 
 Discord tokens, database credentials, and external API credentials belong in
 environment variables. Runtime database selection uses `DB_NAME`.
-Process-level extension controls use `DISABLED_COGS`; guild-specific IDs and
-media arrays generally belong in `global_variables`.
+Process-level extension controls use `DISABLED_COGS`. Announcement keys in
+`global_variables` are guild-scoped; legacy feature records retain their existing
+unscoped format.
 
 Tiên Lộ stores its authoritative profile below `user_accounts.cultivation` and
 keeps Trap Coin in `user_accounts.balance`, allowing an exchange to update both
@@ -385,6 +454,13 @@ before container termination.
 - Add or change a command/listener in its domain under `cogs/`.
 - Keep Tiên Lộ Discord/Mongo behavior in `cogs/cultivation/cultivation.py` and
   deterministic tables/calculations in `_cultivation_helpers.py`.
+- Keep the Trap Coin shop hub in `cogs/economy/shop.py`, catalog products in
+  `_shop_catalog.py`, and extra paid products such as custom roles in their own
+  shop cogs that register through `_shop_products.py`.
+- Rental expiry lives in `shop_inventory.expires_at`; the indexed
+  `expiry_cleanup_pending` flag tracks deletions needing retry. Each rental cog
+  runs a readiness-gated 60-second worker. `_shop_rentals.py` owns the idempotent
+  `monthly_custom_roles_v1` grace-period migration and UTC normalization.
 - Put reusable feature helpers in a leading-underscore module beside their consumers.
 - Put shared static media in `assets/`; put runtime-editable media in Mongo settings.
 - Treat large game datasets as generated outputs and update their preparation script with them.

@@ -21,3 +21,7 @@ Emoji and convert complex or newer unsupported sequences to readable
 `:shortcode:` text so output stays consistent without a system shaping engine.
 Highlight cards preserve Unicode emoji and draw meter blocks (`█`, `░`) and the
 rainbow flag directly, including on systems without a text shaping engine.
+
+Glyph coverage checks use Pillow's BASIC layout so unsupported combining marks
+and variation selectors are detected consistently on Windows and Linux. Drawing
+and measurement keep the original layout engine, including RAQM when available.

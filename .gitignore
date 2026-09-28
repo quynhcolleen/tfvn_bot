@@ -3,8 +3,11 @@
 bot.log
 discord.log
 __pycache__/
+.pytest_cache/
 *.pyc
 venv/
 env/
 dev_cogs.txt
 draft.txt
+.env.development
+.env.production

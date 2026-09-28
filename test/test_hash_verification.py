@@ -30,7 +30,7 @@ from cogs._hash_verification import (
     verification_token_fingerprint,
     verify_verification_token,
 )
-from cogs.funny_things.femboy_card import FemboyCardCog
+from cogs.funny_things.cards.femboy_card import FemboyCardCog
 from cogs.utils.hash_verify import HashVerifyCog
 from cogs.utils.quote import QuoteCog
 

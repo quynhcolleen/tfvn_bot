@@ -2,6 +2,8 @@
 
 These are the target conventions for new and changed code. Some legacy modules differ; improve the code you touch without reformatting unrelated files. Use [AGENTS.md](AGENTS.md) for the short contributor workflow and [CODEBASE.md](CODEBASE.md) to find subsystem ownership.
 
+Follow [HOW_TO_IMPLEMENT_FEATURE.md](HOW_TO_IMPLEMENT_FEATURE.md) for the ordered feature workflow and when to run focused versus full tests.
+
 ## Python Style
 
 - Target Python 3.11, save source/data files as UTF-8, and keep tracked text files on LF line endings as enforced by `.gitattributes`.
@@ -84,7 +86,22 @@ Use environment variables for credentials and process-level boot settings:
 - `ENVIRONMENT` and `COMMAND_PREFIX`
 - Process-level extension controls such as `DISABLED_COGS`
 
-Use MongoDB `global_variables` for guild-specific IDs, configurable media arrays, and feature settings. Read them through `bot.global_vars`; validate required values at cog initialization and name the missing key in the error. Optional settings should have an explicit default or disable only the affected behavior.
+Use MongoDB `global_variables` for feature configuration. Only the seven welcome
+and departure keys in `ANNOUNCEMENT_VARIABLES` are guild-specific. They use
+integer `guild_id` plus `name`, `type`, and `value`, with a unique `(guild_id, name)`
+index, and are cached in `bot.guild_vars[guild_id]`. Read them through
+`get_guild_variable` or `get_guild_variables` with the actual event/command guild;
+resolve at use time without falling back to legacy shared values.
+
+The settings commands accept only `JOIN_CHANNEL`, `RULE_CHANNEL`, `ROLE_CHANNEL`,
+`BYE_CHANNEL`, `WELCOME_GIF_URL`, `GOODBYE_GIF_URL`, and `BANNED_GIF_URL`. All seven
+are `STRING` values entered through a direct value prompt. Both commands require
+Administrator and a guild context; no shared-setting command path is provided.
+
+Legacy unscoped `{name, type, value}` records continue to load into the flat
+`bot.global_vars` map for existing features. Missing required announcement settings
+skip delivery only for the affected guild. Optional settings need an explicit default. Validate
+channel ownership before sending announcements.
 
 Use `DISABLED_COGS` when an entire extension must be skipped before import;
 patterns are parsed by `cogs._feature_flags`.
@@ -117,7 +134,7 @@ Validate user input before mutating Discord or MongoDB state. For multi-step com
 
 ## Testing Conventions
 
-Tests use `unittest` and live under `test/`:
+Tests use `unittest`, live under `test/`, and run through pytest in CI:
 
 - Files: `test_<feature>.py`
 - Classes: `TestBehavior`
@@ -125,11 +142,32 @@ Tests use `unittest` and live under `test/`:
 
 Extract parsing, scoring, formatting, and validation into pure helpers so they can be tested without Discord. Mock Discord, MongoDB, time, randomness, and HTTP boundaries; automated tests must not require production credentials or network access. Add a regression test for each fixed bug and cover both success and invalid-input paths.
 
-Run:
+Install development dependencies during setup:
 
 ```powershell
-python -m unittest discover -s test -p "test_*.py"
+python -m pip install -r requirements-dev.txt
 ```
+
+During development, run only the changed behavior's tests or affected modules:
+
+```powershell
+python -m pytest test/test_highlight.py -k prompt -q
+python -m pytest test/test_highlight.py -q
+```
+
+Replace these examples with the feature's test file and selection. Include direct
+consumers of changed shared code. Do not run the full suite after every edit.
+Once implementation, tests, development checks, documentation, and diff review
+are complete, run the same full suite as the PR check:
+
+```powershell
+python -m pytest
+```
+
+If the full run fails, use focused tests during fixes, then rerun the full suite
+after the fixes are complete. Repeat a passing full run only when executable code,
+tests, or relevant configuration change. Documentation-only and behavior-neutral
+copy edits need text/link/diff checks and any affected existing tests, not a full run.
 
 `test/word_stardardlize.py` is a manual data utility and can write files; it is not part of normal test execution.
 
@@ -137,7 +175,7 @@ python -m unittest discover -s test -p "test_*.py"
 
 Before handing off a change:
 
-- Run the relevant unit tests and the full discovered suite.
+- Pass focused tests during development, then the full suite once the feature and its documentation are complete; use the documentation/copy-only exception above when applicable.
 - Exercise the affected cog with a focused `dev_cogs.txt` profile when Discord behavior changed.
 - Document new environment variables, Mongo global variables, collections, or migrations.
 - Update `CODEBASE.md` when adding, removing, or moving modules.

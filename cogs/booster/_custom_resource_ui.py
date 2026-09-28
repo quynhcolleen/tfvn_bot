@@ -138,10 +138,28 @@ def _safe_text(value: str) -> str:
 
 
 class BoosterSetupView(discord.ui.View):
-    def __init__(self, *, author_id: int, command_name: str) -> None:
+    def __init__(
+        self,
+        *,
+        author_id: int,
+        command_name: str,
+        owner_denial: str | None = None,
+        owner_modal_denial: str | None = None,
+        cancel_message: str | None = None,
+        footer_note: str | None = None,
+    ) -> None:
         super().__init__(timeout=BOOSTER_UI_TIMEOUT_SECONDS)
         self.author_id = author_id
         self.command_name = command_name
+        self.owner_denial = (
+            owner_denial or "Chỉ Booster đã mở bảng này mới có thể sử dụng."
+        )
+        self.owner_modal_denial = (
+            owner_modal_denial
+            or "Chỉ Booster đã mở bảng này mới có thể chỉnh sửa."
+        )
+        self.cancel_message = cancel_message or "Đã hủy thao tác Booster."
+        self.footer_note = footer_note
         self.message: discord.Message | None = None
         self.completed = False
         self.submitting = False
@@ -149,7 +167,7 @@ class BoosterSetupView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
             await interaction.response.send_message(
-                "Chỉ Booster đã mở bảng này mới có thể sử dụng.",
+                self.owner_denial,
                 ephemeral=True,
             )
             return False
@@ -170,7 +188,7 @@ class BoosterSetupView(discord.ui.View):
     async def modal_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
             await interaction.response.send_message(
-                "Chỉ Booster đã mở bảng này mới có thể chỉnh sửa.",
+                self.owner_modal_denial,
                 ephemeral=True,
             )
             return False
@@ -191,7 +209,7 @@ class BoosterSetupView(discord.ui.View):
         self.disable_all()
         self.stop()
         await interaction.response.edit_message(
-            content="Đã hủy thao tác Booster.",
+            content=self.cancel_message,
             embed=None,
             view=self,
             allowed_mentions=discord.AllowedMentions.none(),
@@ -536,8 +554,19 @@ class BoosterRoleEditorView(BoosterSetupView):
         default_role_name: str = "",
         initial_color_spec: RoleColorSpec | None = None,
         icon_attached: bool = False,
+        owner_denial: str | None = None,
+        owner_modal_denial: str | None = None,
+        cancel_message: str | None = None,
+        footer_note: str | None = None,
     ) -> None:
-        super().__init__(author_id=author_id, command_name=command_name)
+        super().__init__(
+            author_id=author_id,
+            command_name=command_name,
+            owner_denial=owner_denial,
+            owner_modal_denial=owner_modal_denial,
+            cancel_message=cancel_message,
+            footer_note=footer_note,
+        )
         self.submitter = submitter
         self.default_role_name = default_role_name
         self.icon_attached = icon_attached
@@ -595,9 +624,13 @@ class BoosterRoleEditorView(BoosterSetupView):
             embed.add_field(name="Màu", value=f"`{color_text}`", inline=False)
         embed.set_footer(
             text=(
-                "Icon PNG từ tin nhắn gốc sẽ được sử dụng."
-                if self.icon_attached
-                else "Có thể dùng cú pháp cũ kèm PNG nếu muốn đặt icon."
+                self.footer_note
+                if self.footer_note
+                else (
+                    "Icon PNG từ tin nhắn gốc sẽ được sử dụng."
+                    if self.icon_attached
+                    else "Có thể dùng cú pháp cũ kèm PNG nếu muốn đặt icon."
+                )
             )
         )
         return embed
@@ -715,7 +748,7 @@ class ConfirmRoomButton(discord.ui.Button):
     def __init__(self, creator: "BoosterRoomCreatorView") -> None:
         self.creator = creator
         super().__init__(
-            label="Tạo phòng",
+            label="Cập nhật phòng" if creator.updating else "Tạo phòng",
             emoji="✅",
             style=discord.ButtonStyle.success,
             custom_id="booster-room:confirm",
@@ -771,14 +804,28 @@ class BoosterRoomCreatorView(BoosterSetupView):
         *,
         author_id: int,
         submitter: RoomSubmitter,
+        command_name: str = "custom_room",
+        default_room_name: str = "",
+        initial_user_limit: int = 0,
+        updating: bool = False,
+        owner_denial: str | None = None,
+        owner_modal_denial: str | None = None,
+        cancel_message: str | None = None,
+        footer_note: str | None = None,
     ) -> None:
-        super().__init__(author_id=author_id, command_name="custom_room")
+        super().__init__(
+            author_id=author_id, command_name=command_name,
+            owner_denial=owner_denial, owner_modal_denial=owner_modal_denial,
+            cancel_message=cancel_message, footer_note=footer_note,
+        )
         self.submitter = submitter
-        self.user_limit = 0
-        self.draft: RoomDesignDraft | None = None
+        self.updating = updating
+        self.user_limit = initial_user_limit
+        self.draft = RoomDesignDraft(default_room_name, initial_user_limit) if default_room_name else None
         self.limit_select = RoomLimitSelect(self)
         self.name_button = RoomNameButton(self)
         self.confirm_button = ConfirmRoomButton(self)
+        self.confirm_button.disabled = self.draft is None
         self.cancel_button = CancelButton(self, resource="room")
         self.add_item(self.limit_select)
         self.add_item(self.name_button)
@@ -787,7 +834,7 @@ class BoosterRoomCreatorView(BoosterSetupView):
 
     def build_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title="🔊 Tạo custom voice room",
+            title="🔊 Cập nhật custom voice room" if self.updating else "🔊 Tạo custom voice room",
             description=(
                 "Chọn số người tối đa, nhập tên phòng rồi kiểm tra lại trước khi tạo."
             ),
@@ -811,7 +858,7 @@ class BoosterRoomCreatorView(BoosterSetupView):
             ),
             inline=False,
         )
-        embed.set_footer(text="Phòng sẽ được tạo trong category Booster đã cấu hình.")
+        embed.set_footer(text=self.footer_note or "Phòng sẽ được tạo trong category Booster đã cấu hình.")
         return embed
 
     async def confirm(self, interaction: discord.Interaction) -> None:
