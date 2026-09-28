@@ -78,9 +78,22 @@ class _FallbackFont:
     ) -> None:
         self.primary = primary
         self.fonts = (primary, *fallbacks)
+        # RAQM can hide missing selectors or add dotted circles to marks. Probe
+        # unshaped glyphs so coverage does not depend on the rendering engine.
+        self._probe_fonts = tuple(
+            font if font.layout_engine == ImageFont.Layout.BASIC
+            else ImageFont.truetype(
+                BytesIO(font.font_bytes) if hasattr(font, "font_bytes") else font.path,
+                size=font.size,
+                index=font.index,
+                encoding=font.encoding,
+                layout_engine=ImageFont.Layout.BASIC,
+            )
+            for font in self.fonts
+        )
         self._missing_signatures = tuple(
             self._glyph_signature(font, _MISSING_GLYPH_PROBE)
-            for font in self.fonts
+            for font in self._probe_fonts
         )
         self._support_cache: dict[tuple[int, str], bool] = {}
 
@@ -98,7 +111,7 @@ class _FallbackFont:
             if len(self._support_cache) >= _MAX_GLYPH_SUPPORT_CACHE:
                 self._support_cache.clear()
             signature = self._glyph_signature(
-                self.fonts[font_index],
+                self._probe_fonts[font_index],
                 character,
             )
             self._support_cache[key] = (
@@ -254,7 +267,10 @@ def _bundled_emoji_supports(character: str) -> bool:
     if state is None:
         if not BUNDLED_EMOJI_FONT_PATH.is_file():
             return False
-        font = ImageFont.truetype(str(BUNDLED_EMOJI_FONT_PATH), size=32)
+        font = ImageFont.truetype(
+            str(BUNDLED_EMOJI_FONT_PATH), size=32,
+            layout_engine=ImageFont.Layout.BASIC,
+        )
         missing_signature = _FallbackFont._glyph_signature(
             font,
             _MISSING_GLYPH_PROBE,

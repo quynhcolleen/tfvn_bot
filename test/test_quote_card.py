@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import discord
-from PIL import Image
+from PIL import Image, ImageFont, features
 
 from cogs.utils._quote_card import (
     BUNDLED_EMOJI_FONT_PATH,
@@ -16,6 +16,7 @@ from cogs.utils._quote_card import (
     CARD_WIDTH,
     MAX_NORMALIZED_TEXT_LENGTH,
     TEXT_AREA_HEIGHT,
+    _FallbackFont,
     _truncate_to_width,
     _fit_quote_lines,
     _font_path,
@@ -170,6 +171,44 @@ class TestQuoteText(unittest.TestCase):
             "".join(text for text, _ in font._font_runs("1️⃣")),
             "1",
         )
+
+    def test_fallback_modifiers_are_consistent_across_layout_engines(self):
+        engines = [ImageFont.Layout.BASIC]
+        if features.check_feature("raqm"):
+            engines.append(ImageFont.Layout.RAQM)
+        for engine in engines:
+            with self.subTest(engine=engine):
+                primary = ImageFont.truetype(
+                    str(BUNDLED_FONT_PATH), size=40, layout_engine=engine,
+                )
+                font = _FallbackFont(primary, ())
+                runs = font._font_runs("Kie\u0302n 1\ufe0f\u20e3")
+                self.assertEqual("".join(text for text, _ in runs), "Kie\u0302n 1")
+                self.assertTrue(all(run_font is primary for _, run_font in runs))
+                self.assertEqual(primary.layout_engine, engine)
+
+    def test_shaped_missing_modifiers_do_not_count_as_supported_glyphs(self):
+        primary = ImageFont.truetype(
+            str(BUNDLED_FONT_PATH), size=40, layout_engine=ImageFont.Layout.BASIC,
+        )
+        getmask = primary.getmask
+
+        def shaped_mask(character):
+            # Model RAQM suppressing selectors and adding a dotted circle to
+            # isolated marks, so neither looks like the missing-glyph probe.
+            if character == "\ufe0f":
+                return getmask("")
+            if character == "\u20e3":
+                return getmask("\u25cc\u20e3")
+            return getmask(character)
+
+        with (
+            patch.object(primary, "layout_engine", ImageFont.Layout.RAQM),
+            patch.object(primary, "getmask", side_effect=shaped_mask),
+        ):
+            font = _FallbackFont(primary, ())
+            self.assertEqual(font._font_runs("1\ufe0f\u20e3"), [("1", primary)])
+            self.assertEqual(font._font_runs("Kie\u0302n"), [("Kie\u0302n", primary)])
 
     def test_normalized_text_is_bounded(self):
         normalized = normalize_quote_text("😀" * 4_000)
